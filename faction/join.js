@@ -11,11 +11,11 @@ export async function main(ns) {
       factions = factions.filter(faction => ns.singularity.getAugmentationsFromFaction(faction)
         .filter(x => !augs.includes(x)).length);
     }
-    factions.forEach(faction => {
+    for(const faction of factions){
       ns.singularity.joinFaction(faction);
       ns.print(`joined ${faction} faction`);
       ns.toast(`joined ${faction} faction`);
-    });
+    }
 
     await ns.sleep(10000);
   }

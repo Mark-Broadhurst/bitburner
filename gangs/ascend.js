@@ -5,8 +5,7 @@ export async function main(ns) {
   const threshold = ns.args[0] ?? 1.5;
   while(true){
     ns.clearLog();
-    ns.gang.getMemberNames()
-      .forEach(memberName => {
+    for(const memberName of ns.gang.getMemberNames()){
       const result = ns.gang.getAscensionResult(memberName);
 
       if(result){
@@ -21,7 +20,7 @@ export async function main(ns) {
             ns.toast(`Ascended ${memberName}`);
         }
       }
-    });
+    }
     await ns.sleep(1000);
   }
 }

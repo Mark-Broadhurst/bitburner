@@ -16,8 +16,8 @@ export async function main(ns) {
     .sort(sortBy("moneyMax"));
 
   const threads = Math.floor(serverRam / scriptRam / servers.length);
-  servers.forEach(server => {
+  for(const server of servers){
     ns.print(`Name: ${server.hostname} ${server.moneyAvailable} thread:${threads}`);
     ns.exec("hacking/simple.js", "home", threads, server.hostname);
-  });
+  }
 }

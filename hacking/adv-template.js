@@ -7,8 +7,9 @@ export async function main(ns) {
   ns.clearLog();
   ns.tail();
   const servers = network(ns).filter(s => s.moneyMax != 0).sort(sortBy("requiredHackingSkill"));
-  const player = ns.getPlayer()
-  servers.forEach(server => {
+  const player = ns.getPlayer();
+
+  for(const server of servers){
     const moneyDiff = server.moneyMax - server.moneyAvailable;
     const growThr = ns.formulas.hacking.growThreads(server, player, moneyDiff);
     const growPer = ns.formulas.hacking.growPercent(server, growThr, player, 1) * 100;
@@ -21,5 +22,5 @@ export async function main(ns) {
     if (hackCha > 0 && totalTime < 900) {
       ns.print(`Server : ${server.hostname}\tgrowPercent: ${growPer}\tgrowThreads: ${growThr}\thackChance: ${hackCha}\thackXp: ${xp}\thackPer: ${hackper}\ttotaltime: ${totalTime}\ttotalHack: ${hackThreads}`);
     }
-  });
+  }
 }

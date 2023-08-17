@@ -7,9 +7,9 @@ export async function main(ns) {
   const player = ns.getPlayer();
 
   let targets = network(ns)
-    .filter(server => server.hasAdminRights && server.moneyMax != 0 && server.requiredHackingSkill <= player.skills.hacking)
-  ns.getPurchasedServers()
-    .forEach(server => {
+    .filter(server => server.hasAdminRights && server.moneyMax != 0 && server.requiredHackingSkill <= player.skills.hacking);
+
+    for(const server of ns.getPurchasedServers()){
       const ram = ns.getServerMaxRam(server);
       
       let threads = Math.floor(ram / 3.5 / targets.length);
@@ -32,11 +32,11 @@ export async function main(ns) {
 
       ns.scp(["hacking/grow.js", "hacking/weaken.js"], server);
 
-      targets.forEach(target => {
+      for(const target of targets){
         ns.print(server + " " + threads + " " + target.hostname);
         ns.exec("hacking/grow.js", server, threads, target.hostname);
         ns.exec("hacking/weaken.js", server, threads, target.hostname);
-      });
-    });
+      }
+    }
 }
 

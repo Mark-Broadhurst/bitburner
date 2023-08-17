@@ -47,11 +47,11 @@ export async function main(ns) {
 
     ns.scp(["hacking/grow.js", "hacking/weaken.js"], server.name);
 
-    targets.forEach(target => {
+    for(const target of targets){
       ns.print(server.name + " " + threads + " " + target.hostname);
       ns.exec("hacking/grow.js", server.name, threads, target.hostname);
       ns.exec("hacking/weaken.js", server.name, threads, target.hostname);
-    });
+    }
 
   }
 }
