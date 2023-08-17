@@ -8,22 +8,25 @@ export async function main(ns) {
   //ns.exec("train.js", "home");
   ns.exec("./servers/purchase.js", "home");
   ns.exec("./home/upgrade.js", "home");
-  ns.exec("./sleeves/work.js", "home");
+  //ns.exec("./sleeves/work.js", "home");
   ns.exec("./sleeves/augments.js", "home");
   if(ns.gang.inGang()){
     ns.exec("./gangs/equipment.js", "home");
-    ns.exec("./gangs/ascend.js", "home");
+    ns.exec("./gangs/ascend.js", "home", 1, 1.1);
     ns.exec("./gangs/recruit.js", "home");
     //ns.exec("./gangs/tasks.js", "home");
   }
   await ns.sleep(5 * 1000);
-  ns.exec("./hacking/local.js", "home");
-  ns.exec("./hacking/remote.js", "home");
+  ns.exec("./hacking/refresh.js", "home");
   ns.exec("./faction/join.js", "home", 1, false);
 
   ns.print("Waiting for formulas")
   while (!ns.fileExists("Formulas.exe") && !ns.fileExists("SQLInject.exe")) {
     await ns.sleep(10 * 1000);
   }
+  ns.exec("./job/apply.js", "home");
   ns.exec("./servers/upgrade.js", "home");
+  ns.exec("./faction/bribe.js", "home");
+  ns.exec("./hacking/refresh.js", "home");
+
 }

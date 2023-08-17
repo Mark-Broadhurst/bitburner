@@ -2,7 +2,7 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
-  const threshold = ns.args[0] ?? 1.5;
+  const threshold = ns.args[0] ?? 1.1;
   while(true){
     ns.clearLog();
     for(const memberName of ns.gang.getMemberNames()){

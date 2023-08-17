@@ -6,7 +6,7 @@ export async function main(ns) {
   ns.clearLog();
   let contracts = [];
 
-  ns.codingcontract.createDummyContract("Subarray with Maximum Sum");
+  //ns.codingcontract.createDummyContract("Subarray with Maximum Sum");
 
 
   for (const server of network(ns)) {
@@ -28,7 +28,7 @@ export async function main(ns) {
   }
 
   for (const x of contracts) {
-    ns.print(x.hostname + " : " + x.contract + " : " + x.type);
+    ns.print(x.hostname + "\t" + x.contract + "\t" + x.type);
     /*
     switch (x.type) {
       case "Find Largest Prime Factor":

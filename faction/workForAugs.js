@@ -7,9 +7,10 @@ export async function main(ns) {
   let factionsWithAugs = ns.getPlayer().factions
     .filter(x=> x != "Shadows of Anarchy")
     .map(faction => {
+      const factionRep = ns.singularity.getFactionRep(faction);
       let factionAugs = ns.singularity.getAugmentationsFromFaction(faction)
-        .filter(x => !ownedAugs.includes(x) && x != "NeuroFlux Governor")
-        .map(x => { return { name: x, rep: ns.singularity.getAugmentationRepReq(x) } });
+        .filter(x => !ownedAugs.includes(x) && x != "NeuroFlux Governor" && x != "The Red Pill")
+        .map(x => { return { name: x, rep: ns.singularity.getAugmentationRepReq(x) - factionRep } });
       return { name: faction, augs: factionAugs };
     })
     .filter(x => x.augs.length)
@@ -22,7 +23,7 @@ export async function main(ns) {
       }
       return 0;
     });
-  
+  ns.print(JSON.stringify(factionsWithAugs, null, 1));
   for (const faction of factionsWithAugs) {
     for (const aug of faction.augs) {
       ns.singularity.workForFaction(faction.name, "hacking", false);
@@ -31,12 +32,12 @@ export async function main(ns) {
       let rep = ns.singularity.getFactionRep(faction.name);
       while (rep < aug.rep) {
         await ns.sleep(1000);
-        ns.print(`waiting for rep ${aug.rep} for ${aug.name}`)
+        //ns.print(`waiting for rep ${aug.rep} for ${aug.name}`)
         rep = ns.singularity.getFactionRep(faction.name);
       }
       let price = ns.singularity.getAugmentationPrice(aug.name);
       while (ns.getServerMoneyAvailable("home") < price) {
-        ns.print(`waiting for rep ${price} for ${aug.name}`)
+        //ns.print(`waiting for rep ${price} for ${aug.name}`)
         await ns.sleep(1000);
       }
       ns.singularity.purchaseAugmentation(faction.name, aug.name);
