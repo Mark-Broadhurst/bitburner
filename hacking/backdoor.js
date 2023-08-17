@@ -16,14 +16,13 @@ export async function main(ns) {
 
   ns.disableLog("ALL");
   ns.clearLog();
-  var servers = network(ns)
+  const servers = network(ns)
     .filter(x=> x!="w0r1d_d43m0n")
     .sort(sortBy("requiredHackingSkill"))
     .sort(sortBy("numOpenPortsRequired"));
   ns.singularity.connect("home");
-  for(let i = 0; i<servers.length; i++)
+  for(const server of servers)
   {
-    var server = servers[i];
     if(server.backdoorInstalled){
       continue;
     }
@@ -37,9 +36,9 @@ export async function main(ns) {
       ns.print(`waiting for hacklevel ${server.requiredHackingSkill} to backdoor ${server.hostname}`);
       await ns.sleep(60000);
     }
-    var path = await pathTo(server.hostname);
-    for(let j = 0; j<path.length; j++) {
-      ns.singularity.connect(path[j]);
+    const path = await pathTo(server.hostname);
+    for(const element of path) {
+      ns.singularity.connect(element);
     }
     ns.print(`Installing backdoor for ${server.hostname}`);
     await ns.singularity.installBackdoor()

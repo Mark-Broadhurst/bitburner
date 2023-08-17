@@ -10,8 +10,7 @@ export async function main(ns) {
     .filter(server => !server.hasAdminRights)
     .sort(sortBy("requiredHackingSkill"))
     .sort(sortBy("numOpenPortsRequired"));
-  for (let i = 0; i < servers.length; i++) {
-    let server = servers[i];
+  for (const server of servers) {
     await openPorts(ns, server);
     ns.toast(`Admin access gained for ${server.hostname}`)
   }

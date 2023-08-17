@@ -12,7 +12,7 @@ export async function main(ns) {
     .forEach(server => {
       const ram = ns.getServerMaxRam(server);
       
-      var threads = Math.floor(ram / 3.5 / targets.length);
+      let threads = Math.floor(ram / 3.5 / targets.length);
 
       while(threads == 0)
       {

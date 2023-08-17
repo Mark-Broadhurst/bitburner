@@ -6,7 +6,7 @@ export async function main(ns) {
   ns.clearLog();
   const equipments = ns.gang.getEquipmentNames()
     .map(equipment => {
-      var cost = ns.gang.getEquipmentCost(equipment);
+      const cost = ns.gang.getEquipmentCost(equipment);
       return { name: equipment, cost: cost }
     })
     .sort(sortBy("name"))

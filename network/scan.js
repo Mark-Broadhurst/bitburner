@@ -14,8 +14,8 @@ export default function (ns) {
     }
   }
 
-  for (let i = 0; i < hosts.length; i++) {
-    ns.scan(hosts[i]).forEach(add);
+  for (const host of hosts) {
+    ns.scan(host).forEach(add);
   }
 
   return hosts.map(host => ns.getServer(host)).slice(1);

@@ -17,8 +17,6 @@ export async function main(ns) {
 
   const threads = Math.floor(serverRam / scriptRam / servers.length);
   servers.forEach(server => {
-    //var money = Math.floor(server.moneyAvailable * 0.5);
-    //var targetThreads = Math.floor(ns.hackAnalyzeThreads(server.hostname, money));
     ns.print(`Name: ${server.hostname} ${server.moneyAvailable} thread:${threads}`);
     ns.exec("hacking/simple.js", "home", threads, server.hostname);
   });

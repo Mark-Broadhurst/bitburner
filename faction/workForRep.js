@@ -17,14 +17,13 @@ export async function main(ns) {
       return 0;
     });
 
-  factions.forEach(faction=> {
-    let rep = ns.formatNumber(ns.singularity.getFactionRep(faction));
+  for (const faction of factions) {
+      let rep = ns.formatNumber(ns.singularity.getFactionRep(faction));
     let fav = ns.formatNumber(ns.singularity.getFactionFavor(faction));
     ns.print(`${faction} ${fav} ${rep}`);
-  });
+  };
 
-  for (let i = 0; i < factions.length; i++) {
-    let faction = factions[i];
+  for (const faction of factions) {
     ns.singularity.workForFaction(faction, "hacking", false);
     ns.singularity.workForFaction(faction, "security", false);
     ns.print(`working for ${faction}`);

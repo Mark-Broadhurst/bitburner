@@ -2,9 +2,7 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
-  for (let i = 0; i < companies.length; i++) {
-    let company = companies[i];
-
+  for (const company of companies) {
     let positions = ns.singularity.getCompanyPositions(company);
     let job = positions[0];
     let info = ns.singularity.getCompanyPositionInfo(company, job);

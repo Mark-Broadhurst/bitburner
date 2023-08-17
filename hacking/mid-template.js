@@ -7,7 +7,6 @@ export async function main(ns) {
 
   const hostname = "n00dles";
 
-
   ns.scp(["/hacking/hack.js","/hacking/grow.js","/hacking/weaken.js"], hostname, "home");
   
   while(true){
@@ -56,9 +55,6 @@ export async function main(ns) {
     let growRatio = ns.formatPercent(growThreads / totalThreads,2);
 
     ns.print(`Hack Ratio: ${hackRatio}\nWeaken Ratio: ${weakRatio}\nGrow Ratio: ${growRatio}`)
-
-    
-
 
     await ns.sleep(1000);
   }

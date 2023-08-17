@@ -23,10 +23,8 @@ export async function main(ns) {
       return 0;
     });
   
-  for (let i = 0; i < factionsWithAugs.length; i++) {
-    let faction = factionsWithAugs[i];
-    for (let j = 0; j < faction.augs.length; j++) {
-      let aug = faction.augs[j];
+  for (const faction of factionsWithAugs) {
+    for (const aug of faction.augs) {
       ns.singularity.workForFaction(faction.name, "hacking", false);
       ns.singularity.workForFaction(faction.name, "security", false);
       ns.print(`working for ${faction.name}`);
