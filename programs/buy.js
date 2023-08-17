@@ -5,12 +5,11 @@ export async function main(ns) {
   ns.disableLog("ALL")
   ns.clearLog();
   ns.singularity.purchaseTor();
-  var programs = ns.singularity.getDarkwebPrograms()
+  const programs = ns.singularity.getDarkwebPrograms()
     .map(prog => { return { name: prog, cost: ns.singularity.getDarkwebProgramCost(prog) } })
     .sort(sortBy("cost"));
 
-  for (let i = 0; i < programs.length; i++) {
-    let program = programs[i];
+  for (const program of programs) {
     if (ns.fileExists(program.name, "home")) {
       ns.print(`skipping ${program.name}`)
       continue;
