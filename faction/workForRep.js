@@ -31,7 +31,7 @@ export async function main(ns) {
       fav = ns.singularity.getFactionFavorGain(faction) + currentFav;
     }
   }
-  ns.exec("faction/workForAugs.js", "home");
+  ns.run("faction/workForAugs.js");
 }
 
 /** 

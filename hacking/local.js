@@ -18,6 +18,6 @@ export async function main(ns) {
   const threads = Math.floor(serverRam / scriptRam / servers.length);
   for(const server of servers){
     ns.print(`Name: ${server.hostname} ${server.moneyAvailable} thread:${threads}`);
-    ns.exec("hacking/simple.js", "home", threads, server.hostname);
+    ns.run("hacking/simple.js", threads, server.hostname);
   }
 }
