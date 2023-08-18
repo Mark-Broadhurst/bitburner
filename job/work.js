@@ -2,12 +2,15 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
+
+  const typeOfWork = "security";
+
   for (const company of companies) {
     let positions = ns.singularity.getCompanyPositions(company);
     let job = positions[0];
     let info = ns.singularity.getCompanyPositionInfo(company, job);
 
-    ns.singularity.applyToCompany(company, "software");
+    ns.singularity.applyToCompany(company, typeOfWork);
     ns.singularity.workForCompany(company, false);
 
     ns.print(`working for ${company}`);
@@ -15,7 +18,7 @@ export async function main(ns) {
     while (true) {
       let rep = ns.singularity.getCompanyRep(company);
       if (rep > info.requiredReputation) {
-        ns.singularity.applyToCompany(company, "software");
+        ns.singularity.applyToCompany(company, typeOfWork);
         info = ns.singularity.getCompanyPositionInfo(company, info.nextPosition);
         ns.print(`promoted to ${info.name} next ${info.nextPosition}`);
       } 
@@ -32,7 +35,7 @@ export async function main(ns) {
     let job = positions[0];
     let info = ns.singularity.getCompanyPositionInfo(company, job);
 
-    ns.singularity.applyToCompany(company, "software");
+    ns.singularity.applyToCompany(company, typeOfWork);
     ns.singularity.workForCompany(company, false);
 
     ns.print(`working for ${company}`);
@@ -40,7 +43,7 @@ export async function main(ns) {
     while (true) {
       let rep = ns.singularity.getCompanyRep(company);
       if (rep > info.requiredReputation) {
-        ns.singularity.applyToCompany(company, "software");
+        ns.singularity.applyToCompany(company, typeOfWork);
         info = ns.singularity.getCompanyPositionInfo(company, info.nextPosition);
         ns.print(`promoted to ${info.name} next ${info.nextPosition}`);
       } 

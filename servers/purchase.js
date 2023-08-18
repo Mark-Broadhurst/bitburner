@@ -1,9 +1,11 @@
 /** @param {NS} ns */
 export async function main(ns) {
+  ns.disableLog("ALL");
+  ns.clearLog();
   const ram = 8;
-  const scriptCost = 1.75;
   let i = ns.getPurchasedServers().length;
   while (i < ns.getPurchasedServerLimit()) {
+    ns.print(`Purchasing server ${i} : ${ns.getPurchasedServerCost(ram)}`);
     if (ns.getServerMoneyAvailable("home") > ns.getPurchasedServerCost(ram)) {
       let hostname = ns.purchaseServer("pserv-" + i, ram);
       ns.scp("hacking/grow.js", hostname);
