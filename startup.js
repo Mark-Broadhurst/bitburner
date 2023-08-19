@@ -8,7 +8,7 @@ export async function main(ns) {
   //ns.run("train.js");
   ns.run("./servers/purchase.js");
   ns.run("./home/upgrade.js");
-  //ns.run("./sleeves/work.js");
+  ns.run("./sleeves/work.js");
   ns.run("./sleeves/augments.js");
   if(ns.gang.inGang()){
     ns.run("./gangs/equipment.js");
@@ -18,7 +18,7 @@ export async function main(ns) {
   }
   await ns.sleep(5 * 1000);
   ns.run("./hacking/refresh.js");
-  ns.run("./faction/join.js", "home", 1, false);
+  ns.run("./faction/join.js", 1, false);
 
   ns.print("Waiting for formulas")
   while (!ns.fileExists("Formulas.exe") && !ns.fileExists("SQLInject.exe")) {

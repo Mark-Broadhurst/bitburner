@@ -15,10 +15,10 @@ export async function main(ns) {
     .filter(server => server.hasAdminRights)
     .filter(server => hackingLevel >= server.requiredHackingSkill)
     .sort((a, b) => {
-      if (a.moneyMax > b.moneyMax) {
+      if (a.moneyMax < b.moneyMax) {
         return 1;
       }
-      if (a.moneyMax < b.moneyMax) {
+      if (a.moneyMax > b.moneyMax) {
         return -1;
       }
       return 0;

@@ -1,7 +1,7 @@
 /** 
  * Deep scan network for hosts
  * @param {NS} ns
- * @returns {Array} 
+ * @returns {Server[]} 
  */
 export default function (ns) {
 
