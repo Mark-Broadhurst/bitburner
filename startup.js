@@ -2,31 +2,31 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
-  ns.exec("./programs/buy.js", "home");
-  ns.exec("./hacking/nuke-all.js", "home");
-  ns.exec("./hacking/backdoor.js", "home");
-  //ns.exec("train.js", "home");
-  ns.exec("./servers/purchase.js", "home");
-  ns.exec("./home/upgrade.js", "home");
-  //ns.exec("./sleeves/work.js", "home");
-  ns.exec("./sleeves/augments.js", "home");
+  ns.run("./programs/buy.js");
+  ns.run("./hacking/nuke-all.js");
+  ns.run("./hacking/backdoor.js");
+  //ns.run("train.js");
+  ns.run("./servers/purchase.js");
+  ns.run("./home/upgrade.js");
+  //ns.run("./sleeves/work.js");
+  ns.run("./sleeves/augments.js");
   if(ns.gang.inGang()){
-    ns.exec("./gangs/equipment.js", "home");
-    ns.exec("./gangs/ascend.js", "home", 1, 1.1);
-    ns.exec("./gangs/recruit.js", "home");
-    //ns.exec("./gangs/tasks.js", "home");
+    ns.run("./gangs/equipment.js");
+    ns.run("./gangs/ascend.js", "home", 1, 1.1);
+    ns.run("./gangs/recruit.js");
+    //ns.run("./gangs/tasks.js");
   }
   await ns.sleep(5 * 1000);
-  ns.exec("./hacking/refresh.js", "home");
-  ns.exec("./faction/join.js", "home", 1, false);
+  ns.run("./hacking/refresh.js");
+  ns.run("./faction/join.js", "home", 1, false);
 
   ns.print("Waiting for formulas")
   while (!ns.fileExists("Formulas.exe") && !ns.fileExists("SQLInject.exe")) {
     await ns.sleep(10 * 1000);
   }
-  ns.exec("./job/apply.js", "home");
-  ns.exec("./servers/upgrade.js", "home");
-  ns.exec("./faction/bribe.js", "home");
-  ns.exec("./hacking/refresh.js", "home");
+  ns.run("./job/apply.js");
+  ns.run("./servers/upgrade.js");
+  ns.run("./faction/bribe.js");
+  ns.run("./hacking/refresh.js");
 
 }
