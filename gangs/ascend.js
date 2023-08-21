@@ -17,6 +17,7 @@ export async function main(ns) {
           result.str > threshold)
         {
             ns.gang.ascendMember(memberName);
+            //ns.gang.setMemberTask(memberName,"Train Combat");
             ns.toast(`Ascended ${memberName}`);
         }
       }

@@ -2,73 +2,76 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
-
-  let ownedAugs = ns.singularity.getOwnedAugmentations();
-  let factionsWithAugs = ns.getPlayer().factions
-    .filter(x=> x != "Shadows of Anarchy")
-    .map(faction => {
+  let list = [];
+  do {
+    ns.clearLog();
+    list = [];
+    let ownedAugs = ns.singularity.getOwnedAugmentations(true);
+    for (const faction of ns.getPlayer().factions) {
+      if (faction == "Shadows of Anarchy") continue;
       const factionRep = ns.singularity.getFactionRep(faction);
-      let factionAugs = ns.singularity.getAugmentationsFromFaction(faction)
-        .filter(x => !ownedAugs.includes(x) && x != "NeuroFlux Governor" && x != "The Red Pill")
-        .map(x => { return { name: x, rep: ns.singularity.getAugmentationRepReq(x) - factionRep } });
-      return { name: faction, augs: factionAugs };
-    })
-    .filter(x => x.augs.length)
-    .sort((a, b) => {
-      if (a.augs[0].rep > b.augs[0].rep) {
+      const augments = ns.singularity.getAugmentationsFromFaction(faction);
+      for (const augment of augments) {
+        if (augment == "NeuroFlux Governor") continue;
+        if (ownedAugs.includes(augment)) continue;
+        const augmentPrice = ns.singularity.getAugmentationPrice(augment);
+        const augmentRep = ns.singularity.getAugmentationRepReq(augment);
+        list.push(new AugmentItem(faction, factionRep, augment, augmentPrice, augmentRep));
+      }
+    }
+    list = list.sort((a, b) => {
+      if (a.requiredRep > b.requiredRep) {
         return 1;
       }
-      if (a.augs[0].rep < b.augs[0].rep) {
+      if (a.requiredRep < b.requiredRep) {
+        return -1;
+      }
+      if (a.price > b.price) {
+        return 1;
+      }
+      if (a.price < b.price) {
         return -1;
       }
       return 0;
     });
-  ns.print(JSON.stringify(factionsWithAugs, null, 1));
-  for (const faction of factionsWithAugs) {
-    for (const aug of faction.augs) {
-      ns.singularity.workForFaction(faction.name, "hacking", false);
-      ns.singularity.workForFaction(faction.name, "security", false);
-      ns.print(`working for ${faction.name}`);
-      let rep = ns.singularity.getFactionRep(faction.name);
-      while (rep < aug.rep) {
-        await ns.sleep(1000);
-        //ns.print(`waiting for rep ${aug.rep} for ${aug.name}`)
-        rep = ns.singularity.getFactionRep(faction.name);
+    for (const item of list) {
+      if (item.factionRep < item.augmentRep) {
+        ns.singularity.workForFaction(item.faction, "hacking");
+        ns.singularity.workForFaction(item.faction, "security");
+        while (ns.singularity.getFactionRep(item.faction) < item.augmentRep) {
+          ns.print(`Waiting for ${item.faction} rep to reach ${item.augmentRep}`);
+          await ns.sleep(1000);
+        }
       }
-      let price = ns.singularity.getAugmentationPrice(aug.name);
-      while (ns.getServerMoneyAvailable("home") < price) {
-        //ns.print(`waiting for rep ${price} for ${aug.name}`)
+      while (ns.getServerMoneyAvailable("home") < item.price) {
+        ns.print(`Waiting for money to reach ${ns.formatNumber(item.price)}`);
         await ns.sleep(1000);
       }
-      ns.singularity.purchaseAugmentation(faction.name, aug.name);
+      ns.print(`Buying ${item.augment} from ${item.faction}`);
+      ns.singularity.purchaseAugmentation(item.faction, item.augment);
+    }
+    await ns.sleep(100);
+  }
+  while (list.length);
+}
+
+class AugmentItem {
+  /**
+   * @param {string} faction
+   * @param {number} factionRep
+   * @param {string} augment
+   * @param {number} augmentPrice
+   * @param {number} augmentRep
+   */
+  constructor(faction, factionRep, augment, augmentPrice, augmentRep) {
+    this.faction = faction;
+    this.factionRep = factionRep;
+    this.augment = augment;
+    this.augmentPrice = augmentPrice;
+    this.augmentRep = augmentRep;
+    this.requiredRep = augmentRep - factionRep
+    if (this.requiredRep < 0) {
+      this.requiredRep = 0;
     }
   }
 }
-
-const factions = [
-  "Illuminati",
-  "Daedalus",
-  "The Covenant",
-  "ECorp",
-  "MegaCorp",
-  "Bachman & Associates",
-  "Blade Industries",
-  "NWO",
-  "Clarke Incorporated",
-  "OmniTek Incorporated",
-  "Four Sigma",
-  "KuaiGong International",
-  "Fulcrum Secret Technologies",
-  "BitRunners",
-  "The Black Hand",
-  "NiteSec",
-  "Volhaven",
-  "Speakers for the Dead",
-  "The Syndicate",
-  "Tetrads",
-  "Slum Snakes",
-  "Netburners",
-  "Tian Di Hui",
-  "CyberSec",
-  "Silhouette"
-]

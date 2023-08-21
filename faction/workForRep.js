@@ -2,6 +2,7 @@
 export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
+  ns.tail();
   const factions = ns.getPlayer().factions
     .filter(x => x != "Shadows of Anarchy")
     .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)

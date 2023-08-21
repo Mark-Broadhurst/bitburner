@@ -5,6 +5,8 @@ export async function main(ns) {
   let numSleeves = ns.sleeve.getNumSleeves();
   while (true) {
     ns.clearLog();
+    const player = ns.getPlayer();
+
     for (let i = 0; i < numSleeves; i++) {
       let current = ns.sleeve.getSleeve(i);
       if (current.sync < 100) {
@@ -31,33 +33,35 @@ export async function main(ns) {
       } else if (current.exp.agility < 30_000) {
         ns.print(`Synth ${i} set to Agility`);
         ns.sleeve.setToGymWorkout(i, getGym(current.city), ns.enums.GymType.agility);
+      } else if (player.numPeopleKilled < 45 || ns.heart.break() > -54_000) {
+        ns.sleeve.setToCommitCrime(i, "Homicide");
+        await ns.sleep(5000);
       } else {
-        ns.sleeve.setToCommitCrime(i,"Homicide");
-
-        //const player = ns.getPlayer();
-        //const invites = ns.singularity.checkFactionInvitations();
-
-        //let company = companies
-        //  .filter(x=> !player.factions.includes(x) && !invites.includes(x))
-        //  .reduce((a, b) => {
-        //  const aRep = ns.singularity.getCompanyRep(a);
-        //  const bRep = ns.singularity.getCompanyRep(b);
-        //  if (aRep > bRep) {
-        //    return a;
-        //  }
-        //  return b;
-        //});
-   
-        //ns.singularity.applyToCompany(company, "software");
-        //ns.print(`Synth ${i} working for ${company}`);
-        //ns.sleeve.setToCompanyWork(i, company);
-        //ns.sleeve.setToFactionWork(i, , "hacking");
+        ns.sleeve.setToIdle(i);
       }
 
+      //const invites = ns.singularity.checkFactionInvitations();
+
+      //let company = companies
+      //  .filter(x=> !player.factions.includes(x) && !invites.includes(x))
+      //  .reduce((a, b) => {
+      //  const aRep = ns.singularity.getCompanyRep(a);
+      //  const bRep = ns.singularity.getCompanyRep(b);
+      //  if (aRep > bRep) {
+      //    return a;
+      //  }
+      //  return b;
+      //});
+
+      //ns.singularity.applyToCompany(company, "software");
+      //ns.print(`Synth ${i} working for ${company}`);
+      //ns.sleeve.setToCompanyWork(i, company);
+      //ns.sleeve.setToFactionWork(i, , "hacking");
     }
-    await ns.sleep(1000);
+    await ns.sleep(100);
   }
 }
+
 
 /** @param {string} city */
 function getUniversity(city) {

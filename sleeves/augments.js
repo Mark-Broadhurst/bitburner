@@ -6,8 +6,9 @@ export async function main(ns) {
   while (true) {
     ns.clearLog();  
     for (let i = 0; i < numSleeves; i++) {
+      
       let augs = ns.sleeve.getSleevePurchasableAugs(i);
-      ns.print(augs);
+      
       for(const aug of augs){
         ns.sleeve.purchaseSleeveAug(i, aug.name);
       }

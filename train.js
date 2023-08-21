@@ -1,6 +1,5 @@
 /** @param {NS} ns */
 export async function main(ns) {
-  while(true){
     ns.singularity.universityCourse("rothman university", ns.enums.UniversityClassType.algorithms, false);
     await ns.sleep(2 * 60 * 1000);
     ns.singularity.gymWorkout("Powerhouse Gym", ns.enums.GymType.strength, false);
@@ -13,5 +12,4 @@ export async function main(ns) {
     await ns.sleep(2 * 60 * 1000);
     ns.singularity.universityCourse("rothman university", ns.enums.UniversityClassType.leadership, false);
     await ns.sleep(2 * 60 * 1000);
-  }
 }
