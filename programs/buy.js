@@ -11,14 +11,14 @@ export async function main(ns) {
 
   for (const program of programs) {
     if (ns.fileExists(program.name, "home")) {
-      ns.print(`skipping ${program.name}`)
+      ns.print(`skipping ${program.name}`);
       continue;
     }
     while (ns.getServerMoneyAvailable("home") < program.cost) {
-      ns.print(`waiting to buy ${program.name} for ${program.cost}`);
+      ns.print(`waiting to buy ${program.name} for ${ns.formatNumber(program.cost)}`);
       await ns.sleep(10000);
     }
-    ns.toast(`buying ${program.name} for ${program.cost}`);
+    ns.toast(`buying ${program.name} for ${ns.formatNumber(program.cost)}`);
     ns.singularity.purchaseProgram(program.name);
   }
 
