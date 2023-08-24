@@ -13,8 +13,8 @@ export async function main(ns) {
 function subArrayWithMaximumSum(data) {
   let max = 0;
   let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    sum += data[i];
+  for (const element of data) {
+    sum += element;
     if (sum < 0) {
       sum = 0;
     }

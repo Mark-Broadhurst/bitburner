@@ -15,31 +15,32 @@ export async function main(ns) {
       } else if (current.shock > 0) {
         ns.print(`Synth ${i} set to Recovery`);
         ns.sleeve.setToShockRecovery(i);
-      } else if (current.exp.hacking < 10_000) {
+      } else if (current.skills.hacking < 100 || current.exp.hacking < 10_000) {
         ns.print(`Synth ${i} set to Hacking`);
         ns.sleeve.setToUniversityCourse(i, getUniversity(current.city), ns.enums.UniversityClassType.algorithms);
-      } else if (current.exp.charisma < 10_000) {
+      } else if (current.skills.charisma < 100 || current.exp.charisma < 10_000) {
         ns.print(`Synth ${i} set to Charisma`);
         ns.sleeve.setToUniversityCourse(i, getUniversity(current.city), ns.enums.UniversityClassType.leadership);
-      } else if (current.exp.strength < 30_000) {
+      } else if (current.skills.strength < 150 || current.exp.strength < 30_000) {
         ns.print(`Synth ${i} set to Strength`);
         ns.sleeve.setToGymWorkout(i, getGym(current.city), ns.enums.GymType.strength);
-      } else if (current.exp.defense < 30_000) {
+      } else if (current.skills.defense < 150 || current.exp.defense < 30_000) {
         ns.print(`Synth ${i} set to Defense`);
         ns.sleeve.setToGymWorkout(i, getGym(current.city), ns.enums.GymType.defense);
-      } else if (current.exp.dexterity < 30_000) {
+      } else if (current.skills.dexterity < 150 || current.exp.dexterity < 30_000) {
         ns.print(`Synth ${i} set to Dexterity`);
         ns.sleeve.setToGymWorkout(i, getGym(current.city), ns.enums.GymType.dexterity);
-      } else if (current.exp.agility < 30_000) {
+      } else if (current.skills.agility < 150 || current.exp.agility < 30_000) {
         ns.print(`Synth ${i} set to Agility`);
         ns.sleeve.setToGymWorkout(i, getGym(current.city), ns.enums.GymType.agility);
-      } else if (player.numPeopleKilled < 45 || ns.heart.break() > -54_000) {
+      } else if (player.numPeopleKilled < 45 && ns.heart.break() > -54_000 && !ns.gang.inGang()) {
+        ns.print(`Synth ${i} set to Homicide`);
         ns.sleeve.setToCommitCrime(i, "Homicide");
-        await ns.sleep(5000);
+        await ns.sleep(10 * 1000);
       } else {
+        ns.print(`Synth ${i} set to Idle`);
         ns.sleeve.setToIdle(i);
       }
-
       //const invites = ns.singularity.checkFactionInvitations();
 
       //let company = companies

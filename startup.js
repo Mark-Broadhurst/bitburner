@@ -5,6 +5,12 @@ export async function main(ns) {
   ns.run("hacking/nuke-all.js");
   ns.run("hacking/backdoor.js");
   ns.run("home/upgrade.js");
+  ns.run("hacknet/sellHashes.js");
+  ns.run("hacknet/buyNodes.js");
+  ns.run("hacknet/upgrade/upgradeNodeLevel.js");
+  ns.run("hacknet/upgrade/upgradeNodeRam.js");
+  ns.run("hacknet/upgrade/upgradeNodeCores.js");    
+  ns.run("hacknet/upgrade/upgradeNodeCache.js");    
   ns.run("scriptManager.js", 1,"programs/buy.js","servers/purchase.js", "servers/upgrade.js", "hacking/refresh.js");
   if(ns.gang.inGang()){
     ns.run("gangs/equipment.js");
@@ -22,7 +28,7 @@ export async function main(ns) {
   while (!ns.fileExists("Formulas.exe") && !ns.fileExists("SQLInject.exe")) {
     await ns.sleep(10 * 1000);
   }
-  ns.run("scriptManager.js", 1,"train.js", "hacking/refresh.js", "kill45.js","hacking/refresh.js","job/apply.js", "job/workForFaction.js", "faction/workForRep.js", "job/workForPosition.js", "faction/workForAugs.js")
+  ns.run("scriptManager.js", 1,"train.js", "hacking/refresh.js", "kill45.js","hacking/refresh.js","job/apply.js", "job/workForFaction.js", "job/workForPosition.js", "faction/workForRep.js",  "faction/workForAugs.js")
   ns.run("faction/bribe.js");
   ns.run("hacking/refresh.js");
 }

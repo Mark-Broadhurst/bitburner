@@ -2,21 +2,21 @@ import network from "./network/scan";
 
 /** @param {NS} ns */
 export async function main(ns) {
-  ns.disableLog("scan");
-  ns.disableLog("sleep");
+  ns.disableLog("ALL");
   ns.clearLog();
   let contracts = [];
 
-  //for (const server of network(ns)) {
-  //  for (const contract of ns.ls(server.hostname, ".cct")) {
-  //    contracts.push({
-  //      hostname: server.hostname,
-  //      contract: contract,
-  //      type: ns.codingcontract.getContractType(contract, server.hostname)
-  //    });
-  //  }
-  //}
-
+  /*
+    for (const server of network(ns)) {
+      for (const contract of ns.ls(server.hostname, ".cct")) {
+        contracts.push({
+          hostname: server.hostname,
+          contract: contract,
+          type: ns.codingcontract.getContractType(contract, server.hostname)
+        });
+      }
+    }
+  */
   for (const contract of ns.ls("home", ".cct")) {
     contracts.push({
       hostname: "home",
@@ -24,8 +24,9 @@ export async function main(ns) {
       type: ns.codingcontract.getContractType(contract, "home")
     });
   }
-
+  ns.print("Hostname\tContract\t\tType");
   for (const x of contracts) {
+    ns.print(`${x.hostname}\t${x.contract}\t${x.type}`);
     switch (x.type) {
       case "Find Largest Prime Factor":
         ns.run("codecontract/largestprime.js", 1, x.hostname, x.contract);
