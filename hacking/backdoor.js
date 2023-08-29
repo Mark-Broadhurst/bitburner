@@ -17,7 +17,7 @@ export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
   const servers = network(ns)
-    .filter(x=> x!="w0r1d_d43m0n")
+    .filter(x=> x.hostname!="w0r1d_d43m0n")
     .sort(sortBy("requiredHackingSkill"))
     .sort(sortBy("numOpenPortsRequired"));
   ns.singularity.connect("home");

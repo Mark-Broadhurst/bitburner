@@ -9,14 +9,11 @@ export async function main(ns) {
     let ownedAugs = ns.singularity.getOwnedAugmentations(true);
     for (const faction of ns.getPlayer().factions) {
       if (faction == "Shadows of Anarchy") continue;
-      const factionRep = ns.singularity.getFactionRep(faction);
       const augments = ns.singularity.getAugmentationsFromFaction(faction);
       for (const augment of augments) {
         if (augment == "NeuroFlux Governor") continue;
         if (ownedAugs.includes(augment)) continue;
-        const augmentPrice = ns.singularity.getAugmentationPrice(augment);
-        const augmentRep = ns.singularity.getAugmentationRepReq(augment);
-        list.push(new AugmentItem(faction, factionRep, augment, augmentPrice, augmentRep));
+        list.push(new AugmentItem(ns, faction, augment));
       }
     }
     list = list.sort((a, b) => {
@@ -36,14 +33,18 @@ export async function main(ns) {
     });
     for (const item of list) {
       if (item.factionRep < item.augmentRep) {
-        ns.singularity.workForFaction(item.faction, "hacking");
-        ns.singularity.workForFaction(item.faction, "security");
+        let field = getBestField(ns, item.faction);
+        ns.singularity.workForFaction(item.faction, field);
         while (ns.singularity.getFactionRep(item.faction) < item.augmentRep) {
-          ns.print(`Waiting for ${item.faction} rep to reach ${item.augmentRep}`);
+          ns.clearLog();
+          printList(ns, list);
+          ns.print(`Waiting for ${item.faction} rep to reach ${ns.formatNumber(item.augmentRep)}`);
           await ns.sleep(1000);
         }
       }
       while (ns.getServerMoneyAvailable("home") < item.price) {
+        ns.clearLog();
+        printList(ns, list);
         ns.print(`Waiting for money to reach ${ns.formatNumber(item.price)}`);
         await ns.sleep(1000);
       }
@@ -55,21 +56,62 @@ export async function main(ns) {
   while (list.length);
 }
 
+/**
+ * @param {NS} ns
+ * @param {string} faction
+ * @returns {string}
+ */
+function getBestField(ns, faction) {
+  const player = ns.getPlayer();
+  const favour = ns.singularity.getFactionFavor(faction);
+  let gains = [
+    { name: ns.enums.FactionWorkType.hacking, gain: ns.formulas.work.factionGains(player, ns.enums.FactionWorkType.hacking, favour) },
+    { name: ns.enums.FactionWorkType.security, gain: ns.formulas.work.factionGains(player, ns.enums.FactionWorkType.security, favour) },
+    { name: ns.enums.FactionWorkType.field, gain: ns.formulas.work.factionGains(player, ns.enums.FactionWorkType.field, favour) },
+  ]
+    .reduce((a, b) => {
+      if (a.gain.reputation > b.gain.reputation) {
+        return a;
+      }
+      return b;
+    })
+  return gains.name;
+}
+
+/**
+ * @param {NS} ns
+ * @param {AugmentItem[]} list
+ */
+function printList(ns, list) {
+  ns.print("Augment\t\t\t\t\t\tFaction\t\t\tRep\tRequried Rep");
+  ns.print("----------------------------------------------------------------------------------------")
+  for (const item of list) {
+    ns.print(`${item.augment.padEnd(40)}\t${item.faction.padEnd(20)}\t${ns.formatNumber(item.augmentRep,2)}\t${ns.formatNumber(item.requiredRep,2)}`);
+  }
+  ns.print("----------------------------------------------------------------------------------------")
+}
+
 class AugmentItem {
+
+  faction;
+  factionRep;
+  augment;
+  augmentPrice;
+  augmentRep;
+  requiredRep;
+
   /**
+   * @param {NS} ns
    * @param {string} faction
-   * @param {number} factionRep
    * @param {string} augment
-   * @param {number} augmentPrice
-   * @param {number} augmentRep
    */
-  constructor(faction, factionRep, augment, augmentPrice, augmentRep) {
+  constructor(ns, faction, augment) {
     this.faction = faction;
-    this.factionRep = factionRep;
+    this.factionRep = ns.singularity.getFactionRep(faction);
     this.augment = augment;
-    this.augmentPrice = augmentPrice;
-    this.augmentRep = augmentRep;
-    this.requiredRep = augmentRep - factionRep
+    this.augmentPrice = ns.singularity.getAugmentationPrice(augment);
+    this.augmentRep = ns.singularity.getAugmentationRepReq(augment);
+    this.requiredRep = this.augmentRep - this.factionRep
     if (this.requiredRep < 0) {
       this.requiredRep = 0;
     }

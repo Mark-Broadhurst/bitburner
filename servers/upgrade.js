@@ -20,6 +20,9 @@ export async function main(ns) {
         upgrade: () => ns.getPurchasedServerUpgradeCost(server, ns.getServerMaxRam(server) * 2)
       };
     });
+    if(!servers.length){
+      return;
+    }
     const server = servers.reduce((prev, current) => (prev.ram() < current.ram()) ? prev : current)
     const newRam = server.ram() * 2;
     if (maxRam < newRam) {

@@ -7,19 +7,19 @@ export async function main(ns) {
       ns.gang.setMemberTask(member,"Train Combat");
       while(memberInfo.str > target && memberInfo.def > target && memberInfo.dex > target && memberInfo.agi > target)
       {
-        await ns.sleep(60000);
+        await ns.sleep(60 * 1000);
         memberInfo  = ns.gang.getMemberInformation(member);
       }
       ns.gang.setMemberTask(member,"Train Hacking");
       while(memberInfo.hack > target)
       {
-        await ns.sleep(60000);
+        await ns.sleep(60 * 1000);
         memberInfo  = ns.gang.getMemberInformation(member);
       }
       ns.gang.setMemberTask(member,"Train Charisma");
       while(memberInfo.hack > target)
       {
-        await ns.sleep(60000);
+        await ns.sleep(60 * 1000);
         memberInfo  = ns.gang.getMemberInformation(member);
       }
     target = target + 100;

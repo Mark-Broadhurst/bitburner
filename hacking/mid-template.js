@@ -6,7 +6,6 @@ export async function main(ns) {
   const player = ns.getPlayer();
 
   const hostname = "n00dles";
-
   ns.scp(["/hacking/hack.js","/hacking/grow.js","/hacking/weaken.js"], hostname, "home");
   
   while(true){

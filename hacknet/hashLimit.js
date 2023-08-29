@@ -2,13 +2,26 @@
  * @param {NS} ns
  * @returns {number}
  */
-export default function getHashLimit (ns) {
+export function getHashLimit (ns) {
+  return forEachNode(ns, node => node.hashCapacity);
+} 
+
+
+/** 
+ * @param {NS} ns
+ * @returns {number}
+ */
+export function getHashProduction (ns) {
+  return forEachNode(ns, node => node.production);
+} 
+
+function forEachNode(ns, callback) {
   const nodeCount = ns.hacknet.numNodes();
-  let hashCap = 0;
+  let acc = 0;
   for(let i  = 0; i < nodeCount; i++)
   {
     const node = ns.hacknet.getNodeStats(i);
-    hashCap += node.hashCapacity;
+    acc += callback(node);
   }
-  return hashCap;
+  return acc;
 }
