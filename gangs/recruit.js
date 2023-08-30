@@ -9,6 +9,7 @@ export async function main(ns) {
     while(ns.gang.canRecruitMember())
     {
       ns.gang.recruitMember("gang-" + gangCount);
+      ns.run("gangs/train.js", 1, "gang-" + gangCount);
       gangCount++;
     }
     await ns.sleep(1000);

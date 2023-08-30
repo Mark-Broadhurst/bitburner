@@ -5,46 +5,21 @@ export async function main(ns) {
   let list = [];
   do {
     ns.clearLog();
-    list = [];
-    let ownedAugs = ns.singularity.getOwnedAugmentations(true);
-    for (const faction of ns.getPlayer().factions) {
-      if (faction == "Shadows of Anarchy") continue;
-      const augments = ns.singularity.getAugmentationsFromFaction(faction);
-      for (const augment of augments) {
-        if (augment == "NeuroFlux Governor") continue;
-        if (ownedAugs.includes(augment)) continue;
-        list.push(new AugmentItem(ns, faction, augment));
-      }
-    }
-    list = list.sort((a, b) => {
-      if (a.requiredRep > b.requiredRep) {
-        return 1;
-      }
-      if (a.requiredRep < b.requiredRep) {
-        return -1;
-      }
-      if (a.price > b.price) {
-        return 1;
-      }
-      if (a.price < b.price) {
-        return -1;
-      }
-      return 0;
-    });
+    list = getListOfAugments(ns);
     for (const item of list) {
       if (item.factionRep < item.augmentRep) {
         let field = getBestField(ns, item.faction);
         ns.singularity.workForFaction(item.faction, field);
         while (ns.singularity.getFactionRep(item.faction) < item.augmentRep) {
           ns.clearLog();
-          printList(ns, list);
+          printList(ns);
           ns.print(`Waiting for ${item.faction} rep to reach ${ns.formatNumber(item.augmentRep)}`);
           await ns.sleep(1000);
         }
       }
       while (ns.getServerMoneyAvailable("home") < item.price) {
         ns.clearLog();
-        printList(ns, list);
+        printList(ns);
         ns.print(`Waiting for money to reach ${ns.formatNumber(item.price)}`);
         await ns.sleep(1000);
       }
@@ -58,8 +33,45 @@ export async function main(ns) {
 
 /**
  * @param {NS} ns
+ * @returns {AugmentItem[]}
+ */
+function getListOfAugments(ns) {
+
+  let list = [];
+  const ownedAugs = ns.singularity.getOwnedAugmentations(true);
+  for (const faction of ns.getPlayer().factions) {
+    if (faction == "Shadows of Anarchy") continue;
+    if (faction == ns.gang.getGangInformation().faction) continue;
+    const augments = ns.singularity.getAugmentationsFromFaction(faction);
+    for (const augment of augments) {
+      if (augment == "NeuroFlux Governor") continue;
+      if (ownedAugs.includes(augment)) continue;
+      list.push(new AugmentItem(ns, faction, augment));
+    }
+  }
+  list = list.sort((a, b) => {
+    if (a.requiredRep > b.requiredRep) {
+      return 1;
+    }
+    if (a.requiredRep < b.requiredRep) {
+      return -1;
+    }
+    if (a.price > b.price) {
+      return 1;
+    }
+    if (a.price < b.price) {
+      return -1;
+    }
+    return 0;
+  });
+  return list;
+}
+
+
+/**
+ * @param {NS} ns
  * @param {string} faction
- * @returns {string}
+ * @returns {FactionWorkType}
  */
 function getBestField(ns, faction) {
   const player = ns.getPlayer();
@@ -80,15 +92,15 @@ function getBestField(ns, faction) {
 
 /**
  * @param {NS} ns
- * @param {AugmentItem[]} list
  */
-function printList(ns, list) {
+function printList(ns) {
   ns.print("Augment\t\t\t\t\t\tFaction\t\t\tRep\tRequried Rep");
-  ns.print("----------------------------------------------------------------------------------------")
+  ns.print("--------------------------------------------------------------------------------------------");
+  const list = getListOfAugments(ns);
   for (const item of list) {
     ns.print(`${item.augment.padEnd(40)}\t${item.faction.padEnd(20)}\t${ns.formatNumber(item.augmentRep,2)}\t${ns.formatNumber(item.requiredRep,2)}`);
   }
-  ns.print("----------------------------------------------------------------------------------------")
+  ns.print("--------------------------------------------------------------------------------------------");
 }
 
 class AugmentItem {

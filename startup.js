@@ -6,17 +6,14 @@ export async function main(ns) {
   ns.run("hacking/backdoor.js");
   ns.run("home/upgrade.js");
   ns.run("hacknet/sellHashes.js");
-  ns.run("hacknet/buyNodes.js");
-  ns.run("hacknet/upgrade/upgradeNodeLevel.js");
-  ns.run("hacknet/upgrade/upgradeNodeRam.js");
-  ns.run("hacknet/upgrade/upgradeNodeCores.js");    
-  ns.run("hacknet/upgrade/upgradeNodeCache.js");    
+  ns.run("scriptManager.js", 1,"hacknet/levelUp.js","hacknet/upgrade.js");
   ns.run("scriptManager.js", 1,"programs/buy.js","servers/purchase.js", "servers/upgrade.js", "hacking/refresh.js");
   if(ns.gang.inGang()){
     ns.run("gangs/equipment.js");
     ns.run("gangs/ascend.js", 1, 1.5);
     ns.run("gangs/recruit.js");
-    //ns.run("./gangs/tasks.js");
+    ns.run("gangs/tasks.js");
+    ns.run("gangs/territoryWarfare.js");
   }
   ns.run("sleeves/work.js");
   ns.run("sleeves/augments.js");
