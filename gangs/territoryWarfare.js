@@ -3,7 +3,7 @@ export async function main(ns) {
     ns.disableLog("ALL");
     let gang = ns.gang.getGangInformation();
 
-    while (gang.territory < 100) {
+    while (gang.territory < 1) {
         ns.clearLog();
         gang = ns.gang.getGangInformation();
         let otherGangs = ns.gang.getOtherGangInformation();

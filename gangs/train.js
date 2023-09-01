@@ -3,9 +3,22 @@ export async function main(ns) {
   ns.disableLog("ALL");
   ns.clearLog();
   const memberName = ns.args[0];
+  await TrainGang(ns, 300, memberName);
+  await GainRepToGetMembers(ns, memberName);
+  ns.gang.setMemberTask(memberName, "Territory Warfare");
+  await EngageInTerritoryWar(ns, memberName);
+  ns.gang.setMemberTask(memberName, "Human Trafficking");
+  await TrainGang(ns, 5_000, memberName);
+  ns.gang.setMemberTask(memberName, "Human Trafficking");
+}
+
+/** 
+ * @param {NS} ns 
+ * @param {Number} target
+ * @param {String} memberName
+ **/
+async function TrainGang(ns, target, memberName) {
   let member = ns.gang.getMemberInformation(memberName);
-  let gang = ns.gang.getGangInformation();
-  let target = 300;
   while (member.hack < target || member.str < target || member.def < target || member.dex < target || member.agi < target || member.cha < target) {
     ns.clearLog();
     ns.gang.setMemberTask(memberName, "Train Combat");
@@ -28,39 +41,41 @@ export async function main(ns) {
     }
     member = ns.gang.getMemberInformation(memberName);
   }
-  while(gang.respect < 2e6)
-  {
+
+}
+
+/** @param {NS} ns */
+async function GainRepToGetMembers(ns, memberName) {
+  let gang = ns.gang.getGangInformation();
+  while (gang.respect < 2e6) {
     ns.clearLog();
     ns.print("Wanted: " + gang.wantedPenalty + "\nRespect: " + gang.respect);
-    if(gang.wantedPenalty < 0.99 && gang.respect > 2000)
-    {
+    if (gang.wantedPenalty < 0.99 && gang.respect > 2000) {
       ns.gang.setMemberTask(memberName, "Vigilante Justice");
       ns.print("Reducing wanted level");
     }
-    else
-    {
+    else {
       ns.gang.setMemberTask(memberName, "Terrorism");
       ns.print("Gaining Reputation");
     }
     gang = ns.gang.getGangInformation();
     await ns.sleep(1000);
   }
-  ns.gang.setMemberTask(memberName, "Territory Warfare");
+}
 
-  while(gang.territory < 100)
-  {
+/** @param {NS} ns */
+async function EngageInTerritoryWar(ns, memberName) {
+  let gang = ns.gang.getGangInformation();
+  while (gang.territory < 1) {
     ns.clearLog();
-    if(gang.wantedPenalty < 0.999 && gang.respect > 2000)
-    {
+    if (gang.wantedPenalty < 0.999 && gang.respect > 2000) {
       ns.gang.setMemberTask(memberName, "Vigilante Justice");
       ns.print(`Reducing wanted level currently ${gang.wantedPenalty} / 0.99`);
     }
-    else
-    {
+    else {
       ns.gang.setMemberTask(memberName, "Territory Warfare");
       ns.print(`Gaining Gang Power currently ${gang.power}`);
     }
-
     gang = ns.gang.getGangInformation();
     await ns.sleep(1000);
   }

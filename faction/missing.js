@@ -2,6 +2,7 @@
 export async function main(ns) {
     ns.disableLog("ALL");
     ns.clearLog();
+    ns.tail();
     const player = ns.getPlayer();
     const invites = ns.singularity.checkFactionInvitations();
     const missing = factions.filter(x => !player.factions.includes(x) && !invites.includes(x));
