@@ -1,5 +1,4 @@
 /** @param {NS} ns */
 export async function main(ns) {
-  let target = ns.args[0];
-  await ns.grow(target);
+  ns.writePort(1, "weaken,n00dles,1");
 }
