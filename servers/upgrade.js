@@ -6,11 +6,6 @@ export async function main(ns) {
   ns.clearLog();
   const targetRam = ns.args[0];
 
-  const player = ns.getPlayer();
-
-  let targets = network(ns)
-    .filter(server => server.hasAdminRights && server.moneyMax != 0 && server.requiredHackingSkill <= player.skills.hacking)
-
   while (true) {
     const maxRam = targetRam ?? ns.getPurchasedServerMaxRam();
     const servers = ns.getPurchasedServers().map(server => {
@@ -33,29 +28,6 @@ export async function main(ns) {
     }
     ns.toast(`Upgrading server ${server.name} new ram : ${ns.formatRam(newRam)}`);
     ns.upgradePurchasedServer(server.name, newRam);
-    let threads = Math.floor(newRam / 3.5 / targets.length);
-    while (threads == 0) {
-      targets = targets.slice(0, -1);
-      threads = Math.floor(newRam / 3.5 / targets.length);
-    }
-    ns.scriptKill("hacking/hack.js", server.name);
-    ns.scriptKill("hacking/simple.js", server.name);
-    ns.scriptKill("hacking/grow.js", server.name);
-    ns.scriptKill("hacking/weaken.js", server.name);
-
-    ns.rm("hacking/hack.js", server.name);
-    ns.rm("hacking/simple.js", server.name);
-    ns.rm("hacking/grow.js", server.name);
-    ns.rm("hacking/weaken.js", server.name);
-
-    ns.scp(["hacking/grow.js", "hacking/weaken.js"], server.name);
-
-    for(const target of targets){
-      ns.print(server.name + " " + threads + " " + target.hostname);
-      ns.exec("hacking/grow.js", server.name, threads, target.hostname);
-      ns.exec("hacking/weaken.js", server.name, threads, target.hostname);
-    }
-
   }
 }
 

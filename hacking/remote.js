@@ -13,20 +13,10 @@ export async function main(ns) {
     .filter(server => !server.hostname.startsWith("hacknet-"))
     .sort(sortBy("requiredHackingSkill"));
 
-  ns.print(`Server\t\t\tThreads`);
   for (const server of servers) {
 
-    ns.scriptKill("hacking/grow.js", server.hostname);
-    ns.scriptKill("hacking/weaken.js", server.hostname);
+    ns.scp(["grow.js","weaken.js","hack.js", "portReader.js"], server.hostname);
 
-    ns.scp(["hacking/grow.js","hacking/weaken.js"], server.hostname);
-    const threads = Math.floor(server.maxRam / 1.75 / 2);
-
-    ns.print(`${server.hostname.padEnd(25)}\t${threads}`);
-
-    if (threads > 0) {
-      ns.exec("hacking/grow.js", server.hostname, threads, server.hostname);
-      ns.exec("hacking/weaken.js", server.hostname, threads, server.hostname);
-    }
+    ns.exec("portReader.js", server.hostname, 1, server.hostname);
   }
 }

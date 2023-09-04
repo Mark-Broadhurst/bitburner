@@ -41,7 +41,7 @@ function getListOfAugments(ns) {
   const ownedAugs = ns.singularity.getOwnedAugmentations(true);
   for (const faction of ns.getPlayer().factions) {
     if (faction == "Shadows of Anarchy") continue;
-    if (faction == ns.gang.getGangInformation().faction) continue;
+    if (ns.gang.inGang() && faction == ns.gang.getGangInformation().faction) continue;
     const augments = ns.singularity.getAugmentationsFromFaction(faction);
     for (const augment of augments) {
       if (augment == "NeuroFlux Governor") continue;

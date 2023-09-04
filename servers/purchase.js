@@ -9,9 +9,8 @@ export async function main(ns) {
     ns.print(`Purchasing server ${i} : ${ns.getPurchasedServerCost(ram)}`);
     if (ns.getServerMoneyAvailable("home") > ns.getPurchasedServerCost(ram)) {
       let hostname = ns.purchaseServer("pserv-" + i, ram);
-      ns.scp(["hacking/grow.js","hacking/weaken.js"], hostname);
-      ns.exec("hacking/grow.js", hostname, 4, "n00dles");
-      ns.exec("hacking/weaken.js", hostname, 4, "n00dles");
+      ns.scp(["grow.js","weaken.js", "hack.js","portReader.js"], hostname);
+      ns.exec("portReader.js", hostname, 1, hostname);
       ++i;
     }
     await ns.sleep(1000);
