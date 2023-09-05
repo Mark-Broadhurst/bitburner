@@ -8,7 +8,7 @@ export async function main(ns) {
   ns.gang.setMemberTask(memberName, "Territory Warfare");
   await EngageInTerritoryWar(ns, memberName);
   ns.gang.setMemberTask(memberName, "Human Trafficking");
-  await TrainGang(ns, 5_000, memberName);
+  await TrainGang(ns, 2_000, memberName);
   ns.gang.setMemberTask(memberName, "Human Trafficking");
 }
 
@@ -66,7 +66,29 @@ async function GainRepToGetMembers(ns, memberName) {
 /** @param {NS} ns */
 async function EngageInTerritoryWar(ns, memberName) {
   let gang = ns.gang.getGangInformation();
-  while (gang.territory < 1) {
+  if (gang.territory == 1) {
+    return;
+  }
+  let otherGangs = ns.gang.getOtherGangInformation();
+
+  const mostPowerfulGang = [
+    "Slum Snakes",
+    "Tetrads",
+    "The Syndicate",
+    "The Dark Army",
+    "Speakers for the Dead",
+    "NiteSec",
+    "The Black Hand"
+  ].filter(x => x != gang.faction)
+    .filter(x => otherGangs[x].territory)
+    .reduce((a, b) => {
+      if (otherGangs[a].power > otherGangs[b].power) {
+        return a;
+      }
+      return b;
+    });
+
+  while (gang.territory < 1 || gang.power < (mostPowerfulGang.power * 10)) {
     ns.clearLog();
     if (gang.wantedPenalty < 0.999 && gang.respect > 2000) {
       ns.gang.setMemberTask(memberName, "Vigilante Justice");
@@ -74,7 +96,7 @@ async function EngageInTerritoryWar(ns, memberName) {
     }
     else {
       ns.gang.setMemberTask(memberName, "Territory Warfare");
-      ns.print(`Gaining Gang Power currently ${gang.power}`);
+      ns.print(`Gaining Gang Power currently ${gang.power}\\${otherGangs[mostPowerfulGang].power} ${mostPowerfulGang} ${gang.territory < 1} ${gang.power} > ${mostPowerfulGang.power * 10}`);
     }
     gang = ns.gang.getGangInformation();
     await ns.sleep(1000);

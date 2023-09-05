@@ -9,7 +9,7 @@ export default function (ns) {
 
   /** @param {string} item */
   function add(item) {
-    if (!hosts.includes(item) && !item.startsWith("pserv-")) {
+    if (!hosts.includes(item) && !item.startsWith("pserv-") && !item.startsWith("hacknet-server-")) {
       hosts.push(item);
     }
   }

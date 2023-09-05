@@ -12,10 +12,8 @@ export async function main(ns) {
             const hashes = ns.hacknet.numHashes();
             ns.print(`Hashes: ${hashes} / ${hashLimit}`);
 
-            if (hashes >= (hashLimit - 40)) {
-                ns.hacknet.spendHashes("Company Favor", company);
-                ns.print(`Bought company favor for ${company}`);
-            }
+            ns.hacknet.spendHashes("Company Favor", company);
+            ns.print(`Bought company favor for ${company}`);
             await ns.sleep(1000);
         }
     }

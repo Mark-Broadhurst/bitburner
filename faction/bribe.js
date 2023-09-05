@@ -17,13 +17,7 @@ export async function main(ns) {
     {
       const money = ns.getServerMoneyAvailable("home");
       let donationAmount = 0;
-      if(money > 1e15){
-        donationAmount = 1e15;
-      } else if(money > 1e14){
-        donationAmount = 1e14;
-      } else if(money > 1e13){
-        donationAmount = 1e13;
-      } else if(money > 1e12){
+      if(money > 1e12){
         donationAmount = 1e12;
       } else if(money > 1e11){
         donationAmount = 1e11;
@@ -34,7 +28,6 @@ export async function main(ns) {
       } else if(money > 1e6){
         donationAmount = 1e6;
       }
-  
 
       ns.clearLog();
       printFactionReps(ns, factions);
