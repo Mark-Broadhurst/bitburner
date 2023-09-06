@@ -20,20 +20,20 @@ export async function main(ns) {
       continue;
     }
 
-    let [command, target, threads] = portData.split(",");
+    let [command, target, threads, wait] = portData.split(",");
 
     switch (command) {
       case "weaken":
         ns.print(`Weakening ${target} ${threads} times`);
-        ns.run("weaken.js", threads, target);
+        ns.run("weaken.js", threads, target, wait);
         break;
       case "grow":
         ns.print(`Growing ${target} ${threads} times`);
-        ns.run("grow.js", threads, target);
+        ns.run("grow.js", threads, target, wait);
         break;
       case "hack":
         ns.print(`Hacking ${target} ${threads} times`);
-        ns.run("hack.js", threads, target);
+        ns.run("hack.js", threads, target, wait);
         break;
     }
     await ns.sleep(10);

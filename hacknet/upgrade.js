@@ -6,19 +6,19 @@ export async function main(ns) {
     while (currentNode < ns.hacknet.maxNumNodes()) {
         currentNode = ns.hacknet.numNodes() - 1;
         let node = ns.hacknet.getNodeStats(currentNode);
-        while (node.level < 60) {
+        while (node.level < 20) {
             await upgradeNode(ns, currentNode, ns.hacknet.getLevelUpgradeCost, ns.hacknet.upgradeLevel, "Level");
             node = ns.hacknet.getNodeStats(currentNode);
         }
-        while (node.cores < 12) {
+        while (node.cores < 5) {
             await upgradeNode(ns, currentNode, ns.hacknet.getCoreUpgradeCost, ns.hacknet.upgradeCore, "Core");
             node = ns.hacknet.getNodeStats(currentNode);
         }
-        while (node.ram < 128) {
+        while (node.ram < 64) {
             await upgradeNode(ns, currentNode, ns.hacknet.getRamUpgradeCost, ns.hacknet.upgradeRam, "Ram");
             node = ns.hacknet.getNodeStats(currentNode);
         }
-        while (node.cache < 3) {
+        while (node.cache < 1) {
             await upgradeNode(ns, currentNode, ns.hacknet.getCacheUpgradeCost, ns.hacknet.upgradeCache, "Cache");
             node = ns.hacknet.getNodeStats(currentNode);
         }
