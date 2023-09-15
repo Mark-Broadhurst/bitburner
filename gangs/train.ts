@@ -10,6 +10,7 @@ export async function main(ns: NS): Promise<void> {
     await GainRepToGetMembers(ns, memberName, 7);
     await TrainGang(ns, 300, memberName);
     await GainRepToGetMembers(ns, memberName, 12);
+    await GainRep(ns, memberName, 1e7);
     ns.gang.setMemberTask(memberName, "Territory Warfare");
     await EngageInTerritoryWar(ns, memberName);
     await TrainGang(ns, 2_000, memberName);
@@ -39,6 +40,26 @@ async function TrainGang(ns: NS, target: number, memberName: string) {
             member = ns.gang.getMemberInformation(memberName);
         }
         member = ns.gang.getMemberInformation(memberName);
+    }
+}
+
+async function GainRep(ns: NS, memberName: string, rep:number) {
+    let gang = ns.gang.getGangInformation();
+    while (gang.respect < rep) {
+        let memberInfo = ns.gang.getMemberInformation(memberName);
+        let bestTask = getBestRepTask(ns, memberInfo);
+        ns.clearLog();
+        ns.print(`Wanted: ${gang.wantedPenalty} \nRespect: ${gang.respect}`);
+        if (gang.wantedPenalty < 0.99 && gang.respect > 2000) {
+            ns.gang.setMemberTask(memberName, "Vigilante Justice");
+            ns.print("Reducing wanted level");
+        }
+        else {
+            ns.gang.setMemberTask(memberName, bestTask);
+            ns.print(`Gaining Reputation ${bestTask} currently ${gang.respect}\\${rep}`);
+        }
+        gang = ns.gang.getGangInformation();
+        await ns.sleep(1000);
     }
 }
 
