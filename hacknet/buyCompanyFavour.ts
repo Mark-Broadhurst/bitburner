@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { getHashLimit } from "./hashLimit";
+import { getHashLimit } from "hacknet/hashLimit";
 import { CompaniesWithFactions } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {

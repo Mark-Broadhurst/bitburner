@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const servers = getTargetServers(ns)
-            .filter(server => ns.getWeakenTime(server.hostname) < (8 * 60 * 1000))
+            .filter(server => ns.getWeakenTime(server.hostname) < (30 * 60 * 1000))
             .sort((a, b) => a.moneyMax! - b.moneyMax!);
 
         ns.print("hostname\t\t\t$\t\t\tsec");

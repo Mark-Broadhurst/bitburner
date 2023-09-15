@@ -5,12 +5,11 @@ export async function main(ns: NS): Promise<void> {
     ns.clearLog();
     const memberName = ns.args[0] as string;
     await TrainGang(ns, 30, memberName);
-    await GainRepToGetMembers(ns, memberName, 650);
+    await GainRepToGetMembers(ns, memberName, 5);
     await TrainGang(ns, 100, memberName);
-    await GainRepToGetMembers(ns, memberName, 315_000);
-
+    await GainRepToGetMembers(ns, memberName, 7);
     await TrainGang(ns, 300, memberName);
-    await GainRepToGetMembers(ns, memberName, 2e6);
+    await GainRepToGetMembers(ns, memberName, 12);
     ns.gang.setMemberTask(memberName, "Territory Warfare");
     await EngageInTerritoryWar(ns, memberName);
     await TrainGang(ns, 2_000, memberName);
@@ -24,39 +23,39 @@ async function TrainGang(ns: NS, target: number, memberName: string) {
         ns.gang.setMemberTask(memberName, "Train Combat");
         while (member.str < target || member.def < target || member.dex < target || member.agi < target) {
             await ns.sleep(1000);
-            ns.print("Waiting for combat training");
+            ns.print("Waiting for combat training target: " + target);
             member = ns.gang.getMemberInformation(memberName);
         }
         ns.gang.setMemberTask(memberName, "Train Hacking");
         while (member.hack < target) {
             await ns.sleep(1000);
-            ns.print("Waiting for hacking training");
+            ns.print("Waiting for hacking training target: " + target);
             member = ns.gang.getMemberInformation(memberName);
         }
         ns.gang.setMemberTask(memberName, "Train Charisma");
         while (member.cha < target) {
             await ns.sleep(1000);
-            ns.print("Waiting for charisma training");
+            ns.print("Waiting for charisma training target: " + target);
             member = ns.gang.getMemberInformation(memberName);
         }
         member = ns.gang.getMemberInformation(memberName);
     }
 }
 
-async function GainRepToGetMembers(ns: NS, memberName: string, repTarget:number) {
+async function GainRepToGetMembers(ns: NS, memberName: string, memberCount:number) {
     let gang = ns.gang.getGangInformation();
-    while (gang.respect < repTarget) {
+    while (ns.gang.getMemberNames().length < memberCount) {
         let memberInfo = ns.gang.getMemberInformation(memberName);
         let bestTask = getBestRepTask(ns, memberInfo);
         ns.clearLog();
-        ns.print("Wanted: " + gang.wantedPenalty + "\nRespect: " + gang.respect);
-        if (gang.wantedPenalty < 0.99 && gang.respect > 500) {
+        ns.print(`Wanted: ${gang.wantedPenalty} \nRespect: ${gang.respect}`);
+        if (gang.wantedPenalty < 0.99 && gang.respect > 2000) {
             ns.gang.setMemberTask(memberName, "Vigilante Justice");
             ns.print("Reducing wanted level");
         }
         else {
             ns.gang.setMemberTask(memberName, bestTask);
-            ns.print(`Gaining Reputation ${bestTask}`);
+            ns.print(`Gaining Reputation ${bestTask} currently ${ns.gang.getMemberNames().length}\\${memberCount}`);
         }
         gang = ns.gang.getGangInformation();
         await ns.sleep(1000);

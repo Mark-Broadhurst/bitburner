@@ -3,10 +3,10 @@ export class GoalNode {
     core: number;
     ram: number;
     cache: number;
-    constructor() {
-        this.level = 0;
-        this.core = 0;
-        this.ram = 0;
-        this.cache = 0;
+    constructor(level: number = 0, core: number = 0, ram: number = 0, cache: number = 0) {
+        this.level = level;
+        this.core = core;
+        this.ram = ram;
+        this.cache = cache;
     }
 }

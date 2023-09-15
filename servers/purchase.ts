@@ -7,8 +7,8 @@ export async function main(ns: NS): Promise<void> {
     ns.print(`Max Servers: ${ns.getPurchasedServerLimit()}`);
     let i = ns.getPurchasedServers().length;
     while (i < ns.getPurchasedServerLimit()) {
-      ns.print(`Purchasing server ${i} : ${ns.getPurchasedServerCost(ram)}`);
       if (ns.getServerMoneyAvailable("home") > ns.getPurchasedServerCost(ram)) {
+        ns.print(`Purchasing server ${i} : ${ns.formatNumber(ns.getPurchasedServerCost(ram))}`);
         let hostname = ns.purchaseServer("pserv-" + i, ram);
         ns.scp(["grow.js","weaken.js", "hack.js"], hostname);
         ++i;

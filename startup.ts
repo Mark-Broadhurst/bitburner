@@ -7,7 +7,7 @@ export async function main(ns:NS) {
     ns.run("hacking/backdoor.js");
     ns.run("home/upgrade.js");
     ns.run("hacknet/sellHashes.js");
-    ns.run("hackCommander.js")
+    ns.run("hacking/hackCommander.js");
     ns.run("scriptManager.js", 1,"programs/buy.js","servers/purchase.js", "servers/upgrade.js","hacknet/levelUp.js","hacknet/upgrade.js");
     if(ns.gang.inGang()){
       ns.run("gangs/equipment.js");

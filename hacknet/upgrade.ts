@@ -1,4 +1,15 @@
-import { NS } from "@ns";
+import { NS, NodeStats } from "@ns";
+import { GoalNode } from "/hacknet/GoalNode";
+
+const nodeGoals = [
+    new GoalNode(20, 5, 16, 1),
+    new GoalNode(40, 10, 64, 2),
+    new GoalNode(60, 12, 128, 3),
+    new GoalNode(80, 15, 512, 4),
+    new GoalNode(100, 12, 2048, 5),
+    new GoalNode(120, 24, 8192, 10),
+    new GoalNode(200, 30, 8192, 15),
+];
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -19,7 +30,7 @@ export async function main(ns: NS): Promise<void> {
             await upgradeNode(ns, currentNode, ns.hacknet.getRamUpgradeCost, ns.hacknet.upgradeRam, "Ram");
             node = ns.hacknet.getNodeStats(currentNode);
         }
-        while (node.cache === undefined || node.cache < 1) {
+        while (node.cache! < 1) {
             await upgradeNode(ns, currentNode, ns.hacknet.getCacheUpgradeCost, ns.hacknet.upgradeCache, "Cache");
             node = ns.hacknet.getNodeStats(currentNode);
         }
