@@ -1,7 +1,8 @@
 import { NS } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
-    let target = ns.args[0] as string;
-    let wait = (ns.args[1] ?? 0) as number;
-    await ns.hack(target, {additionalMsec: wait});
+    const target = ns.args[0] as string;
+    const wait = (ns.args[1] ?? 0) as number;
+    const money = await ns.hack(target, {additionalMsec: wait});
+    //ns.toast(`Hacked ${target} for ${ns.formatNumber(money)}`);
 }

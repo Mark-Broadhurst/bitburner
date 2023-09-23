@@ -15,12 +15,21 @@ export async function main(ns: NS): Promise<void> {
 
 async function cycleServer(ns: NS, server: Server): Promise<void> {
     const [growThreads, growSecurity] = getGrowDetails(ns, server);
-    const [weakenThreads] = getWeakenDetails(ns, server, growSecurity);
 
-    ns.print(`${server.hostname} ${growThreads} ${weakenThreads}`);
+    const weakenThreads = getWeakenDetails(ns, server, server.hackDifficulty! - server.minDifficulty!);
+    const weakenGrowThreads = getWeakenDetails(ns, server, growSecurity);
 
-    await allocateWork(ns, "grow", server.hostname, growThreads);
-    await allocateWork(ns, "weaken", server.hostname, weakenThreads);
+
+    if (weakenThreads > 1 || growThreads > 1 || weakenGrowThreads > 1) {
+        ns.print(`${server.hostname} W:${weakenThreads} G:${growThreads} W:${weakenGrowThreads}`);
+        if (server.hackDifficulty! > server.minDifficulty!) {
+            await allocateWork(ns, "weaken", server.hostname, weakenThreads);
+        }
+        if (server.moneyAvailable! > server.moneyMax!) {
+            await allocateWork(ns, "grow", server.hostname, growThreads);
+            await allocateWork(ns, "weaken", server.hostname, weakenGrowThreads);
+        }
+    }
 }
 
 async function allocateWork(ns: NS, command: "grow" | "weaken", target: string, threads: number = 1): Promise<void> {
@@ -34,7 +43,8 @@ async function allocateWork(ns: NS, command: "grow" | "weaken", target: string, 
 
 async function findWorkerServer(ns: NS): Promise<WorkerServer> {
     while (true) {
-        const servers = [ns.getServer("home")].map(s => new WorkerServer(s));
+        //const servers = [ns.getServer("home")].map(s => new WorkerServer(s));
+        const servers = [ns.getServer("home"),...getPlayerServers(ns), ...getWorkerServers(ns)].map(s => new WorkerServer(s));
         const server = servers.find(s => s.freeThreads > 0)
         if (server != undefined) {
             return server;
@@ -43,14 +53,13 @@ async function findWorkerServer(ns: NS): Promise<WorkerServer> {
     }
 }
 
-function getWeakenDetails(ns: NS, server: Server, security: number) {
+function getWeakenDetails(ns: NS, server: Server, diff: number) {
     let threads = 0;
-    let secTarget = (server.hackDifficulty! - server.minDifficulty!) + security;
     let securityDiff = 0;
     do {
-        securityDiff = ns.weakenAnalyze(threads++, server.cpuCores);
-    } while (securityDiff < secTarget);
-    return [threads];
+        securityDiff = ns.weakenAnalyze(threads++);
+    } while (securityDiff < diff);
+    return threads;
 }
 
 function getGrowDetails(ns: NS, server: Server) {

@@ -29,7 +29,21 @@ export function getWorkerServers(ns: NS) : Server[] {
 export function getTargetServers(ns: NS) : Server[] {
     return getServers(ns)
       .filter(server => server.moneyMax! > 0)
+      .filter(server => server.hasAdminRights)
       .filter(server => server.requiredHackingSkill! <= ns.getHackingLevel());
+}
+
+export function getTargetServer(ns: NS) : Server {
+    return getServers(ns)
+      .filter(server => server.moneyMax! > 0)
+      .filter(server => server.hasAdminRights)
+      .filter(server => server.requiredHackingSkill! <= ns.getHackingLevel())
+      .filter(server => ns.hackAnalyzeChance(server.hostname) == 1)
+      .reduce((a, b) => {
+        const aScore = a.moneyMax! / a.hackDifficulty!;
+        const bScore = b.moneyMax! / b.hackDifficulty!;
+        return aScore > bScore ? a : b;
+      });
 }
 
 export function getPlayerServers(ns: NS) : Server[] {

@@ -6,19 +6,6 @@ export async function main(ns: NS): Promise<void> {
 
     const targetRam = ns.args[0] as number ?? ns.getPurchasedServerMaxRam();
 
-    const ram = 8;
-    ns.print(`Max Servers: ${ns.getPurchasedServerLimit()}`);
-    let i = ns.getPurchasedServers().length;
-    while (i < ns.getPurchasedServerLimit()) {
-      ns.print(`Purchasing server ${i} : ${ns.getPurchasedServerCost(ram)}`);
-      if (ns.getServerMoneyAvailable("home") > ns.getPurchasedServerCost(ram)) {
-        let hostname = ns.purchaseServer("pserv-" + i, ram);
-        ns.scp(["grow.js","weaken.js", "hack.js"], hostname);
-        ++i;
-      }
-      await ns.sleep(1000);
-    }
-
     while (true) {
         const servers = ns.getPurchasedServers().map(server => {
           return {

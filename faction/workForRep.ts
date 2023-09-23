@@ -1,43 +1,46 @@
 import { NS } from "@ns";
 
-export async function main(ns: NS): Promise<void> {
+export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
-    const minFavour = 150;
-    const maxRep = 3_000_000;
-
     const factions = ns.getPlayer().factions
-        .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour &&
-            faction != "Shadows of Anarchy" &&
-            ns.singularity.getFactionRep(faction) < maxRep);
+        .filter(x => x != "Shadows of Anarchy")
+        .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
+        .sort((a, b) => {
+            const aFav = ns.singularity.getFactionFavor(a);
+            const bFav = ns.singularity.getFactionFavor(b);
+            if (aFav > bFav) {
+                return -1;
+            }
+            if (aFav < bFav) {
+                return 1;
+            }
+            return 0;
+        });
 
     for (const faction of factions) {
-        while (ns.singularity.getFactionRep(faction) < maxRep) {
-            const money = ns.getServerMoneyAvailable("home");
-            let donationAmount = 0;
-            if (money > 1e12) {
-                donationAmount = 1e12;
-            } else if (money > 1e11) {
-                donationAmount = 1e11;
-            } else if (money > 1e10) {
-                donationAmount = 1e10;
-            } else if (money > 1e9) {
-                donationAmount = 1e9;
-            } else if (money > 1e6) {
-                donationAmount = 1e6;
-            }
+        ns.singularity.workForFaction(faction, "hacking", false);
+        ns.singularity.workForFaction(faction, "security", false);
+        ns.print(`working for ${faction}`);
+        const currentFav = ns.singularity.getFactionFavor(faction);
+        let fav = currentFav + ns.singularity.getFactionFavorGain(faction);
+        while (fav <= 150) {
             ns.clearLog();
-            printFactionReps(ns, factions);
-            ns.print(`donating ${ns.formatNumber(donationAmount)} to ${faction}`);
-            ns.singularity.donateToFaction(faction, donationAmount);
-            await ns.sleep(100);
+            printFactions(ns, factions);
+            ns.print(`waiting for Favour for ${faction} : ${ns.formatNumber(fav, 0)} / 150`);
+            await ns.sleep(1000);
+            fav = ns.singularity.getFactionFavorGain(faction) + currentFav;
         }
     }
+    ns.exec("faction/workForAugs.js", "home");
 }
 
-function printFactionReps(ns: NS, factions: string[]): void {
-    ns.print("Faction\t\t\t\tRep");
+function printFactions(ns:NS, factions: string[]) {
+    ns.print("Faction\t\t\t\tFavour\tRep");
     for (const faction of factions) {
-        ns.print(`${faction.padEnd(25)}\t${ns.formatNumber(ns.singularity.getFactionRep(faction))}`);
-    }
+        let rep = ns.formatNumber(ns.singularity.getFactionRep(faction));
+        let fav = ns.formatNumber(ns.singularity.getFactionFavor(faction));
+        ns.print(`${faction.padEnd(25)}\t${fav}\t${rep}`);
+    };
+
 }

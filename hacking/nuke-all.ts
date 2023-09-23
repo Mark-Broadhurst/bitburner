@@ -10,8 +10,7 @@ export async function main(ns: NS): Promise<void> {
   for (const server of servers) {
     await openPorts(ns, server);
     ns.toast(`Admin access gained for ${server.hostname}`);
-    ns.scp(["grow.js", "weaken.js", "hack.js", "portReader.js"], server.hostname);
-    ns.exec("portReader.js", server.hostname, 1, server.hostname);
+    ns.scp(["grow.js", "weaken.js", "hack.js"], server.hostname);
   }
 
 }

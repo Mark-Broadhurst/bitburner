@@ -8,14 +8,14 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const player = ns.getPlayer();
+        // @ts-ignore
+        let karma = eval("ns.heart.break()");
         for (let i = 0; i < numSleeves; i++) {
-            // @ts-ignore
-            let karma = eval("ns.heart.break()");
             let current = ns.sleeve.getSleeve(i);
             if (current.sync < 100) {
                 ns.print(`Synth ${i} set to Sync`);
                 ns.sleeve.setToSynchronize(i);
-            } else if (current.shock > 40) {
+            } else if (current.shock > 0) {
                 ns.print(`Synth ${i} set to Recovery`);
                 ns.sleeve.setToShockRecovery(i);
             } else if (current.skills.hacking < 100 || current.exp.hacking < 10_000) {

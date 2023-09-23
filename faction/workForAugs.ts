@@ -46,7 +46,7 @@ function getListOfAugments(ns: NS) : AugmentItem[] {
         for (const augment of augments) {
             if (augment == "NeuroFlux Governor") continue;
             if (ownedAugs.includes(augment)) continue;
-            if (ns.singularity.getAugmentationRepReq(augment) > 500_000) continue;
+            //if (ns.singularity.getAugmentationRepReq(augment) > 500_000) continue;
             list.push(new AugmentItem(ns, faction, augment));
         }
     }

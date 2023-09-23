@@ -4,6 +4,12 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
     while (true) {
+        if (ns.hacknet.numNodes() == 0) {
+            while (ns.getServerMoneyAvailable("home") < ns.hacknet.getPurchaseNodeCost()) {
+                await ns.sleep(1000);
+            }
+            ns.hacknet.purchaseNode();
+        }
         const node = getWeakestNode(ns);
         const stat = getWeakestStat(ns, node);
         ns.print(`Upgrading hacknet-server-${node} ${stat.type} ${ns.formatNumber(stat.cost)}`);
@@ -31,6 +37,7 @@ export async function main(ns: NS): Promise<void> {
 }
 
 function getWeakestNode(ns: NS): number {
+
     const nodeName = Array.from({ length: ns.hacknet.numNodes() }, (_, i) => i)
         .map(i => ns.hacknet.getNodeStats(i))
         .reduce((a, b) => a.production < b.production ? a : b).name
@@ -44,7 +51,7 @@ function getWeakestStat(ns: NS, node: number): { type: string, cost: number } {
         { type: "ram", cost: ns.hacknet.getRamUpgradeCost(node) },
         { type: "cores", cost: ns.hacknet.getCoreUpgradeCost(node) },
         { type: "cache", cost: ns.hacknet.getCacheUpgradeCost(node) },
-        { type: "node", cost: ns.hacknet.getPurchaseNodeCost()}
+        { type: "node", cost: ns.hacknet.getPurchaseNodeCost() }
     ].reduce((a, b) => a.cost <= b.cost ? a : b);
     return costs;
 }
