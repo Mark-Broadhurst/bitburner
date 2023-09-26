@@ -41,6 +41,7 @@ function getWeakestNode(ns: NS): number {
     const nodeName = Array.from({ length: ns.hacknet.numNodes() }, (_, i) => i)
         .map(i => ns.hacknet.getNodeStats(i))
         .reduce((a, b) => a.production < b.production ? a : b).name
+        .replace("hacknet-node-", "")
         .replace("hacknet-server-", "");
     return parseInt(nodeName);
 }

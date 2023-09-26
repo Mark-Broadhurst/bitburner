@@ -13,19 +13,14 @@ export async function main(ns: NS): Promise<void> {
             "Improve Gym Training",
             //"Generate Coding Contract",
         ];
-
-        if (ns.getPlayer().factions.includes("Bladeburners")) {
-            actions.push("Exchange for Bladeburner Rank");
-            actions.push("Exchange for Bladeburner SP");
+        if (ns.getPlayer().factions.includes("Bladeburner")) {
+            actions.push("Exchange for Bladeburner Rank", "Exchange for Bladeburner SP");
         }
-
         if (ns.corporation.hasCorporation()) {
-            actions.push("Sell for Corporation Funds");
-            actions.push("Exchange for Corporation Research");
+            actions.push("Sell for Corporation Funds", "Exchange for Corporation Research");
         }
         if (ns.getPlayer().skills.hacking > 1500) {
-            actions.push("Reduce Minimum Security");
-            actions.push("Increase Maximum Money");
+            actions.push("Reduce Minimum Security", "Increase Maximum Money");
         }
 
         const action = actions
