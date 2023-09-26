@@ -1,6 +1,5 @@
 import { NS } from "@ns";
 
-
 const starterAugs = [
     "CashRoot Starter Kit",
     "PCMatrix",
@@ -107,8 +106,8 @@ const combatAugs = [
 ]
 
 const augs = [
-    ...starterAugs,
     ...hackAugs,
+    ...starterAugs,
     ...skillAugs,
     ...hacknetAugs,
     ...charAugs,
@@ -116,8 +115,9 @@ const augs = [
 ]
 
 export async function main(ns: NS): Promise<void> {
+    ns.disableLog("ALL");
     ns.clearLog();
-    const listofAugs = hackAugs.filter(aug => !ns.singularity.getOwnedAugmentations(true).includes(aug));
+    const listofAugs = augs.filter(aug => !ns.singularity.getOwnedAugmentations(true).includes(aug));
     for (const aug of listofAugs) {
         const price = ns.grafting.getAugmentationGraftPrice(aug) + 200_000;
         const time = ns.grafting.getAugmentationGraftTime(aug);
@@ -129,8 +129,9 @@ export async function main(ns: NS): Promise<void> {
         if(ns.getPlayer().city != ns.enums.CityName.NewTokyo){
             ns.singularity.travelToCity(ns.enums.CityName.NewTokyo);
         }
-        ns.print(`Grafting ${aug} ${ns.formatNumber(price)} ${ns.tFormat(time)} `);
+        ns.print(`Grafting ${aug} ${ns.formatNumber(price)} ${ns.tFormat(time)} ${listofAugs.indexOf(aug)} / ${listofAugs.length}`);
         ns.grafting.graftAugmentation(aug);
-        await ns.sleep(time);
+
+        await ns.sleep(time + 1000);
     }
 }

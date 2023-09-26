@@ -5,7 +5,7 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
     const minFavour = 150;
-    const maxRep = 3_000_000;
+    const maxRep = 5e6;
 
     const factions = ns.getPlayer().factions
         .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour &&

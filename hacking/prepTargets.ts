@@ -25,7 +25,7 @@ async function cycleServer(ns: NS, server: Server): Promise<void> {
         if (server.hackDifficulty! > server.minDifficulty!) {
             await allocateWork(ns, "weaken", server.hostname, weakenThreads);
         }
-        if (server.moneyAvailable! > server.moneyMax!) {
+        if (server.moneyAvailable! < server.moneyMax!) {
             await allocateWork(ns, "grow", server.hostname, growThreads);
             await allocateWork(ns, "weaken", server.hostname, weakenGrowThreads);
         }
@@ -43,8 +43,8 @@ async function allocateWork(ns: NS, command: "grow" | "weaken", target: string, 
 
 async function findWorkerServer(ns: NS): Promise<WorkerServer> {
     while (true) {
-        //const servers = [ns.getServer("home")].map(s => new WorkerServer(s));
-        const servers = [ns.getServer("home"),...getPlayerServers(ns), ...getWorkerServers(ns)].map(s => new WorkerServer(s));
+        const servers = [ns.getServer("home")].map(s => new WorkerServer(s));
+        //const servers = [ns.getServer("home"),...getPlayerServers(ns), ...getWorkerServers(ns)].map(s => new WorkerServer(s));
         const server = servers.find(s => s.freeThreads > 0)
         if (server != undefined) {
             return server;

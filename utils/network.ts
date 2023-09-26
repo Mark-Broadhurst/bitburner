@@ -28,6 +28,7 @@ export function getWorkerServers(ns: NS) : Server[] {
 
 export function getTargetServers(ns: NS) : Server[] {
     return getServers(ns)
+      .filter(server => server.hostname != "fulcrumassets")
       .filter(server => server.moneyMax! > 0)
       .filter(server => server.hasAdminRights)
       .filter(server => server.requiredHackingSkill! <= ns.getHackingLevel());

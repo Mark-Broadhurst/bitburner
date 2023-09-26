@@ -3,18 +3,32 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
+
+
+
     while (true) {
-        const action = [
-            //"Sell for Corporation Funds",
-            //"Reduce Minimum Security",
-            //"Increase Maximum Money",
-            //"Exchange for Corporation Research",
+
+        const actions = [
             "Improve Studying",
             "Improve Gym Training",
-            //"Exchange for Bladeburner Rank",
-            //"Exchange for Bladeburner SP",
-            "Generate Coding Contract",
-        ]
+            //"Generate Coding Contract",
+        ];
+
+        if (ns.getPlayer().factions.includes("Bladeburners")) {
+            actions.push("Exchange for Bladeburner Rank");
+            actions.push("Exchange for Bladeburner SP");
+        }
+
+        if (ns.corporation.hasCorporation()) {
+            actions.push("Sell for Corporation Funds");
+            actions.push("Exchange for Corporation Research");
+        }
+        if (ns.getPlayer().skills.hacking > 1500) {
+            actions.push("Reduce Minimum Security");
+            actions.push("Increase Maximum Money");
+        }
+
+        const action = actions
             .map(a => ({ name: a, cost: ns.hacknet.hashCost(a) }))
             .reduce((a, b) => a.cost <= b.cost ? a : b);
 

@@ -30,6 +30,8 @@ export async function main(ns: NS): Promise<void> {
       }
     }
   }
+  ns.singularity.stopAction();
+
 }
 
 

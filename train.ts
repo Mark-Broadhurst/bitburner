@@ -16,4 +16,5 @@ export async function main(ns: NS): Promise<void> {
     await ns.sleep(2 * 60 * 1000);
     ns.singularity.universityCourse(LocationName.Sector12RothmanUniversity, UniversityClassType.leadership, false);
     await ns.sleep(2 * 60 * 1000);
+    ns.singularity.stopAction();
 }

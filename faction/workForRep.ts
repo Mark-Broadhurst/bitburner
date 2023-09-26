@@ -32,6 +32,7 @@ export async function main(ns: NS) {
             fav = ns.singularity.getFactionFavorGain(faction) + currentFav;
         }
     }
+    ns.singularity.stopAction();
     ns.exec("faction/workForAugs.js", "home");
 }
 
