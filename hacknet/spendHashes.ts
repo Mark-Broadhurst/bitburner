@@ -13,7 +13,7 @@ export async function main(ns: NS): Promise<void> {
             "Improve Gym Training",
             //"Generate Coding Contract",
         ];
-        if (ns.getPlayer().factions.includes("Bladeburner")) {
+        if (ns.getPlayer().factions.includes("Bladeburners")) {
             actions.push("Exchange for Bladeburner Rank", "Exchange for Bladeburner SP");
         }
         if (ns.corporation.hasCorporation()) {
@@ -62,7 +62,7 @@ export async function main(ns: NS): Promise<void> {
                 break;
         }
 
-        await ns.sleep(1000);
+        //await ns.sleep(1000);
     }
 
 }

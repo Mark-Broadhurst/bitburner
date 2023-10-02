@@ -41,7 +41,7 @@ function getListOfAugments(ns: NS) : AugmentItem[] {
     let list = [];
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
     for (const faction of ns.getPlayer().factions) {
-        if (faction == Factions.ShadowsOfAnarchy) continue;
+        if (faction == Factions.ShadowsOfAnarchy || faction == Factions.Bladeburners) continue;
         if (ns.gang.inGang() && faction == ns.gang.getGangInformation().faction) continue;
         const augments = ns.singularity.getAugmentationsFromFaction(faction);
         for (const augment of augments) {

@@ -122,7 +122,7 @@ async function EngageInTerritoryWar(ns: NS, memberName: string) {
         }
         else {
             ns.gang.setMemberTask(memberName, "Territory Warfare");
-            ns.print(`Gaining Gang Power currently ${gang.power}\\${otherGangs[mostPowerfulGang].power} ${mostPowerfulGang}`);
+            ns.print(`Gaining Gang Power currently ${gang.power}\\${otherGangs[mostPowerfulGang].power * 10} ${mostPowerfulGang}`);
         }
         gang = ns.gang.getGangInformation();
         await ns.sleep(1000);

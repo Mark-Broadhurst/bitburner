@@ -3,6 +3,11 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
+    ns.run("sleeves/crime.js");
+    ns.run("hacking/nuke-all.js");
+    ns.run("hacking/backdoor.js");
+    ns.run("programs/buy.js");
+    ns.run("hacking/hackCommander.js");
     const gangFaction = ns.gang.getGangInformation().faction;
     const avalibleAugs = ns.singularity.getAugmentationsFromFaction(gangFaction);
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
@@ -24,5 +29,4 @@ export async function main(ns: NS): Promise<void> {
         ns.singularity.purchaseAugmentation(gangFaction, aug);
         ns.singularity.installAugmentations("loop.js");
     }
-    ns.singularity.installAugmentations("startup.js");
 }

@@ -8,7 +8,7 @@ export async function main(ns: NS) {
     ns.singularity.commitCrime(CrimeType.homicide, false);
     while (ns.getPlayer().numPeopleKilled < 45) {
         ns.print(`Killed ${ns.getPlayer().numPeopleKilled} people`);
-        await ns.sleep(5000);
+        await ns.sleep(4000);
     }
     ns.singularity.stopAction();
 }

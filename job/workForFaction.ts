@@ -2,6 +2,8 @@ import { NS } from "@ns";
 import { CompaniesWithFactions } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {
+    ns.disableLog("ALL");
+    ns.clearLog();
     const typeOfWork = "security";
 
     for (const company of CompaniesWithFactions(ns)) {

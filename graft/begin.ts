@@ -105,6 +105,27 @@ const combatAugs = [
     "Hydroflame Left Arm",
 ]
 
+const bladeBurnerAugs = [
+    "The Blade's Simulacrum",
+    "EsperTech Bladeburner Eyewear",
+    "EMS-4 Recombination",
+    "ORION-MKIV Shoulder",
+    "Blade's Runners",
+    "GOLEM Serum",
+    "I.N.T.E.R.L.I.N.K.E.D",
+    "Hyperion Plasma Cannon V1",
+    "Hyperion Plasma Cannon V2",
+    "Vangelis Virus",
+    "Vangelis Virus 3.0",
+    "BLADE-51b Tesla Armor",
+    "BLADE-51b Tesla Armor: Power Cells Upgrade",
+    "BLADE-51b Tesla Armor: Energy Shielding Upgrade",
+    "BLADE-51b Tesla Armor: Unibeam Upgrade",
+    "BLADE-51b Tesla Armor: Omnibeam Upgrade",
+    "BLADE-51b Tesla Armor: IPU Upgrade",
+
+]
+
 const augs = [
     ...hackAugs,
     ...starterAugs,
@@ -112,6 +133,7 @@ const augs = [
     ...hacknetAugs,
     ...charAugs,
     ...combatAugs,
+    ...bladeBurnerAugs,
 ]
 
 export async function main(ns: NS): Promise<void> {
@@ -133,5 +155,8 @@ export async function main(ns: NS): Promise<void> {
         ns.grafting.graftAugmentation(aug);
 
         await ns.sleep(time + 1000);
+        while(ns.singularity.isBusy()){
+            await ns.sleep(1000);
+        }
     }
 }
