@@ -1,11 +1,6 @@
 import { NS } from "@ns";
 
-const starterAugs = [
-    "CashRoot Starter Kit",
-    "PCMatrix",
-    "ECorp HVMind Implant",
-    "nickofolas Congruity Implant",
-]
+
 const hackAugs = [
     "Synaptic Enhancement Implant",
     "BitWire",
@@ -35,6 +30,14 @@ const hackAugs = [
     "PC Direct-Neural Interface NeuroNet Injector",
     "QLink",
 ]
+
+const starterAugs = [
+    "CashRoot Starter Kit",
+    "PCMatrix",
+    "ECorp HVMind Implant",
+    "nickofolas Congruity Implant",
+]
+
 const skillAugs = [
     "Neurotrainer I",
     "Neurotrainer II",
@@ -127,8 +130,8 @@ const bladeBurnerAugs = [
 ]
 
 const augs = [
-    ...hackAugs,
     ...starterAugs,
+    ...hackAugs,
     ...skillAugs,
     ...hacknetAugs,
     ...charAugs,

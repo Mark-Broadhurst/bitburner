@@ -32,8 +32,8 @@ async function startStaminaAction(ns: NS) {
     await startFreeAction(ns);
   }
 }
- 
-function lowChaosCity(ns: NS) : CityName {
+
+function lowChaosCity(ns: NS): CityName {
   const CityName = ns.enums.CityName;
   return [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
     .reduce((acc, city) => {
@@ -41,10 +41,10 @@ function lowChaosCity(ns: NS) : CityName {
       const bChaos = ns.bladeburner.getCityChaos(city);
       return aChaos < bChaos ? acc : city;
     });
-  
+
 }
 
-function highChaosCity(ns: NS) : CityName {
+function highChaosCity(ns: NS): CityName {
   const CityName = ns.enums.CityName;
   return [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
     .reduce((acc, city) => {
@@ -64,7 +64,7 @@ async function startFreeAction(ns: NS) {
     ns.bladeburner.switchCity(high);
     await startAction(ns, BladeburnerAction.Diplomacy);
   }
-  
+
 }
 
 async function startFieldAnalysis(ns: NS) {
@@ -72,7 +72,11 @@ async function startFieldAnalysis(ns: NS) {
   await startAction(ns, BladeburnerAction.FieldAnalysis);
 }
 
-
+function getStaminaPercentage(ns: NS): number {
+  const [current, max] = ns.bladeburner.getStamina();
+  ns.print(`Stamina: ${ns.formatPercent(current / max)}`);
+  return current / max;
+}
 
 function switchCity(ns: NS) {
   switch (ns.bladeburner.getCity()) {
@@ -109,7 +113,11 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
 }
 
 function getContract(ns: NS): [Type, Contract] | null {
-  const contracts = [Contract.Tracking, Contract.BountyHunter, Contract.Retirement]
+  const contracts = [
+    Contract.BountyHunter,
+    Contract.Retirement,
+    Contract.Tracking,
+  ]
     .map(c => {
       const count = ns.bladeburner.getActionCountRemaining(Type.Contract, c);
       const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.Contract, c);
@@ -125,18 +133,77 @@ function getContract(ns: NS): [Type, Contract] | null {
   return [Type.Contract, contracts[0].contract];
 }
 
-function getStaminaPercentage(ns: NS): number {
-  const [current, max] = ns.bladeburner.getStamina();
-  ns.print(`Stamina: ${ns.formatPercent(current / max)}`);
-  return current / max;
+
+function getOperation(ns: NS): [Type, Operation] | null {
+  const operations = [
+    Operation.Assassination,
+    Operation.Investigation,
+    Operation.Raid,
+    Operation.StealthRetirementOperation,
+    Operation.StingOperation,
+    Operation.UndercoverOperation,
+  ]
+    .map(op => {
+      const count = ns.bladeburner.getActionCountRemaining(Type.Operation, op);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.Operation, op);
+      return { operation: op, count, min, max };
+    })
+    .filter(c => c.count > 0)
+    .filter(c => c.min >= 0.8)
+    .filter(c => c.max >= 1)
+    .sort((a, b) => b.min - a.min);
+  if (operations.length === 0) {
+    return null;
+  }
+  return [Type.Operation, operations[0].operation];
 }
 
 function getBlackOp(ns: NS): [Type, BlackOp] | null {
-  ns.bladeburner.getBlackOpRank(BlackOp.Typhoon)
-  ns.bladeburner.getActionSuccesses(Type.BlackOp, BlackOp.Typhoon)
-  return null;
-}
+  const blackOps = [
+    BlackOp.Typhoon,
+    BlackOp.Zero,
+    BlackOp.X,
+    BlackOp.Titan,
+    BlackOp.Ares,
+    BlackOp.Archangel,
+    BlackOp.Juggernaut,
+    BlackOp.Red,
+    BlackOp.K,
+    BlackOp.Deckard,
+    BlackOp.Tyrell,
+    BlackOp.Wallace,
+    BlackOp.Shoulder,
+    BlackOp.Hyron,
+    BlackOp.Morpheus,
+    BlackOp.Ion,
+    BlackOp.Annihilus,
+    BlackOp.Ultron,
+    BlackOp.Centurion,
+    BlackOp.Vindictus,
+    BlackOp.Daedalus,
+  ]
+    .map(bo => {
+      const count = ns.bladeburner.getActionCountRemaining(Type.BlackOp, bo);
+      const rank = ns.bladeburner.getBlackOpRank(bo);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.BlackOp, bo);
+      return { blackOp: bo, count, rank, min, max };
+    })
+    .filter(c => c.min >= 0.8)
+    .filter(c => c.max >= 1)
+    .filter(c => c.count > 0)
+    .filter(c => c.rank <= ns.bladeburner.getRank())
+    .sort((a, b) => {
+      if (a.rank > b.rank) {
+        return 1;
+      } else if (a.rank < b.rank) {
+        return -1;
+      } else {
+        return 0;
+      }
+    });
 
-function getOperation(ns: NS): [Type, Operation] | null {
-  return null;
+  if (blackOps.length === 0) {
+    return null;
+  }
+  return [Type.BlackOp, blackOps[0].blackOp];
 }

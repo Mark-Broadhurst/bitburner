@@ -1,12 +1,12 @@
 import { CompanyPositionInfo, NS, Player } from "@ns";
-import { CompaniesJobs } from "utils/companies";
+import { CompaniesWithFactions } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {
   ns.disableLog("ALL");
   ns.clearLog();
   const player = ns.getPlayer();
   
-  for (const company of Object.values(ns.enums.CompanyName)) {
+  for (const company of CompaniesWithFactions(ns)) {
     if(player.jobs[company] !== undefined) continue;
     for (const job of ns.singularity.getCompanyPositions(company)) {
       const info = ns.singularity.getCompanyPositionInfo(company, job);
