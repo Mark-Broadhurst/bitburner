@@ -13,16 +13,35 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const servers = getTargetServers(ns);
-        ns.print("server".padEnd(19) + "hack".padEnd(5) + "grow".padEnd(5) + "weaken");
+        const serverWork = [];
         for (const server of servers) {
-            await cycleServer(ns, server);
+            serverWork.push(...caclulateWork(ns, server));
         }
+        await allocateWorks(ns, serverWork);
         await ns.sleep(40);
     }
 }
 
+function printWork(ns: NS, work: Work[]) {
+    const acc = work.reduce((acc:any, w:Work) => {
+        if (acc[w.target] == undefined) {
+            acc[w.target] = { hack: 0, grow: 0, weaken: 0 };
+        }
+        acc[w.target][w.command] += w.threads;
+        return acc;
+    }, {})
+    ns.clearLog();
+
+    ns.print("server".padEnd(19) + "hack".padEnd(7) + "grow".padEnd(7) + "weaken");
+    ns.print("".padEnd(40, "-"));
+    for (const [server, work] of Object.entries<{hack:number,grow:number,weaken:number}>(acc)) {
+        ns.print(server.padEnd(19) + work.hack.toString().padEnd(7) + work.grow.toString().padEnd(7) + work.weaken.toString());
+    }
+    ns.print("".padEnd(40, "-"));
+}
+
 class Work {
-    command: string;
+    command: "hack" | "grow" | "weaken";
     target: string;
     threads: number;
     wait: number;
@@ -61,32 +80,12 @@ function caclulateWork(ns: NS, server: Server): Work[] {
     return work;
 }
 
-async function cycleServer(ns: NS, server: Server): Promise<void> {
-    const hackTime = ns.getHackTime(server.hostname);
-    const weakenTime = ns.getWeakenTime(server.hostname);
-    const growTime = ns.getGrowTime(server.hostname);
-
-    const growOffset = Math.ceil(Math.max(0, weakenTime - growTime));
-    const hackOffset = Math.ceil(Math.max(0, weakenTime - hackTime));
-
-    const [hackThreads, hackSecurity] = getHackDetails(ns, server);
-    const [growThreads, growSecurity] = getGrowDetails(ns, server);
-    const weakenThreads = getWeakenDetails(ns, server, hackSecurity + growSecurity);
-
-
-    if (weakenTime > (10 * 60 * 1000) || growTime > (10 * 60 * 1000)) {
-        ns.print(`Skipping ${server.hostname} ${Math.round(weakenTime / 1000)}s`);
-        return;
+async function allocateWorks(ns: NS, work: Work[]): Promise<void> {
+    for (const w of work) {
+        printWork(ns,work);
+        ns.print(`Allocating ${w.threads} threads to ${w.command} ${w.target}`);
+        await allocateWork(ns, w.command, w.target, w.threads, w.wait);
     }
-    
-    if (server.moneyAvailable! > (server.moneyMax! * hackGuard)) {
-        ns.print(`${server.hostname.padEnd(19)}${hackThreads.toString().padEnd(5)}${growThreads.toString().padEnd(5)}${weakenThreads.toString().padEnd(5)}`);
-        await allocateWork(ns, "hack", server.hostname, hackThreads, hackOffset);
-    } else {
-        ns.print(`${server.hostname.padEnd(26)}${growThreads.toString().padEnd(5)}${weakenThreads.toString().padEnd(5)}`);
-    }
-    await allocateWork(ns, "grow", server.hostname, growThreads, growOffset + 20);
-    await allocateWork(ns, "weaken", server.hostname, weakenThreads, 30);
 }
 
 async function allocateWork(ns: NS, command: "hack" | "grow" | "weaken", target: string, threads: number = 1, wait: number = 0): Promise<void> {
