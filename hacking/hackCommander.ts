@@ -13,7 +13,7 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const servers = getTargetServers(ns);
-        const serverWork = [];
+        const serverWork: Work[] = [];
         for (const server of servers) {
             serverWork.push(...caclulateWork(ns, server));
         }
@@ -32,7 +32,7 @@ function printWork(ns: NS, work: Work[]) {
     }, {})
     ns.clearLog();
 
-    ns.print("server".padEnd(19) + "hack".padEnd(7) + "grow".padEnd(7) + "weaken");
+    ns.print("🖥️".padEnd(19) + "💵".padEnd(7) + "🪴".padEnd(7) + "🛡️");
     ns.print("".padEnd(40, "-"));
     for (const [server, work] of Object.entries<{hack:number,grow:number,weaken:number}>(acc)) {
         ns.print(server.padEnd(19) + work.hack.toString().padEnd(7) + work.grow.toString().padEnd(7) + work.weaken.toString());
@@ -70,7 +70,7 @@ function caclulateWork(ns: NS, server: Server): Work[] {
 async function allocateWorks(ns: NS, work: Work[]): Promise<void> {
     for (const w of work) {
         printWork(ns,work);
-        ns.print(`Allocating ${w.threads} threads to ${w.command} ${w.target}`);
+        ns.print(`${w.target.padEnd(18)} ${w.command} : ${w.threads}`);
         await allocateWork(ns, w.command, w.target, w.threads, w.wait);
     }
 }
@@ -84,21 +84,25 @@ async function allocateWork(ns: NS, command: Command, target: string, threads: n
     }
 }
 
+function getTaskServers(ns: NS): WorkerServer[] {
+    const serverList: Server[] = [];
+    const home = ns.getServer("home");
+    if(home.maxRam < 1024){
+        serverList.push(...getPlayerServers(ns));
+        serverList.push(...getWorkerServers(ns));
+        serverList.push(home);
+    } else if (home.maxRam >= 1024 && home.maxRam < 16777216) {
+        serverList.push(...getPlayerServers(ns));
+        serverList.push(...getWorkerServers(ns));
+    } else{
+        serverList.push(home);
+    }
+    return serverList.map(s => new WorkerServer(s));
+}
+
 async function findWorkerServer(ns: NS): Promise<WorkerServer> {
     while (true) {
-        const serverList = [];
-        const home = ns.getServer("home");
-        if(home.maxRam < 1024){
-            serverList.push(...getPlayerServers(ns));
-            serverList.push(...getWorkerServers(ns));
-            serverList.push(home);
-        } else if (home.maxRam >= 1024 && home.maxRam < 16777216) {
-            serverList.push(...getPlayerServers(ns));
-            serverList.push(...getWorkerServers(ns));
-        } else{
-            serverList.push(home);
-        }
-        const servers = serverList.map(s => new WorkerServer(s));
+        const servers = getTaskServers(ns);
         const server = servers.find(s => s.freeThreads > 0)
         if (server != undefined) {
             return server;

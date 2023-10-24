@@ -11,6 +11,6 @@ export async function main(ns: NS): Promise<void> {
     }
     ns.print(`Purchasing server ${i} : ${ns.formatNumber(ns.getPurchasedServerCost(ram))}`);
     let hostname = ns.purchaseServer("pserv-" + i, ram);
-    ns.scp(["grow.js", "weaken.js", "hack.js"], hostname);
+    ns.scp(["grow.js", "weaken.js", "hack.js", "share.js"], hostname);
   }
 }

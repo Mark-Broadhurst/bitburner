@@ -27,6 +27,8 @@ export async function main(ns: NS): Promise<void> {
         }
         ns.toast(`buying ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
         ns.singularity.purchaseAugmentation(gangFaction, aug);
-        ns.singularity.installAugmentations("loop.js");
+        ns.singularity.installAugmentations("gangs/loop.js");
     }
+    ns.killall();
+    ns.run("startup.js");
 }

@@ -114,8 +114,8 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
 
 function getContract(ns: NS): [Type, Contract] | null {
   const contracts = [
-    Contract.BountyHunter,
     Contract.Retirement,
+    Contract.BountyHunter,
     Contract.Tracking,
   ]
     .map(c => {
@@ -137,11 +137,11 @@ function getContract(ns: NS): [Type, Contract] | null {
 function getOperation(ns: NS): [Type, Operation] | null {
   const operations = [
     Operation.Assassination,
-    Operation.Investigation,
-    Operation.Raid,
     Operation.StealthRetirementOperation,
+    Operation.Raid,
     Operation.StingOperation,
     Operation.UndercoverOperation,
+    Operation.Investigation,
   ]
     .map(op => {
       const count = ns.bladeburner.getActionCountRemaining(Type.Operation, op);

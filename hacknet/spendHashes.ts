@@ -20,7 +20,7 @@ export async function main(ns: NS): Promise<void> {
             actions.push("Sell for Corporation Funds", "Exchange for Corporation Research");
         }
         if (ns.getPlayer().skills.hacking > 1500) {
-            actions.push("Reduce Minimum Security", "Increase Maximum Money");
+            //actions.push("Reduce Minimum Security", "Increase Maximum Money");
         }
 
         const action = actions

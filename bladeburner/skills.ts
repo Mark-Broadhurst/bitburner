@@ -6,6 +6,7 @@ export async function main(ns: NS): Promise<void> {
 
     while (true) {
         const skill = ns.bladeburner.getSkillNames()
+            .filter(skill => !(skill === "Overclock" && ns.bladeburner.getSkillLevel("Overclock") === 90))
             .reduce((a, b) => {
                 const aLevel = ns.bladeburner.getSkillLevel(a);
                 const bLevel = ns.bladeburner.getSkillLevel(b);
@@ -13,7 +14,7 @@ export async function main(ns: NS): Promise<void> {
                     return a;
                 }
                 return b;
-            })
+            });
         while (ns.bladeburner.getSkillUpgradeCost(skill) > ns.bladeburner.getSkillPoints()) {
             await ns.sleep(1000);
         }
