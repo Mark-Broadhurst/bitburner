@@ -1,6 +1,6 @@
 import { NS, Server } from "@ns";
 import { getTargetServers, getWorkerServers, getPlayerServers } from "utils/network";
-import { WorkerServer } from "hacking/WorkerServer";
+import { WorkerServer, Work, Command } from "utils/hacking";
 
 const growPercent = 1.2;
 
@@ -19,7 +19,6 @@ async function cycleServer(ns: NS, server: Server): Promise<void> {
     const weakenThreads = getWeakenDetails(ns, server, server.hackDifficulty! - server.minDifficulty!);
     const weakenGrowThreads = getWeakenDetails(ns, server, growSecurity);
 
-
     if (weakenThreads > 1 || growThreads > 1 || weakenGrowThreads > 1) {
         ns.print(`${server.hostname} W:${weakenThreads} G:${growThreads} W:${weakenGrowThreads}`);
         if (server.hackDifficulty! > server.minDifficulty!) {
@@ -32,7 +31,7 @@ async function cycleServer(ns: NS, server: Server): Promise<void> {
     }
 }
 
-async function allocateWork(ns: NS, command: "grow" | "weaken", target: string, threads: number = 1): Promise<void> {
+async function allocateWork(ns: NS, command: Command, target: string, threads: number = 1): Promise<void> {
     while (threads > 0) {
         const workerServer = await findWorkerServer(ns);
         const threadsToUse = Math.min(threads, workerServer.freeThreads);
@@ -44,8 +43,12 @@ async function allocateWork(ns: NS, command: "grow" | "weaken", target: string, 
 async function findWorkerServer(ns: NS): Promise<WorkerServer> {
     while (true) {
         const serverList = [];
-        if(ns.getServerMaxRam("home") < 1024){
-            serverList.push(ns.getServer("home"));
+        const home = ns.getServer("home");
+
+        if (home.maxRam < 1024) {
+            serverList.push(...getPlayerServers(ns));
+            serverList.push(...getWorkerServers(ns));
+            serverList.push(home);
         } else {
             serverList.push(...getPlayerServers(ns));
             serverList.push(...getWorkerServers(ns));
@@ -73,4 +76,8 @@ function getGrowDetails(ns: NS, server: Server) {
     const threads = Math.max(1, Math.ceil(ns.growthAnalyze(server.hostname, growPercent, server.cpuCores)));
     const security = ns.growthAnalyzeSecurity(threads, server.hostname, server.cpuCores);
     return [threads, security];
+}
+
+export function autocomplete(data: any, args: any) {
+    return [...data.servers];
 }
