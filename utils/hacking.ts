@@ -66,7 +66,7 @@ export function growDetails(ns: NS, server: Server) : HackGrowDetail {
     return new HackGrowDetail(threads, security);
 }
 
-function getHackDetails(ns: NS, server: Server) : HackGrowDetail {
+export function getHackDetails(ns: NS, server: Server) : HackGrowDetail {
     const threads = Math.max(1, Math.floor(ns.hackAnalyzeThreads(server.hostname, server.moneyMax! * hackPercent)));
     const security = ns.hackAnalyzeSecurity(threads, server.hostname);
     return new HackGrowDetail(threads, security);
