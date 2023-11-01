@@ -1,9 +1,11 @@
 import { NS } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
-  const rootX = ns.args[0] as number;
-  const rootY = ns.args[1] as number;
+  ns.clearLog();
   while (true) {
-    await ns.stanek.chargeFragment(rootX, rootY);
+    for (const fragment of ns.stanek.activeFragments().filter(f => f.id < 100)) {
+      ns.print(fragment)
+      await ns.stanek.chargeFragment(fragment.x, fragment.y);
+    }
   }
 }

@@ -19,13 +19,26 @@ export function findBestCrime(ns: NS, person:Person): CrimeType {
 }
 
 
-export function printCrimeStats(ns: NS, person:Person) {
-    ns.print(`Crime\t\t\tChance\tTime\t\t\tMoney\t\tWeight`);
+export function printCrimeStats(ns: NS, person:Person, selectedCrime: CrimeType | null = null) {
+    ns.print(`🚨            🎲      ⌚                   💵       ⚖️`);
+    ns.print(`-----------------------------------------------------------`);
     (Object.keys(ns.enums.CrimeType) as CrimeType[]).forEach(crime => {
 
         const chance = ns.formulas.work.crimeSuccessChance(person, crime);
         const stats = ns.singularity.getCrimeStats(crime);
         const weight = stats.money / stats.time * chance;
-        ns.print(`${crime.padEnd(16)}\t${ns.formatPercent(chance)}\t${ns.tFormat(stats.time).padEnd(20)}\t${ns.formatNumber(stats.money).padEnd(9)}\t${ns.formatNumber(weight, 4)}`);
+        let print = "";
+        if(selectedCrime == crime) {
+            print += "\u001b[31m"
+        }
+        print += crime.padEnd(15);
+        print += ns.formatPercent(chance).padEnd(8);
+        print += ns.tFormat(stats.time).padEnd(21);
+        print += ns.formatNumber(stats.money).padEnd(9);
+        print += ns.formatNumber(weight, 4);
+        if(selectedCrime == crime) {
+            print +="\u001b[0m"
+        }
+        ns.print(print);
     });
 }

@@ -6,6 +6,7 @@ export async function main(ns: NS) {
     const factions = ns.getPlayer().factions
         .filter(x => x != "Shadows of Anarchy")
         .filter(x => x != "Bladeburners")
+        .filter(x=> ns.gang.inGang() && x != ns.gang.getGangInformation().faction)
         .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
         .sort((a, b) => {
             const aFav = ns.singularity.getFactionFavor(a);
@@ -45,5 +46,4 @@ function printFactions(ns:NS, factions: string[]) {
         let gain = ns.singularity.getFactionFavorGain(faction);
         ns.print(`${faction.padEnd(25)}\t${ns.formatNumber(fav + gain)}\t${ns.formatNumber(rep)}`);
     };
-
 }

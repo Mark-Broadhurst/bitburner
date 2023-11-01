@@ -1,3 +1,5 @@
+import { NS, FactionWorkType } from '@ns';
+
 export enum Factions {
     Illuminati = "Illuminati",
     Daedalus = "Daedalus",
@@ -136,3 +138,43 @@ export const FactionsToJoin = [
     Factions.ChurchOfTheMachineGod,
     Factions.ShadowsOfAnarchy,
 ];
+
+export function FactionWork(ns: NS) {
+    const FactionWorkType = ns.enums.FactionWorkType;
+    return [
+        { faction: Factions.Illuminati, work: [] },
+        { faction: Factions.Daedalus, work: [] },
+        { faction: Factions.TheCovenant, work: [] },
+        { faction: Factions.ECorp, work: [] },
+        { faction: Factions.MegaCorp, work: [] },
+        { faction: Factions.BachmanAndAssociates, work: [] },
+        { faction: Factions.BladeIndustries, work: [] },
+        { faction: Factions.NWO, work: [] },
+        { faction: Factions.ClarkeIncorporated, work: [] },
+        { faction: Factions.OmniTekIncorporated, work: [] },
+        { faction: Factions.FourSigma, work: [] },
+        { faction: Factions.KuaiGongInternational, work: [] },
+        { faction: Factions.FulcrumSecretTechnologies, work: [] },
+        { faction: Factions.BitRunners, work: [FactionWorkType.hacking] },
+        { faction: Factions.TheBlackHand, work: [FactionWorkType.hacking] },
+        { faction: Factions.NiteSec, work: [FactionWorkType.hacking] },
+        { faction: Factions.Aevum, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.Chongqing, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.Ishima, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.NewTokyo, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.Sector12, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.Volhaven, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.SpeakersForTheDead, work: [] },
+        { faction: Factions.TheDarkArmy, work: [] },
+        { faction: Factions.TheSyndicate, work: [] },
+        { faction: Factions.Silhouette, work: [] },
+        { faction: Factions.Tetrads, work: [FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.SlumSnakes, work: [] },
+        { faction: Factions.Netburners, work: [FactionWorkType.hacking] },
+        { faction: Factions.TianDiHui, work: [FactionWorkType.hacking, FactionWorkType.security] },
+        { faction: Factions.CyberSec, work: [FactionWorkType.hacking] },
+        { faction: Factions.Bladeburners, work: [] },
+        { faction: Factions.ChurchOfTheMachineGod, work: [] },
+        { faction: Factions.ShadowsOfAnarchy, work: [] },
+    ]
+}

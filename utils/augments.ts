@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { RegularFactions } from "./factions";
+import { RegularFactions } from "utils/factions";
 
 export function getAugmentations(ns: NS): string[] {
     let augs = new Set<string>();

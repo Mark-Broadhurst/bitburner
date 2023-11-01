@@ -126,18 +126,17 @@ const bladeBurnerAugs = [
     "BLADE-51b Tesla Armor: Unibeam Upgrade",
     "BLADE-51b Tesla Armor: Omnibeam Upgrade",
     "BLADE-51b Tesla Armor: IPU Upgrade",
-
 ]
 
 const augs = [
-    ...starterAugs,
     ...hackAugs,
+    ...starterAugs,
     ...skillAugs,
     ...hacknetAugs,
     ...charAugs,
     ...combatAugs,
     ...bladeBurnerAugs,
-]
+] 
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

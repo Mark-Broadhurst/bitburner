@@ -1,8 +1,10 @@
-import { NS } from "@ns";
+import { CompanyName, JobName, NS } from "@ns";
 import { CompaniesWithFactions } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {
     const typeOfWork = "security";
+
+    const player = ns.getPlayer();
 
     for (const company of CompaniesWithFactions(ns)) {
       let positions = ns.singularity.getCompanyPositions(company);
@@ -28,6 +30,7 @@ export async function main(ns: NS): Promise<void> {
           await ns.sleep(1000);
         }
       }
+      ns.singularity.applyToCompany(company, ns.enums.JobName.business4);
     }
     ns.singularity.stopAction();
 

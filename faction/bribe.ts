@@ -8,8 +8,9 @@ export async function main(ns: NS): Promise<void> {
     const factions = ns.getPlayer().factions
         .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour)
         .filter((faction) => faction != Factions.ShadowsOfAnarchy)
+        .filter((faction) => faction != Factions.ChurchOfTheMachineGod)
         .filter((faction) => faction != Factions.Bladeburners)
-        .filter((faction) => faction != ns.gang.getGangInformation().faction)
+        .filter((faction) => ns.gang.inGang() && faction != ns.gang.getGangInformation().faction)
         /*
         .filter((faction) => {
             const factionAugs = ns.singularity.getAugmentationsFromFaction(faction);

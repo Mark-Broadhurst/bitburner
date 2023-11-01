@@ -27,9 +27,9 @@ export function getWorkerServers(ns: NS): Server[] {
 }
 
 export function getTargetServers(ns: NS): Server[] {
-  const target = ns.args[0] as string;
-  if(target){
-    return [ns.getServer(target)]
+  const targets = ns.args as string[];
+  if(targets.length){
+    return targets.map(ns.getServer)
   }
 
   return getServers(ns)

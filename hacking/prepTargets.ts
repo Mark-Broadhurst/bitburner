@@ -49,9 +49,11 @@ async function findWorkerServer(ns: NS): Promise<WorkerServer> {
             serverList.push(...getPlayerServers(ns));
             serverList.push(...getWorkerServers(ns));
             serverList.push(home);
-        } else {
+        } else if (home.maxRam >= 1024 && home.maxRam < 16777216) {
             serverList.push(...getPlayerServers(ns));
             serverList.push(...getWorkerServers(ns));
+        } else {
+            serverList.push(home);
         }
         const servers = serverList.map(s => new WorkerServer(s));
         const server = servers.find(s => s.freeThreads > 0)

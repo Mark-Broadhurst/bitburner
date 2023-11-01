@@ -5,5 +5,5 @@ export async function main(ns: NS): Promise<void> {
     let wait = (ns.args[1] ?? 0) as number;
     let stock = (ns.args[2] ?? false) as boolean;
     const growPercent = await ns.grow(target, {additionalMsec: wait, stock: stock});
-    ns.toast(`Grew ${target} for ${ns.formatPercent(growPercent)}`);
+    //ns.toast(`Grew ${target} for ${ns.formatPercent(growPercent)}`);
 }

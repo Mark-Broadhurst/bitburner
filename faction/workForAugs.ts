@@ -6,13 +6,14 @@ import { Factions } from "/utils/factions";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
+    const player = ns.getPlayer();
     let list = [];
     do {
         ns.clearLog();
         list = getListOfAugments(ns);
         for (const item of list) {
             if (item.factionRep < item.augmentRep) {
-                let field = getBestField(ns, item.faction);
+                let field = getBestField(ns, item.faction, player);
                 ns.singularity.workForFaction(item.faction, field);
                 while (ns.singularity.getFactionRep(item.faction) < item.augmentRep) {
                     ns.clearLog();

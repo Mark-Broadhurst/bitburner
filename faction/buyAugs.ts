@@ -1,11 +1,23 @@
 import { NS } from "@ns";
-import { getAugmentationsExcludeOwned, getAugmentationsFromFactionsExcludeOwned } from "/utils/augments";
+import { getAugmentationDetails } from "utils/augments";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
     const faction = ns.args[0] as string | null;
-    let list = getAugmentList(ns, faction);
+    let list = getAugmentationDetails(ns)
+    ns.print(`Augmentations to buy: ${list.length}`);
+    while(list.length)
+    {
+        const item = list.shift()!;
+        ns.print(`Buying ${item.name} from ${item.faction}`);
+        for(const faction of item.faction)
+        {
+            ns.singularity.purchaseAugmentation(faction, item.name);
+        }
+        
+        await ns.sleep(100);
+    }
     /*
     for (const item of list) {
         ns.print(item);
@@ -19,11 +31,4 @@ export async function main(ns: NS): Promise<void> {
         await ns.sleep(100);
     }
     */
-}
-
-function getAugmentList(ns: NS, faction: string | null) {
-    if (faction) {
-        return getAugmentationsFromFactionsExcludeOwned(ns, faction);
-    }
-    return getAugmentationsExcludeOwned(ns);
 }

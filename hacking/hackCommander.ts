@@ -54,7 +54,7 @@ function caclulateWork(ns: NS, server: Server): Work[] {
 
     const work: Work[] = [];
 
-    if (weakenTime > (10 * 60 * 1000) || growTime > (10 * 60 * 1000)) {
+    if (weakenTime > (5 * 60 * 1000) || growTime > (5 * 60 * 1000)) {
         return [];
     }
 

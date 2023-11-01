@@ -131,7 +131,7 @@ async function EngageInTerritoryWar(ns: NS, memberName: string) {
 
 function getBestRepTask(ns: NS, memberInfo: GangMemberInfo): string {
     const gang = ns.gang.getGangInformation();
-    const tasks = ns.gang.getTaskNames().map((task) => ns.gang.getTaskStats(task));
+    const tasks = ns.gang.getTaskNames().map((task) => ns.gang.getTaskStats(task)).filter((task) => task.baseMoney > 0);
     let taskData = [];
     for (const task of tasks) {
         taskData.push({ name: task.name, respect: ns.formulas.gang.respectGain(gang, memberInfo, task) });
