@@ -3,14 +3,14 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    while (ns.bladeburner.getSkillLevel("Overclock") <= 90) {
+    while (ns.bladeburner.getSkillLevel("Overclock") < 90) {
 
         while (ns.bladeburner.getSkillUpgradeCost("Overclock") > ns.bladeburner.getSkillPoints()) {
             await ns.sleep(1000);
         }
         ns.print("Overclock " + ns.bladeburner.getSkillLevel("Overclock"));
         ns.bladeburner.upgradeSkill("Overclock");
-        await ns.sleep(10);
+        await ns.bladeburner.nextUpdate();
     }
 
     while (true) {
@@ -29,6 +29,6 @@ export async function main(ns: NS): Promise<void> {
         }
         ns.print(skill);
         ns.bladeburner.upgradeSkill(skill);
-        await ns.sleep(10);
+        await ns.bladeburner.nextUpdate();
     }
 }

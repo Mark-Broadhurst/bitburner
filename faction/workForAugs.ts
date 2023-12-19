@@ -22,6 +22,7 @@ export async function main(ns: NS): Promise<void> {
                     await ns.sleep(1000);
                 }
             }
+            /*
             while (ns.getServerMoneyAvailable("home") < item.augmentPrice) {
                 ns.clearLog();
                 printList(ns);
@@ -30,6 +31,7 @@ export async function main(ns: NS): Promise<void> {
             }
             ns.print(`Buying ${item.augment} from ${item.faction}`);
             ns.singularity.purchaseAugmentation(item.faction, item.augment);
+            */
         }
         await ns.sleep(100);
     }
@@ -42,7 +44,7 @@ function getListOfAugments(ns: NS) : AugmentItem[] {
     let list = [];
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
     for (const faction of ns.getPlayer().factions) {
-        if (faction == Factions.ShadowsOfAnarchy || faction == Factions.Bladeburners) continue;
+        if (faction == Factions.ShadowsOfAnarchy || faction == Factions.Bladeburners || faction == Factions.ChurchOfTheMachineGod) continue;
         if (ns.gang.inGang() && faction == ns.gang.getGangInformation().faction) continue;
         const augments = ns.singularity.getAugmentationsFromFaction(faction);
         for (const augment of augments) {
@@ -71,12 +73,13 @@ function getListOfAugments(ns: NS) : AugmentItem[] {
 }
 
 function printList(ns: NS) {
-    ns.print("Augment\t\t\t\t\t\tFaction\t\t\tRep\tRequried Rep");
-    ns.print("--------------------------------------------------------------------------------------------");
+    
+    ns.print("🦾".padEnd(56) + "Faction".padEnd(23) + "🙇‍♂️".padEnd(9) + "Req");
+    ns.print("-".repeat(100));
     const list = getListOfAugments(ns);
     for (const item of list) {
-        ns.print(`${item.augment.padEnd(40)}\t${item.faction.padEnd(20)}\t${ns.formatNumber(item.augmentRep, 2)}\t${ns.formatNumber(item.requiredRep, 2)}`);
+        ns.print(`${item.augment.padEnd(56)}${item.faction.padEnd(23)}${ns.formatNumber(item.augmentRep, 2).padEnd(9)}${ns.formatNumber(item.requiredRep, 2).padEnd(9)}`);
     }
-    ns.print("--------------------------------------------------------------------------------------------");
+    ns.print("-".repeat(100));
 }
 

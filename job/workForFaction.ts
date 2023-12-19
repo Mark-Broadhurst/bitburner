@@ -1,10 +1,11 @@
-import { NS } from "@ns";
+import { JobField, NS } from "@ns";
 import { CompaniesWithFactions } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    const typeOfWork = "security";
+    const JobField = ns.enums.JobField;
+    const typeOfWork = JobField.security;
 
     for (const company of CompaniesWithFactions(ns)) {
         ns.clearLog();
@@ -30,6 +31,4 @@ export async function main(ns: NS): Promise<void> {
         }
     }
     ns.singularity.stopAction();
-
 }
-

@@ -1,29 +1,20 @@
-import { CompanyPositionInfo, NS, Player } from "@ns";
-import { CompaniesWithFactions } from "utils/companies";
+import { NS, JobField } from "@ns";
+import { CompaniesJobs } from "utils/index";
 
 export async function main(ns: NS): Promise<void> {
   ns.disableLog("ALL");
   ns.clearLog();
+  const JobField = ns.enums.JobField;
   const player = ns.getPlayer();
-  
-  for (const company of CompaniesWithFactions(ns)) {
-    if(player.jobs[company] !== undefined) continue;
-    for (const job of ns.singularity.getCompanyPositions(company)) {
-      const info = ns.singularity.getCompanyPositionInfo(company, job);
-      if(info.requiredReputation == 0 && verifySkills(player, info)){
-        const result = ns.singularity.applyToCompany(company, job);
-        ns.print(`Applying to ${company} for ${job} ${result} ${info.requiredSkills.hacking} ${info.requiredSkills.strength} ${info.requiredSkills.defense} ${info.requiredSkills.dexterity} ${info.requiredSkills.agility} ${info.requiredSkills.charisma}`);
+
+  for (const {company, jobField} of CompaniesJobs(ns)) {
+    if (player.jobs[company] !== undefined) continue;
+    for(const field of jobField) {
+      const result = ns.singularity.applyToCompany(company, field);
+      if (result) {
+        ns.print(`Applied to ${company} for ${field}`);
       }
     }
+    ns.singularity.applyToCompany(company, JobField.security);
   }
-}
-
-
-function verifySkills(player:Player, info: CompanyPositionInfo):boolean {
-  return player.skills.hacking >= info.requiredSkills.hacking
-    && player.skills.strength >= info.requiredSkills.strength
-    && player.skills.defense >= info.requiredSkills.defense
-    && player.skills.dexterity >= info.requiredSkills.dexterity
-    && player.skills.agility >= info.requiredSkills.agility
-    && player.skills.charisma >= info.requiredSkills.charisma;
 }

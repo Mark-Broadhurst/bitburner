@@ -10,7 +10,9 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const servers = getTargetServers(ns)
-            .filter(server => ns.getWeakenTime(server.hostname) < (30 * 60 * 1000));
+            .sort((a, b) => b.moneyMax! - a.moneyMax!)
+            .sort((a, b) => b.minDifficulty! - a.minDifficulty!)
+            .reverse();
 
         ns.print(`🖥️                💰       \\ max      🔒 \\ min  🎲`);
         ns.print("".padEnd(56, "—"));
@@ -21,6 +23,6 @@ export async function main(ns: NS): Promise<void> {
                 `${ns.formatPercent(ns.hackAnalyzeChance(server.hostname))}`
             );
         }
-        await ns.sleep(100);
+        await ns.sleep(1000);
     }
 }

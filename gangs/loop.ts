@@ -3,6 +3,7 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
+    ns.tail();
     ns.run("sleeves/crime.js");
     ns.run("hacking/nuke-all.js");
     ns.run("hacking/backdoor.js");
@@ -19,11 +20,11 @@ export async function main(ns: NS): Promise<void> {
 
         while (ns.getServerMoneyAvailable("home") < ns.singularity.getAugmentationBasePrice(aug)) {
             ns.print(`waiting to buy ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
-            await ns.sleep(1000);
+            await ns.gang.nextUpdate();
         }
         while(ns.singularity.getFactionRep(gangFaction) < ns.singularity.getAugmentationRepReq(aug)) {
-            ns.print(`waiting for rep ${ns.singularity.getFactionRep(gangFaction)} / ${ns.singularity.getAugmentationRepReq(aug)}`)
-            await ns.sleep(1000);
+            ns.print(`waiting for rep ${ns.formatNumber(ns.singularity.getFactionRep(gangFaction))} / ${ns.formatNumber(ns.singularity.getAugmentationRepReq(aug))}`)
+            await ns.gang.nextUpdate();
         }
         ns.toast(`buying ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
         ns.singularity.purchaseAugmentation(gangFaction, aug);

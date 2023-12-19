@@ -1,8 +1,8 @@
-import { NS } from "@ns";
+import { JobField, NS } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
   const CompanyName = ns.enums.CompanyName;
-  const typeOfWork = "security";
+  const typeOfWork = JobField.security;
 
   for (const company of Object.values(CompanyName)) {
     ns.clearLog();
@@ -31,8 +31,4 @@ export async function main(ns: NS): Promise<void> {
     }
   }
   ns.singularity.stopAction();
-
 }
-
-
-

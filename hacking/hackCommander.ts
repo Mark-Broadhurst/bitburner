@@ -22,6 +22,10 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
+export function autocomplete(data: any, args: any) {
+    return [...data.servers];
+}
+
 function printWork(ns: NS, work: Work[]) {
     const acc = work.reduce((acc:any, w:Work) => {
         if (acc[w.target] == undefined) {
@@ -87,14 +91,16 @@ async function allocateWork(ns: NS, command: Command, target: string, threads: n
 function getTaskServers(ns: NS): WorkerServer[] {
     const serverList: Server[] = [];
     const home = ns.getServer("home");
-    if(home.maxRam < 1024){
+    if(home.maxRam <= 1024){
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
-        serverList.push(home);
-    } else if (home.maxRam >= 1024 && home.maxRam < 16777216) {
+        //serverList.push(home);
+    } else if (home.maxRam >= 1024 && home.maxRam <= 2097152) {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
     } else{
+        serverList.push(...getPlayerServers(ns));
+        serverList.push(...getWorkerServers(ns));
         serverList.push(home);
     }
     return serverList.map(s => new WorkerServer(s));

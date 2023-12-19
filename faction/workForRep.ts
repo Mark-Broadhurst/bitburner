@@ -1,25 +1,33 @@
 import { NS } from "@ns";
+import { Factions } from "utils/index";
 
 export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
     const factions = ns.getPlayer().factions
-        .filter(x => x != "Shadows of Anarchy")
-        .filter(x => x != "Bladeburners")
-        .filter(x=> ns.gang.inGang() && x != ns.gang.getGangInformation().faction)
+        .filter(x => x != Factions.ShadowsOfAnarchy)
+        .filter(x => x != Factions.Bladeburners)
+        .filter(x => x != Factions.ChurchOfTheMachineGod)
+        .filter(x => {
+            if (ns.gang.inGang()) {
+                return x != ns.gang.getGangInformation().faction
+            } else {
+                return true;
+            }
+        })
         .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
         .sort((a, b) => {
             const aFav = ns.singularity.getFactionFavor(a);
             const bFav = ns.singularity.getFactionFavor(b);
             if (aFav > bFav) {
-                return -1;
+                return 1;
             }
             if (aFav < bFav) {
-                return 1;
+                return -1;
             }
             return 0;
         });
-
+    ns.print(factions);
     for (const faction of factions) {
         ns.singularity.workForFaction(faction, "hacking", false);
         ns.singularity.workForFaction(faction, "security", false);
@@ -35,10 +43,9 @@ export async function main(ns: NS) {
         }
     }
     ns.singularity.stopAction();
-    ns.exec("faction/workForAugs.js", "home");
 }
 
-function printFactions(ns:NS, factions: string[]) {
+function printFactions(ns: NS, factions: string[]) {
     ns.print("Faction\t\t\t\tFavour\tRep");
     for (const faction of factions) {
         let rep = ns.singularity.getFactionRep(faction);

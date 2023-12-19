@@ -1,63 +1,88 @@
-import { NS, CompanyName, JobName } from "@ns";
+import { NS, CompanyName, JobField, Person, JobName } from "@ns";
+import { Factions } from "utils/factions";
 
 export function CompaniesWithFactions(ns: NS): CompanyName[] {
     const CompanyName = ns.enums.CompanyName;
+    const factions = ns.getPlayer().factions.concat(ns.singularity.checkFactionInvitations());
+
+    const companies = [
+        { company: CompanyName.BachmanAndAssociates, faction: Factions.BachmanAndAssociates },
+        { company: CompanyName.ECorp, faction: Factions.ECorp },
+        { company: CompanyName.MegaCorp, faction: Factions.MegaCorp },
+        { company: CompanyName.KuaiGongInternational, faction: Factions.KuaiGongInternational },
+        { company: CompanyName.FourSigma, faction: Factions.FourSigma },
+        { company: CompanyName.NWO, faction: Factions.NWO },
+        { company: CompanyName.BladeIndustries, faction: Factions.BladeIndustries },
+        { company: CompanyName.OmniTekIncorporated, faction: Factions.OmniTekIncorporated },
+        { company: CompanyName.ClarkeIncorporated, faction: Factions.ClarkeIncorporated },
+        { company: CompanyName.FulcrumTechnologies, faction: Factions.FulcrumSecretTechnologies },
+    ];
+
+    return companies.filter(x => !factions.includes(x.faction)).map(x => x.company);
+}
+
+export function CompaniesJobs(ns: NS): { company: CompanyName, jobField: JobField[] }[] {
+    const CompanyName = ns.enums.CompanyName;
+    const JobField = ns.enums.JobField;
+
     return [
-        CompanyName.BachmanAndAssociates,
-        CompanyName.ECorp,
-        CompanyName.MegaCorp,
-        CompanyName.KuaiGongInternational,
-        CompanyName.FourSigma,
-        CompanyName.NWO,
-        CompanyName.BladeIndustries,
-        CompanyName.OmniTekIncorporated,
-        CompanyName.ClarkeIncorporated,
-        CompanyName.FulcrumTechnologies,
+        { company: CompanyName.ECorp, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.MegaCorp, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.BachmanAndAssociates, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.BladeIndustries, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.NWO, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.ClarkeIncorporated, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.OmniTekIncorporated, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.FourSigma, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.KuaiGongInternational, jobField: [JobField.business, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.FulcrumTechnologies, jobField: [JobField.business, JobField.it, JobField.software] },
+        { company: CompanyName.StormTechnologies, jobField: [JobField.business, JobField.softwareConsultant, JobField.security, JobField.software] },
+        { company: CompanyName.DefComm, jobField: [JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.HeliosLabs, jobField: [JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.VitaLife, jobField: [JobField.business, JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.IcarusMicrosystems, jobField: [JobField.business, JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.UniversalEnergy, jobField: [JobField.business, JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.GalacticCybersystems, jobField: [JobField.business, JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.AeroCorp, jobField: [JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.OmniaCybersystems, jobField: [JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.SolarisSpaceSystems, jobField: [JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.DeltaOne, jobField: [JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.GlobalPharmaceuticals, jobField: [JobField.business, JobField.it, JobField.security, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.NovaMedical, jobField: [JobField.business, JobField.it, JobField.security, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.CIA, jobField: [JobField.agent, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.NSA, jobField: [JobField.agent, JobField.it, JobField.security, JobField.software] },
+        { company: CompanyName.WatchdogSecurity, jobField: [JobField.agent, JobField.it, JobField.security, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.LexoCorp, jobField: [JobField.business, JobField.it, JobField.softwareConsultant, JobField.security, JobField.software] },
+        { company: CompanyName.RhoConstruction, jobField: [JobField.business, JobField.software] },
+        { company: CompanyName.AlphaEnterprises, jobField: [JobField.business, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.Police, jobField: [JobField.security, JobField.software] },
+        { company: CompanyName.SysCoreSecurities, jobField: [JobField.it, JobField.software] },
+        { company: CompanyName.CompuTek, jobField: [JobField.it, JobField.software] },
+        { company: CompanyName.NetLinkTechnologies, jobField: [JobField.it, JobField.software] },
+        { company: CompanyName.CarmichaelSecurity, jobField: [JobField.agent, JobField.it, JobField.security, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.FoodNStuff, jobField: [JobField.employee] },
+        { company: CompanyName.JoesGuns, jobField: [JobField.employee] },
+        { company: CompanyName.OmegaSoftware, jobField: [JobField.it, JobField.softwareConsultant, JobField.software] },
+        { company: CompanyName.NoodleBar, jobField: [JobField.waiter] },
     ];
 }
 
-export function CompaniesJobs (ns:NS) : {name: CompanyName, type: JobName[]}[]  {
-    const CompanyName = ns.enums.CompanyName;
-    const JobName = ns.enums.JobName;
-    return [
-        { name: CompanyName.ECorp, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.MegaCorp, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.BachmanAndAssociates, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.BladeIndustries, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.NWO, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.ClarkeIncorporated, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.OmniTekIncorporated, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.FourSigma, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.KuaiGongInternational, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.FulcrumTechnologies, type: [JobName.business0, JobName.IT0, JobName.software0] },
-        { name: CompanyName.StormTechnologies, type: [JobName.business0, JobName.softwareConsult0, JobName.security0, JobName.software0] },
-        { name: CompanyName.DefComm, type: [JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.HeliosLabs, type: [JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.VitaLife, type: [JobName.business0, JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.IcarusMicrosystems, type: [JobName.business0, JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.UniversalEnergy, type: [JobName.business0, JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.GalacticCybersystems, type: [JobName.business0, JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.AeroCorp, type: [JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.OmniaCybersystems, type: [JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.SolarisSpaceSystems, type: [JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.DeltaOne, type: [JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.GlobalPharmaceuticals, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.NovaMedical, type: [JobName.business0, JobName.IT0, JobName.security0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.CIA, type: [JobName.agent0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.NSA, type: [JobName.agent0, JobName.IT0, JobName.security0, JobName.software0] },
-        { name: CompanyName.WatchdogSecurity, type: [JobName.agent0, JobName.IT0, JobName.security0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.LexoCorp, type: [JobName.business0, JobName.IT0, JobName.softwareConsult0, JobName.security0, JobName.software0] },
-        { name: CompanyName.RhoConstruction, type: [JobName.business0, JobName.software0] },
-        { name: CompanyName.AlphaEnterprises, type: [JobName.business0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.Police, type: [JobName.security0, JobName.software0] },
-        { name: CompanyName.SysCoreSecurities, type: [JobName.IT0, JobName.software0] },
-        { name: CompanyName.CompuTek, type: [JobName.IT0, JobName.software0] },
-        { name: CompanyName.NetLinkTechnologies, type: [JobName.IT0, JobName.software0] },
-        { name: CompanyName.CarmichaelSecurity, type: [JobName.agent0, JobName.IT0, JobName.security0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.FoodNStuff, type: [JobName.employee] },
-        { name: CompanyName.JoesGuns, type: [JobName.employee] },
-        { name: CompanyName.OmegaSoftware, type: [JobName.IT0, JobName.softwareConsult0, JobName.software0] },
-        { name: CompanyName.NoodleBar, type: [JobName.waiter] },
-    ];
+export function GetBestJobField(ns: NS, company: CompanyName, person: Person): JobField {
+    const jobs = CompaniesJobs(ns).find(x => x.company == company)?.jobField ?? [];
 
+    const jobName = ns.getPlayer().jobs[company] as JobName
+
+    const favour = ns.singularity.getCompanyFavor(company);
+
+    const gains = jobs
+        .map(job => {
+            return { name: job, gain: ns.formulas.work.companyGains(person, company, jobName, favour) };
+        })
+        .reduce((a, b) => {
+            if (a.gain.reputation > b.gain.reputation) {
+                return a;
+            }
+            return b;
+        })
+    return gains.name;
 }

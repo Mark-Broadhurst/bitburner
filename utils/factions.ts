@@ -139,22 +139,22 @@ export const FactionsToJoin = [
     Factions.ShadowsOfAnarchy,
 ];
 
-export function FactionWork(ns: NS) {
+export function FactionWork(ns: NS): { faction: Factions, work: FactionWorkType[] }[] {
     const FactionWorkType = ns.enums.FactionWorkType;
     return [
-        { faction: Factions.Illuminati, work: [] },
-        { faction: Factions.Daedalus, work: [] },
-        { faction: Factions.TheCovenant, work: [] },
-        { faction: Factions.ECorp, work: [] },
-        { faction: Factions.MegaCorp, work: [] },
-        { faction: Factions.BachmanAndAssociates, work: [] },
-        { faction: Factions.BladeIndustries, work: [] },
-        { faction: Factions.NWO, work: [] },
-        { faction: Factions.ClarkeIncorporated, work: [] },
-        { faction: Factions.OmniTekIncorporated, work: [] },
-        { faction: Factions.FourSigma, work: [] },
-        { faction: Factions.KuaiGongInternational, work: [] },
-        { faction: Factions.FulcrumSecretTechnologies, work: [] },
+        { faction: Factions.Illuminati, work: [FactionWorkType.hacking, FactionWorkType.field] },
+        { faction: Factions.Daedalus, work: [FactionWorkType.hacking, FactionWorkType.field] },
+        { faction: Factions.TheCovenant, work: [FactionWorkType.hacking, FactionWorkType.field] },
+        { faction: Factions.ECorp, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.MegaCorp, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.BachmanAndAssociates, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.BladeIndustries, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.NWO, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.ClarkeIncorporated, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.OmniTekIncorporated, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.FourSigma, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.KuaiGongInternational, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.FulcrumSecretTechnologies, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
         { faction: Factions.BitRunners, work: [FactionWorkType.hacking] },
         { faction: Factions.TheBlackHand, work: [FactionWorkType.hacking] },
         { faction: Factions.NiteSec, work: [FactionWorkType.hacking] },
@@ -164,12 +164,12 @@ export function FactionWork(ns: NS) {
         { faction: Factions.NewTokyo, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
         { faction: Factions.Sector12, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
         { faction: Factions.Volhaven, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
-        { faction: Factions.SpeakersForTheDead, work: [] },
-        { faction: Factions.TheDarkArmy, work: [] },
-        { faction: Factions.TheSyndicate, work: [] },
+        { faction: Factions.SpeakersForTheDead, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
+        { faction: Factions.TheDarkArmy, work: [FactionWorkType.hacking, FactionWorkType.field] },
+        { faction: Factions.TheSyndicate, work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
         { faction: Factions.Silhouette, work: [] },
         { faction: Factions.Tetrads, work: [FactionWorkType.security, FactionWorkType.field] },
-        { faction: Factions.SlumSnakes, work: [] },
+        { faction: Factions.SlumSnakes, work: [FactionWorkType.security, FactionWorkType.field] },
         { faction: Factions.Netburners, work: [FactionWorkType.hacking] },
         { faction: Factions.TianDiHui, work: [FactionWorkType.hacking, FactionWorkType.security] },
         { faction: Factions.CyberSec, work: [FactionWorkType.hacking] },
@@ -177,4 +177,26 @@ export function FactionWork(ns: NS) {
         { faction: Factions.ChurchOfTheMachineGod, work: [] },
         { faction: Factions.ShadowsOfAnarchy, work: [] },
     ]
+}
+
+export function FactionsWithAugs(ns: NS): Factions[] {
+    return ns.getPlayer().factions
+        .map((faction) => faction as Factions)
+        .filter((faction) => faction != Factions.ShadowsOfAnarchy)
+        .filter((faction) => faction != Factions.ChurchOfTheMachineGod)
+        .filter((faction) => faction != Factions.Bladeburners)
+        .filter((faction) => {
+            if(ns.gang.inGang()) { 
+                return faction != ns.gang.getGangInformation().faction
+            } else {
+                return true;
+            }
+        })
+        .filter((faction) => hasFactionAugs(ns, faction));
+}
+
+export function hasFactionAugs(ns: NS, faction: Factions): boolean {
+    var augments = ns.singularity.getAugmentationsFromFaction(faction)
+        .filter((aug) =>  !ns.singularity.getOwnedAugmentations(true).includes(aug));
+    return augments.length > 0;
 }

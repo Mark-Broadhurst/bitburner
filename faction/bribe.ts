@@ -10,18 +10,11 @@ export async function main(ns: NS): Promise<void> {
         .filter((faction) => faction != Factions.ShadowsOfAnarchy)
         .filter((faction) => faction != Factions.ChurchOfTheMachineGod)
         .filter((faction) => faction != Factions.Bladeburners)
-        .filter((faction) => ns.gang.inGang() && faction != ns.gang.getGangInformation().faction)
-        /*
-        .filter((faction) => {
-            const factionAugs = ns.singularity.getAugmentationsFromFaction(faction);
-            const ownedAugs = ns.singularity.getOwnedAugmentations(true);
-            return factionAugs.some((aug) => !ownedAugs.includes(aug));
-        });
-*/
-        for (const faction of factions) {
+        .filter((faction) => ns.gang.inGang() && faction != ns.gang.getGangInformation().faction);
+
+    for (const faction of factions) {
         const maxRep = ns.singularity.getAugmentationsFromFaction(faction)
             .filter((aug) => aug != "NeuroFlux Governor")
-            //.filter((aug) => !ns.singularity.getOwnedAugmentations(true).includes(aug))
             .map(aug => ns.singularity.getAugmentationRepReq(aug))
             .reduce((a, b) => {
                 if (a > b) {

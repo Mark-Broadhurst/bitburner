@@ -23,7 +23,7 @@ async function TrainGang(ns: NS, target: number, memberName: string, minRespect 
         let gang = ns.gang.getGangInformation();
         let bestTask = getBestRepTask(ns, member);
         ns.clearLog();
-        if (gang.wantedPenalty < 0.99 && gang.respect > 2000) {
+        if ((gang.respect / gang.wantedLevel) < 50 && gang.wantedLevel != 1) {
             ns.gang.setMemberTask(memberName, "Vigilante Justice");
             ns.print("Reducing wanted level");
         } else if (gang.respect < minRespect) {
@@ -116,7 +116,7 @@ async function EngageInTerritoryWar(ns: NS, memberName: string) {
 
     while (gang.territory < 1 && gang.power < (otherGangs[mostPowerfulGang].power * 10)) {
         ns.clearLog();
-        if (gang.wantedPenalty < 0.999 && gang.respect > 2000) {
+        if ((gang.respect / gang.wantedLevel) < 50 && gang.wantedLevel != 1) {
             ns.gang.setMemberTask(memberName, "Vigilante Justice");
             ns.print(`Reducing wanted level currently ${gang.wantedPenalty} / 0.99`);
         }

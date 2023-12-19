@@ -45,11 +45,11 @@ async function findWorkerServer(ns: NS): Promise<WorkerServer> {
         const serverList = [];
         const home = ns.getServer("home");
 
-        if (home.maxRam < 1024) {
+        if (home.maxRam <= 1024) {
             serverList.push(...getPlayerServers(ns));
             serverList.push(...getWorkerServers(ns));
-            serverList.push(home);
-        } else if (home.maxRam >= 1024 && home.maxRam < 16777216) {
+            //serverList.push(home);
+        } else if (home.maxRam >= 1024 && home.maxRam <= 2097152) {
             serverList.push(...getPlayerServers(ns));
             serverList.push(...getWorkerServers(ns));
         } else {
@@ -62,6 +62,8 @@ async function findWorkerServer(ns: NS): Promise<WorkerServer> {
         }
         await ns.sleep(1000);
     }
+
+    8388608
 }
 
 function getWeakenDetails(ns: NS, server: Server, diff: number) {
