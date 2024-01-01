@@ -1,5 +1,5 @@
 import { CityName, NS } from "@ns";
-import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction } from "bladeburner/enums";
+import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
@@ -113,14 +113,10 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
 }
 
 function getContract(ns: NS): [Type, Contract] | null {
-  const contracts = [
-    Contract.Retirement,
-    Contract.BountyHunter,
-    Contract.Tracking,
-  ]
+  contracts
     .map(c => {
-      const count = ns.bladeburner.getActionCountRemaining(Type.Contract, c);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.Contract, c);
+      const count = ns.bladeburner.getActionCountRemaining("contract", c);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("contract", c);
       return { contract: c, count, min, max };
     })
     .filter(c => c.count > 0)
@@ -130,22 +126,15 @@ function getContract(ns: NS): [Type, Contract] | null {
   if (contracts.length === 0) {
     return null;
   }
-  return [Type.Contract, contracts[0].contract];
+  return ["contract", contracts[0]];
 }
 
 
 function getOperation(ns: NS): [Type, Operation] | null {
-  const operations = [
-    Operation.Assassination,
-    Operation.StealthRetirementOperation,
-    Operation.Raid,
-    Operation.StingOperation,
-    Operation.UndercoverOperation,
-    Operation.Investigation,
-  ]
+  operations
     .map(op => {
-      const count = ns.bladeburner.getActionCountRemaining(Type.Operation, op);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.Operation, op);
+      const count = ns.bladeburner.getActionCountRemaining("op", op);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("op", op);
       return { operation: op, count, min, max };
     })
     .filter(c => c.count > 0)
@@ -155,37 +144,15 @@ function getOperation(ns: NS): [Type, Operation] | null {
   if (operations.length === 0) {
     return null;
   }
-  return [Type.Operation, operations[0].operation];
+  return ["op", operations[0]];
 }
 
 function getBlackOp(ns: NS): [Type, BlackOp] | null {
-  const blackOps = [
-    BlackOp.Typhoon,
-    BlackOp.Zero,
-    BlackOp.X,
-    BlackOp.Titan,
-    BlackOp.Ares,
-    BlackOp.Archangel,
-    BlackOp.Juggernaut,
-    BlackOp.Red,
-    BlackOp.K,
-    BlackOp.Deckard,
-    BlackOp.Tyrell,
-    BlackOp.Wallace,
-    BlackOp.Shoulder,
-    BlackOp.Hyron,
-    BlackOp.Morpheus,
-    BlackOp.Ion,
-    BlackOp.Annihilus,
-    BlackOp.Ultron,
-    BlackOp.Centurion,
-    BlackOp.Vindictus,
-    BlackOp.Daedalus,
-  ]
+  blackOps
     .map(bo => {
-      const count = ns.bladeburner.getActionCountRemaining(Type.BlackOp, bo);
+      const count = ns.bladeburner.getActionCountRemaining("blackop", bo);
       const rank = ns.bladeburner.getBlackOpRank(bo);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(Type.BlackOp, bo);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("blackop", bo);
       return { blackOp: bo, count, rank, min, max };
     })
     .filter(c => c.min >= 0.8)
@@ -205,5 +172,5 @@ function getBlackOp(ns: NS): [Type, BlackOp] | null {
   if (blackOps.length === 0) {
     return null;
   }
-  return [Type.BlackOp, blackOps[0].blackOp];
+  return ["blackop", blackOps[0]];
 }

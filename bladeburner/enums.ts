@@ -1,108 +1,114 @@
-export enum Type {
-  General = "general",
-  Contract = "contract",
-  Operation = "op",
-  BlackOp = "blackop"
-}
+export type Type =
+  | "general"
+  | "contract"
+  | "op"
+  | "blackop";
 
-export enum Action {
-  Training = "Training",
-  FieldAnalysis = "Field Analysis",
-  Recruitment = "Recruitment",
-  Diplomacy = "Diplomacy",
-  HyperbolicRegenerationChamber = "Hyperbolic Regeneration Chamber",
-  InciteViolence = "Incite Violence"
-}
+export const types = ["general", "contract", "op", "blackop"] as Type[];
 
-export enum Contract {
-  Tracking = "Tracking",
-  BountyHunter = "Bounty Hunter",
-  Retirement = "Retirement",
-}
+export type Action =
+  | "Training"
+  | "Field Analysis"
+  | "Recruitment"
+  | "Diplomacy"
+  | "Hyperbolic Regeneration Chamber"
+  | "Incite Violence";
 
-export enum Operation {
-  Investigation = "Investigation",
-  UndercoverOperation = "Undercover Operation",
-  StingOperation = "Sting Operation",
-  Raid = "Raid",
-  StealthRetirementOperation = "Stealth Retirement Operation",
-  Assassination = "Assassination"
-}
+export const actions = ["Training", "Field Analysis", "Recruitment", "Diplomacy", "Hyperbolic Regeneration Chamber", "Incite Violence"] as Action[];
 
-export enum BlackOp {
-  Typhoon = "Operation Typhoon",
-  Zero = "Operation Zero",
-  X = "Operation X",
-  Titan = "Operation Titan",
-  Ares = "Operation Ares",
-  Archangel = "Operation Archangel",
-  Juggernaut = "Operation Juggernaut",
-  Red = "Operation Red Dragon",
-  K = "Operation K",
-  Deckard = "Operation Deckard",
-  Tyrell = "Operation Tyrell",
-  Wallace = "Operation Wallace",
-  Shoulder = "Operation Shoulder of Orion",
-  Hyron = "Operation Hyron",
-  Morpheus = "Operation Morpheus",
-  Ion = "Operation Ion Storm",
-  Annihilus = "Operation Annihilus",
-  Ultron = "Operation Ultron",
-  Centurion = "Operation Centurion",
-  Vindictus = "Operation Vindictus",
-  Daedalus = "Operation Daedalus"
-}
+export type Contract =
+  | "Tracking"
+  | "Bounty Hunter"
+  | "Retirement";
 
-export enum Skill {
-  BladesIntuition = "Blade's Intuition",
-  Cloak = "Cloak",
-  ShortCircuit = "Short-Circuit",
-  DigitalObserver = "Digital Observer",
-  Tracer = "Tracer",
-  Overclock = "Overclock",
-  Reaper = "Reaper",
-  EvasiveSystem = "Evasive System",
-  Datamancer = "Datamancer",
-  CybersEdge = "Cyber's Edge",
-  HandsofMidas = "Hands of Midas",
-  Hyperdrive = "Hyperdrive"
-}
+export const contracts = ["Tracking", "Bounty Hunter", "Retirement"] as Contract[];
+
+export type Operation = 
+  | "Investigation"
+  | "Undercover Operation"
+  | "Sting Operation"
+  | "Raid"
+  | "Stealth Retirement Operation"
+  | "Assassination";
+
+export const operations = ["Investigation", "Undercover Operation", "Sting Operation", "Raid", "Stealth Retirement Operation", "Assassination"] as Operation[];
+
+export type BlackOp =
+  | "Operation Typhoon"
+  | "Operation Zero"
+  | "Operation X"
+  | "Operation Titan"
+  | "Operation Ares"
+  | "Operation Archangel"
+  | "Operation Juggernaut"
+  | "Operation Red Dragon"
+  | "Operation K"
+  | "Operation Deckard"
+  | "Operation Tyrell"
+  | "Operation Wallace"
+  | "Operation Shoulder of Orion"
+  | "Operation Hyron"
+  | "Operation Morpheus"
+  | "Operation Ion Storm"
+  | "Operation Annihilus"
+  | "Operation Ultron"
+  | "Operation Centurion"
+  | "Operation Vindictus"
+  | "Operation Daedalus";
+
+export const blackOps = ["Operation Typhoon", "Operation Zero", "Operation X", "Operation Titan", "Operation Ares", "Operation Archangel", "Operation Juggernaut", "Operation Red Dragon", "Operation K", "Operation Deckard", "Operation Tyrell", "Operation Wallace", "Operation Shoulder of Orion", "Operation Hyron", "Operation Morpheus", "Operation Ion Storm", "Operation Annihilus", "Operation Ultron", "Operation Centurion", "Operation Vindictus", "Operation Daedalus"] as BlackOp[];
+
+export type Skill =
+  | "Blade's Intuition"
+  | "Cloak"
+  | "Short-Circuit"
+  | "Digital Observer"
+  | "Tracer"
+  | "Overclock"
+  | "Reaper"
+  | "Evasive System"
+  | "Datamancer"
+  | "Cyber's Edge"
+  | "Hands of Midas"
+  | "Hyperdrive";
+
+export const skills = ["Blade's Intuition", "Cloak", "Short-Circuit", "Digital Observer", "Tracer", "Overclock", "Reaper", "Evasive System", "Datamancer", "Cyber's Edge", "Hands of Midas", "Hyperdrive"] as Skill[];
 
 export class BladeburnerAction {
-  static Training = [Type.General, Action.Training] as [Type,Action];
-  static FieldAnalysis = [Type.General, Action.FieldAnalysis] as [Type,Action];
-  static Recruitment = [Type.General, Action.Recruitment] as [Type,Action];
-  static Diplomacy = [Type.General, Action.Diplomacy] as [Type,Action];
-  static HyperbolicRegenerationChamber = [Type.General, Action.HyperbolicRegenerationChamber]  as [Type,Action];
-  static InciteViolence = [Type.General, Action.InciteViolence] as [Type,Action];
-  static Tracking = [Type.Contract, Contract.Tracking] as [Type,Contract];
-  static BountyHunter = [Type.Contract, Contract.BountyHunter] as [Type,Contract];
-  static Retirement = [Type.Contract, Contract.Retirement] as [Type,Contract];
-  static Investigation = [Type.Operation, Operation.Investigation] as [Type,Operation];
-  static UndercoverOperation = [Type.Operation, Operation.UndercoverOperation] as [Type,Operation];
-  static StingOperation = [Type.Operation, Operation.StingOperation] as [Type,Operation];
-  static Raid = [Type.Operation, Operation.Raid] as [Type,Operation];
-  static StealthRetirementOperation = [Type.Operation, Operation.StealthRetirementOperation] as [Type,Operation];
-  static Assassination = [Type.Operation, Operation.Assassination] as [Type,Operation];
-  static Typhoon = [Type.BlackOp, BlackOp.Typhoon] as [Type,BlackOp];
-  static Zero = [Type.BlackOp, BlackOp.Zero] as [Type,BlackOp];
-  static X = [Type.BlackOp, BlackOp.X] as [Type,BlackOp];
-  static Titan = [Type.BlackOp, BlackOp.Titan] as [Type,BlackOp];
-  static Ares = [Type.BlackOp, BlackOp.Ares] as [Type,BlackOp];
-  static Archangel = [Type.BlackOp, BlackOp.Archangel] as [Type,BlackOp];
-  static Juggernaut = [Type.BlackOp, BlackOp.Juggernaut] as [Type,BlackOp];
-  static Red = [Type.BlackOp, BlackOp.Red] as [Type,BlackOp];
-  static K = [Type.BlackOp, BlackOp.K] as [Type,BlackOp];
-  static Deckard = [Type.BlackOp, BlackOp.Deckard] as [Type,BlackOp];
-  static Tyrell = [Type.BlackOp, BlackOp.Tyrell] as [Type,BlackOp];
-  static Wallace = [Type.BlackOp, BlackOp.Wallace] as [Type,BlackOp];
-  static Shoulder = [Type.BlackOp, BlackOp.Shoulder] as [Type,BlackOp];
-  static Hyron = [Type.BlackOp, BlackOp.Hyron] as [Type,BlackOp];
-  static Morpheus = [Type.BlackOp, BlackOp.Morpheus] as [Type,BlackOp];
-  static Ion = [Type.BlackOp, BlackOp.Ion] as [Type,BlackOp];
-  static Annihilus = [Type.BlackOp, BlackOp.Annihilus] as [Type,BlackOp];
-  static Ultron = [Type.BlackOp, BlackOp.Ultron] as [Type,BlackOp];
-  static Centurion = [Type.BlackOp, BlackOp.Centurion] as [Type,BlackOp];
-  static Vindictus = [Type.BlackOp, BlackOp.Vindictus] as [Type,BlackOp];
-  static Daedalus = [Type.BlackOp, BlackOp.Daedalus] as [Type,BlackOp];
+  static Training = ["general", "Training"] as [Type, Action];
+  static FieldAnalysis = ["general", "Field Analysis"] as [Type, Action];
+  static Recruitment = ["general", "Recruitment"] as [Type, Action];
+  static Diplomacy = ["general", "Diplomacy"] as [Type, Action];
+  static HyperbolicRegenerationChamber = ["general", "Hyperbolic Regeneration Chamber"]  as [Type, Action];
+  static InciteViolence = ["general", "Incite Violence"] as [Type, Action];
+  static Tracking = ["contract", "Tracking"] as [Type, Contract];
+  static BountyHunter = ["contract", "Bounty Hunter"] as [Type, Contract];
+  static Retirement = ["contract", "Retirement"] as [Type, Contract];
+  static Investigation = ["op", "Investigation"] as [Type, Operation];
+  static UndercoverOperation = ["op", "Undercover Operation"] as [Type, Operation];
+  static StingOperation = ["op", "Sting Operation"] as [Type, Operation];
+  static Raid = ["op", "Raid"] as [Type, Operation];
+  static StealthRetirementOperation = ["op", "Stealth Retirement Operation"] as [Type, Operation];
+  static Assassination = ["op", "Assassination"] as [Type, Operation];
+  static Typhoon = ["blackop", "Operation Typhoon"] as [Type, BlackOp];
+  static Zero = ["blackop", "Operation Zero"] as [Type, BlackOp];
+  static X = ["blackop", "Operation X"] as [Type, BlackOp];
+  static Titan = ["blackop", "Operation Titan"] as [Type, BlackOp];
+  static Ares = ["blackop", "Operation Ares"] as [Type, BlackOp];
+  static Archangel = ["blackop", "Operation Archangel"] as [Type, BlackOp];
+  static Juggernaut = ["blackop", "Operation Juggernaut"] as [Type, BlackOp];
+  static Red = ["blackop", "Operation Red Dragon"] as [Type, BlackOp];
+  static K = ["blackop", "Operation K"] as [Type, BlackOp];
+  static Deckard = ["blackop", "Operation Deckard"] as [Type, BlackOp];
+  static Tyrell = ["blackop", "Operation Tyrell"] as [Type, BlackOp];
+  static Wallace = ["blackop", "Operation Wallace"] as [Type, BlackOp];
+  static Shoulder = ["blackop", "Operation Shoulder of Orion"] as [Type, BlackOp];
+  static Hyron = ["blackop", "Operation Hyron"] as [Type, BlackOp];
+  static Morpheus = ["blackop", "Operation Morpheus"] as [Type, BlackOp];
+  static Ion = ["blackop", "Operation Ion Storm"] as [Type, BlackOp];
+  static Annihilus = ["blackop", "Operation Annihilus"] as [Type, BlackOp];
+  static Ultron = ["blackop", "Operation Ultron"] as [Type, BlackOp];
+  static Centurion = ["blackop", "Operation Centurion"] as [Type, BlackOp];
+  static Vindictus = ["blackop", "Operation Vindictus"] as [Type, BlackOp];
+  static Daedalus = ["blackop", "Operation Daedalus"] as [Type, BlackOp];
 }

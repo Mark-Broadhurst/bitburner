@@ -1,16 +1,12 @@
 import { NS } from "@ns";
-import { Factions } from "/utils/factions";
+import { PlayerRegularFactions } from "/utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
     const minFavour = 150;
-    const factions = ns.getPlayer().factions
-        .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour)
-        .filter((faction) => faction != Factions.ShadowsOfAnarchy)
-        .filter((faction) => faction != Factions.ChurchOfTheMachineGod)
-        .filter((faction) => faction != Factions.Bladeburners)
-        .filter((faction) => ns.gang.inGang() && faction != ns.gang.getGangInformation().faction);
+    const factions = PlayerRegularFactions(ns)
+        .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour);
 
     for (const faction of factions) {
         const maxRep = ns.singularity.getAugmentationsFromFaction(faction)

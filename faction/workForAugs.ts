@@ -1,7 +1,7 @@
 import { NS } from "@ns";
 import { getBestField } from "faction/factionWork";
 import AugmentItem from "faction/AugmentItem";
-import { Factions } from "/utils/factions";
+import { PlayerRegularFactions } from "/utils/factions";
  
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -40,12 +40,9 @@ export async function main(ns: NS): Promise<void> {
 }
 
 function getListOfAugments(ns: NS) : AugmentItem[] {
-
     let list = [];
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
-    for (const faction of ns.getPlayer().factions) {
-        if (faction == Factions.ShadowsOfAnarchy || faction == Factions.Bladeburners || faction == Factions.ChurchOfTheMachineGod) continue;
-        if (ns.gang.inGang() && faction == ns.gang.getGangInformation().faction) continue;
+    for (const faction of PlayerRegularFactions(ns)) {
         const augments = ns.singularity.getAugmentationsFromFaction(faction);
         for (const augment of augments) {
             if (augment == "NeuroFlux Governor") continue;
@@ -73,7 +70,6 @@ function getListOfAugments(ns: NS) : AugmentItem[] {
 }
 
 function printList(ns: NS) {
-    
     ns.print("🦾".padEnd(56) + "Faction".padEnd(23) + "🙇‍♂️".padEnd(9) + "Req");
     ns.print("-".repeat(100));
     const list = getListOfAugments(ns);

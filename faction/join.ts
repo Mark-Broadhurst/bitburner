@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { Factions } from "/utils/factions";
+import { Factions, isExclusiveFaction } from "/utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -8,7 +8,8 @@ export async function main(ns: NS): Promise<void> {
     const augs = ns.singularity.getOwnedAugmentations();
     while (true) {
       let factions = ns.singularity.checkFactionInvitations()
-        .filter(faction => faction != Factions.Sector12 && faction != Factions.Aevum && faction != Factions.Volhaven && faction != Factions.Chongqing && faction != Factions.NewTokyo && faction != Factions.Ishima);
+        .map(faction => faction as Factions)
+        .filter(f => !isExclusiveFaction(f));
       if (withAugs) {
         factions = factions.filter(faction => ns.singularity.getAugmentationsFromFaction(faction)
           .filter(x => !augs.includes(x)).length);

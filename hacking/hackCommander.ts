@@ -95,7 +95,7 @@ function getTaskServers(ns: NS): WorkerServer[] {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
         //serverList.push(home);
-    } else if (home.maxRam >= 1024 && home.maxRam <= 2097152) {
+    } else if (home.maxRam >= 1024 && home.maxRam <= 262144) {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
     } else{

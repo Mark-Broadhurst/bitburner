@@ -1,22 +1,14 @@
 import { NS } from "@ns";
 import { getBestField } from "faction/factionWork";
-import { Factions } from "/utils/factions";
+import { PlayerRegularFactions } from "/utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.clearLog();
     ns.disableLog("ALL");
     while (true) {
         ns.clearLog();
-        var factions = ns.getPlayer().factions
-            .filter(faction => faction != Factions.ShadowsOfAnarchy && faction != Factions.Bladeburners && faction != Factions.ChurchOfTheMachineGod)
-            .filter(faction => {
-                if(ns.gang.inGang()){
-                    return  faction != ns.gang.getGangInformation().faction
-                } else {
-                    return true;
-                }
-            })
-            .filter(faction => getFactionFavourTotal(ns, faction) < 150)
+        var factions = PlayerRegularFactions(ns)
+            .filter(f => getFactionFavourTotal(ns, f) < 150)
             .sort((a, b) => getFactionFavourTotal(ns, b) - getFactionFavourTotal(ns, a));
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
             ns.sleeve.setToIdle(sleeveNumber);

@@ -1,20 +1,10 @@
 import { NS } from "@ns";
-import { Factions } from "utils/index";
+import { PlayerRegularFactions } from "utils/index";
 
 export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
-    const factions = ns.getPlayer().factions
-        .filter(x => x != Factions.ShadowsOfAnarchy)
-        .filter(x => x != Factions.Bladeburners)
-        .filter(x => x != Factions.ChurchOfTheMachineGod)
-        .filter(x => {
-            if (ns.gang.inGang()) {
-                return x != ns.gang.getGangInformation().faction
-            } else {
-                return true;
-            }
-        })
+    const factions = PlayerRegularFactions(ns)
         .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
         .sort((a, b) => {
             const aFav = ns.singularity.getFactionFavor(a);

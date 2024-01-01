@@ -1,22 +1,24 @@
 import { NS, CompanyName, JobField, Person, JobName } from "@ns";
 import { Factions } from "utils/factions";
 
+type CompanyFaction = { company: CompanyName, faction: Factions };
+
 export function CompaniesWithFactions(ns: NS): CompanyName[] {
     const CompanyName = ns.enums.CompanyName;
     const factions = ns.getPlayer().factions.concat(ns.singularity.checkFactionInvitations());
 
     const companies = [
-        { company: CompanyName.BachmanAndAssociates, faction: Factions.BachmanAndAssociates },
-        { company: CompanyName.ECorp, faction: Factions.ECorp },
-        { company: CompanyName.MegaCorp, faction: Factions.MegaCorp },
-        { company: CompanyName.KuaiGongInternational, faction: Factions.KuaiGongInternational },
-        { company: CompanyName.FourSigma, faction: Factions.FourSigma },
-        { company: CompanyName.NWO, faction: Factions.NWO },
-        { company: CompanyName.BladeIndustries, faction: Factions.BladeIndustries },
-        { company: CompanyName.OmniTekIncorporated, faction: Factions.OmniTekIncorporated },
-        { company: CompanyName.ClarkeIncorporated, faction: Factions.ClarkeIncorporated },
-        { company: CompanyName.FulcrumTechnologies, faction: Factions.FulcrumSecretTechnologies },
-    ];
+        { company: CompanyName.BachmanAndAssociates, faction: "Bachman & Associates" },
+        { company: CompanyName.ECorp, faction: "ECorp" },
+        { company: CompanyName.MegaCorp, faction: "MegaCorp" },
+        { company: CompanyName.KuaiGongInternational, faction: "KuaiGong International" },
+        { company: CompanyName.FourSigma, faction: "Four Sigma" },
+        { company: CompanyName.NWO, faction: "NWO" },
+        { company: CompanyName.BladeIndustries, faction: "Blade Industries" },
+        { company: CompanyName.OmniTekIncorporated, faction: "OmniTek Incorporated" },
+        { company: CompanyName.ClarkeIncorporated, faction: "Clarke Incorporated" },
+        { company: CompanyName.FulcrumTechnologies, faction: "Fulcrum Secret Technologies" },
+    ] as CompanyFaction[];
 
     return companies.filter(x => !factions.includes(x.faction)).map(x => x.company);
 }

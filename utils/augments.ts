@@ -3,7 +3,7 @@ import { RegularFactions } from "utils/factions";
 
 export function getAugmentations(ns: NS): string[] {
     let augs = new Set<string>();
-    for (const faction of RegularFactions) {
+    for (const faction of RegularFactions(ns)) {
         const factionAugs = ns.singularity.getAugmentationsFromFaction(faction);
         for (const aug of factionAugs) {
             if (aug == "NeuroFlux Governor") continue;
