@@ -1,5 +1,6 @@
 import { NS } from "@ns";
-import { PlayerRegularFactions } from "/utils/factions";
+import { PlayerRegularFactions } from "utils/factions";
+import { Factions } from "utils/nsWrapper";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -21,7 +22,7 @@ export async function main(ns: NS): Promise<void> {
 
         while (ns.singularity.getFactionRep(faction) < maxRep) {
             ns.clearLog();
-            const donationAmount = getDonationAmount(ns);
+            const donationAmount = getDonationAmount(ns, faction, maxRep);
             printFactionReps(ns, factions);
             ns.print(`max rep for ${faction} is ${ns.formatNumber(maxRep)}`);
             ns.print(`donating ${ns.formatNumber(donationAmount)} to ${faction}`);
@@ -32,25 +33,16 @@ export async function main(ns: NS): Promise<void> {
 
 }
 
-function getDonationAmount(ns: NS): number {
-    const money = ns.getServerMoneyAvailable("home");
-    if (money > 1e12) {
-        return 1e12;
-    } else if (money > 1e11) {
-        return 1e11;
-    } else if (money > 1e10) {
-        return 1e10;
-    } else if (money > 1e9) {
-        return 1e9;
-    } else if (money > 1e8) {
-        return 1e8;
-    } else if (money > 1e7) {
-        return 1e7;
-    } else if (money > 1e6) {
-        return 1e6;
-    }
+function getDonationAmount(ns: NS, faction: Factions, maxRep: number): number {
+    const rep = ns.singularity.getFactionRep(faction);
+    const repToMax = maxRep - rep;
+    const player = ns.getPlayer();
 
-    return 0;
+    let moneyNeeded = 0
+    for (let repFromDonation = 0; repFromDonation < repToMax; moneyNeeded = moneyNeeded + 1e6) {
+        repFromDonation = ns.formulas.reputation.repFromDonation(moneyNeeded, player);
+    }
+    return Math.min(moneyNeeded, ns.getServerMoneyAvailable("home"));
 }
 
 function printFactionReps(ns: NS, factions: string[]): void {
