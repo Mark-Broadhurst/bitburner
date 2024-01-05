@@ -6,12 +6,6 @@ export async function main(ns: NS): Promise<void> {
     ns.clearLog();
     let servers = getServers(ns);
     while (servers.length) {
-        servers = getServers(ns)
-            .filter(s => s.moneyMax! <= 1e13)
-            .filter(s => s.minDifficulty! >= 1)
-            .sort((a, b) => a.moneyMax! - b.moneyMax!)
-            .reverse();
-        const server = servers[0];
         //ns.print(servers.map(s => `${s.hostname} ${ns.formatNumber(s.moneyMax!)}`).join("\n"));
         const action = [
             "Reduce Minimum Security",
@@ -25,14 +19,28 @@ export async function main(ns: NS): Promise<void> {
         };
         switch (action.name) {
             case "Reduce Minimum Security":
-                ns.print(`Reducing security on ${server.hostname} from ${server.minDifficulty}`);
-                ns.hacknet.spendHashes("Reduce Minimum Security", server.hostname, 1);
+
+                servers = getServers(ns)
+                    .filter(s => s.moneyMax! <= 1e13)
+                    .filter(s => s.minDifficulty! >= 1)
+                    .sort((a, b) => a.minDifficulty! - b.minDifficulty!)
+                    .reverse();
+
+                ns.print(`Reducing security on ${servers[0].hostname} from ${servers[0].minDifficulty}`);
+                ns.hacknet.spendHashes("Reduce Minimum Security", servers[0].hostname, 1);
                 break;
             case "Increase Maximum Money":
-                ns.print(`Increasing money on ${server.hostname} from ${ns.formatNumber(server.moneyMax!)}`);
-                ns.hacknet.spendHashes("Increase Maximum Money", server.hostname, 1);
+                servers = getServers(ns)
+                    .filter(s => s.moneyMax! <= 1e13)
+                    .filter(s => s.minDifficulty! >= 1)
+                    .sort((a, b) => a.moneyMax! - b.moneyMax!)
+                    .reverse();
+
+
+                ns.print(`Increasing money on ${servers[0].hostname} from ${ns.formatNumber(servers[0].moneyMax!)}`);
+                ns.hacknet.spendHashes("Increase Maximum Money", servers[0].hostname, 1);
                 break;
         }
-        await ns.sleep(1000);
+        await ns.sleep(1000); 
     }
 }

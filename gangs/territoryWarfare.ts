@@ -1,6 +1,7 @@
 import { NS } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
+    ns.clearLog();
     ns.disableLog("ALL");
     let gang = ns.gang.getGangInformation();
 
@@ -9,22 +10,32 @@ export async function main(ns: NS): Promise<void> {
         gang = ns.gang.getGangInformation();
         let otherGangs = ns.gang.getOtherGangInformation();
 
-        const mostPowerfulGang = [
-            "Slum Snakes", 
-            "Tetrads", 
-            "The Syndicate", 
-            "The Dark Army", 
-            "Speakers for the Dead", 
-            "NiteSec", 
+        const mostPowerfulGangs = [
+            "Slum Snakes",
+            "Tetrads",
+            "The Syndicate",
+            "The Dark Army",
+            "Speakers for the Dead",
+            "NiteSec",
             "The Black Hand"
-        ]
-            .reduce((a, b) => {
-                if (otherGangs[a].power > otherGangs[b].power) {
-                    return a;
-                }
-                return b;
-            });
-        const mostPowerful = mostPowerfulGang == gang.faction
+          ]
+            .filter(x => x != gang.faction)
+            .filter(x => otherGangs[x].territory);
+
+        if (!mostPowerfulGangs.length) {
+            ns.print("No other gangs with territory");
+            break;
+        }
+        const mostPowerfulGang = mostPowerfulGangs.reduce((a, b) => {
+            if (otherGangs[a].power > otherGangs[b].power) {
+                return a;
+            }
+            return b;
+        });
+
+        ns.print(`Most powerful gang: ${mostPowerfulGang}`);
+        ns.print(`Most powerful gang power: ${otherGangs[mostPowerfulGang].power}`);
+        const mostPowerful = otherGangs[mostPowerfulGang].power < gang.power
         if(!gang.territoryWarfareEngaged && mostPowerful)
         {
             ns.gang.setTerritoryWarfare(mostPowerful);

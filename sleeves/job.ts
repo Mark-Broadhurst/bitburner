@@ -6,7 +6,11 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     while (true) {
         ns.clearLog();
-        var factions = CompaniesWithFactions(ns)
+        var factions = CompaniesWithFactions(ns).filter(company => {
+            const jt = ns.getPlayer().jobs[company];
+            return jt != undefined && jt.length > 0;
+        });
+        ns.print(`factions ${factions}`);
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
             ns.sleeve.setToIdle(sleeveNumber);
         }

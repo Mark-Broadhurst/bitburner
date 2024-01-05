@@ -18,10 +18,19 @@ export async function main(ns: NS): Promise<void> {
     if (augsToBuy.length > 0) {
         const aug = augsToBuy[0];
 
+        const members = ns.gang.getMemberNames()
+        for (const member of members) {
+            ns.gang.setMemberTask(member, "Human Trafficking");
+        }
+
         while (ns.getServerMoneyAvailable("home") < ns.singularity.getAugmentationBasePrice(aug)) {
             ns.print(`waiting to buy ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
             await ns.gang.nextUpdate();
         }
+        for (const member of members) {
+            ns.gang.setMemberTask(member, "Terrorism");
+        }
+
         while(ns.singularity.getFactionRep(gangFaction) < ns.singularity.getAugmentationRepReq(aug)) {
             ns.print(`waiting for rep ${ns.formatNumber(ns.singularity.getFactionRep(gangFaction))} / ${ns.formatNumber(ns.singularity.getAugmentationRepReq(aug))}`)
             await ns.gang.nextUpdate();
@@ -32,4 +41,4 @@ export async function main(ns: NS): Promise<void> {
     }
     ns.killall();
     ns.run("startup.js");
-}
+} 

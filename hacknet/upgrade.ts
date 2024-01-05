@@ -50,7 +50,7 @@ function getWeakestStat(ns: NS, node: number): { type: string, cost: number } {
         { type: "level", cost: ns.hacknet.getLevelUpgradeCost(node) },
         { type: "ram", cost: ns.hacknet.getRamUpgradeCost(node) },
         { type: "cores", cost: ns.hacknet.getCoreUpgradeCost(node) },
-        { type: "cache", cost: ns.hacknet.getCacheUpgradeCost(node) },
+        //{ type: "cache", cost: ns.hacknet.getCacheUpgradeCost(node) },
         { type: "node", cost: ns.hacknet.getPurchaseNodeCost() }
     ].reduce((a, b) => a.cost <= b.cost ? a : b);
     return costs;
