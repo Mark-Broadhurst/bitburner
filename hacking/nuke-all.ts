@@ -9,8 +9,8 @@ export async function main(ns: NS): Promise<void> {
     .sort((a, b) => a.numOpenPortsRequired! - b.numOpenPortsRequired!);
   for (const server of servers) {
     await openPorts(ns, server);
-    ns.toast(`Admin access gained for ${server.hostname}`);
-    ns.scp(["grow.js", "weaken.js", "hack.js", "share.js"], server.hostname);
+    ns.tprint(`Admin access gained for ${server.hostname}`);
+    ns.scp(["grow.js", "weaken.js", "hack.js", "share.js", "charge.js"], server.hostname);
   }
 
 }

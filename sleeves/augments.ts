@@ -1,4 +1,5 @@
 import { NS } from "@ns";
+import { SleeveAugmentations } from "utils/augments";
 
 export async function main(ns: NS): Promise<void> {
   ns.disableLog("ALL");
@@ -17,17 +18,44 @@ export async function main(ns: NS): Promise<void> {
   }
 
   augList.sort((a, b) => a.cost - b.cost);
-  
-  ns.print(`sleeve\taug\tcost`);
-  for(const aug of augList) {
-    ns.print(`${aug.sleeve}\t${aug.name.padEnd(38)}\t${ns.formatNumber(aug.cost)}`);
-  }
+
+  printSleeveAugStatus(ns);
 
   for(const aug of augList) {
-    ns.print(`Buying ${aug.name} for ${ns.formatNumber(aug.cost)} for sleeve ${aug.sleeve}`);
     while(ns.getServerMoneyAvailable("home") < aug.cost) {
+      ns.clearLog();
+      printSleeveAugStatus(ns);
       await ns.sleep(1000);
     }
     ns.sleeve.purchaseSleeveAug(aug.sleeve, aug.name);
+  }
+}
+
+function printSleeveAugStatus(ns:NS) {
+  const augs = SleeveAugmentations;
+
+  const sleeveAugs = [];
+  for (let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
+    const aug = ns.sleeve.getSleeveAugmentations(i);
+    sleeveAugs.push(aug);
+  } 
+
+  ns.print(`║${"Augment🦾".padEnd(54)}║ 0║ 1║ 2║ 3║ 4║ 5║ 6║ 7║`);
+  ns.print(`${"╠".padEnd(55, "═")}╬══╬══╬══╬══╬══╬══╬══╬══╣`);
+  for(const aug of augs) {
+    let line = `║${aug.padEnd(54)}`;
+    for(let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
+      const sleeve = sleeveAugs[i];
+
+      if (sleeve.includes(aug)) {
+        line += `║🟩`;
+      } else if (ns.sleeve.getSleevePurchasableAugs(i).map(x=>x.name).includes(aug)) {
+        line += `║🟨`;
+      } else {
+        line += `║🟥`;
+      }
+    }
+    line += "║";
+    ns.print(line);
   }
 }

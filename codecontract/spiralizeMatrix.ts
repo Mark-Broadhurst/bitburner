@@ -9,7 +9,7 @@ export async function main(ns: NS) {
     const data = ns.codingcontract.getData(filename, hostname);
 
     const result = spiralizeMatrix(data);
-    ns.toast(`Solving Code Contract on ${hostname}:${filename} ${result}`)
+    ns.tprint(`Solving Code Contract on ${hostname}:${filename} ${result}`)
 }
 
 function spiralizeMatrix(matrix: number[][]): number[] {

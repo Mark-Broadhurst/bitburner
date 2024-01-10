@@ -8,7 +8,7 @@ export async function main(ns: NS) {
   const data = ns.codingcontract.getData(filename, hostname);
   const answer = subArrayWithMaximumSum(data);
   const result = ns.codingcontract.attempt(answer, filename, hostname);
-  ns.toast(`Solving Code Contract on ${hostname}:${filename} ${result}`)
+  ns.tprint(`Solving Code Contract on ${hostname}:${filename} ${result}`)
 }
 
 function subArrayWithMaximumSum(data: number[]): number {

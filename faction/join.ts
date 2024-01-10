@@ -17,7 +17,7 @@ export async function main(ns: NS): Promise<void> {
       for(const faction of factions){
         ns.singularity.joinFaction(faction);
         ns.print(`joined ${faction} faction`);
-        ns.toast(`joined ${faction} faction`);
+        ns.tprint(`joined ${faction} faction`);
       }
   
       await ns.sleep(10000);

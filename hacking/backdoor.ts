@@ -40,7 +40,7 @@ export async function main(ns: NS): Promise<void> {
         ns.print(`Installing backdoor for ${server.hostname}`);
         await ns.singularity.installBackdoor()
             .then(() => {
-                ns.toast(`Backdoor installed on ${server.hostname}`);
+                ns.tprint(`Backdoor installed on ${server.hostname}`);
             });
 
         ns.singularity.connect("home");

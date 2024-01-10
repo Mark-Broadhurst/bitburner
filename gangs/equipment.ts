@@ -24,7 +24,7 @@ export async function main(ns: NS): Promise<void> {
         if (result) {
           const message = `Purchased ${equipment} for ${member.name} ($${ns.formatNumber(ns.gang.getEquipmentCost(equipment))})`;
           ns.print(message);
-          ns.toast(message);
+          ns.tprint(message);
         }
         else {
           const message = `Waiting for ${equipment} for ${member.name} ($${ns.formatNumber(ns.gang.getEquipmentCost(equipment))})`;

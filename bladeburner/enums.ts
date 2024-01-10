@@ -23,7 +23,7 @@ export type Contract =
 
 export const contracts = ["Tracking", "Bounty Hunter", "Retirement"] as Contract[];
 
-export type Operation = 
+export type Operation =
   | "Investigation"
   | "Undercover Operation"
   | "Sting Operation"
@@ -79,7 +79,7 @@ export class BladeburnerAction {
   static FieldAnalysis = ["general", "Field Analysis"] as [Type, Action];
   static Recruitment = ["general", "Recruitment"] as [Type, Action];
   static Diplomacy = ["general", "Diplomacy"] as [Type, Action];
-  static HyperbolicRegenerationChamber = ["general", "Hyperbolic Regeneration Chamber"]  as [Type, Action];
+  static HyperbolicRegenerationChamber = ["general", "Hyperbolic Regeneration Chamber"] as [Type, Action];
   static InciteViolence = ["general", "Incite Violence"] as [Type, Action];
   static Tracking = ["contract", "Tracking"] as [Type, Contract];
   static BountyHunter = ["contract", "Bounty Hunter"] as [Type, Contract];

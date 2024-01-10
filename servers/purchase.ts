@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
       await ns.sleep(1000);
     }
     ns.print(`Purchasing server ${i} : ${ns.formatNumber(ns.getPurchasedServerCost(ram))}`);
-    let hostname = ns.purchaseServer("pserv-" + i, ram);
-    ns.scp(["grow.js", "weaken.js", "hack.js", "share.js"], hostname);
+    let hostname = ns.purchaseServer(`pserv-${String(i).padStart(2,'0')}`, ram);
+    ns.scp(["grow.js", "weaken.js", "hack.js", "share.js", "charge.js"], hostname);
   }
 }

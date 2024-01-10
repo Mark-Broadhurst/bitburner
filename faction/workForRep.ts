@@ -1,22 +1,18 @@
 import { NS } from "@ns";
-import { PlayerRegularFactions } from "utils/index";
+import { PlayerRegularFactions } from "utils/factions";
 
 export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
     const factions = PlayerRegularFactions(ns)
         .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
-        .sort((a, b) => {
-            const aFav = ns.singularity.getFactionFavor(a);
-            const bFav = ns.singularity.getFactionFavor(b);
-            if (aFav > bFav) {
-                return 1;
-            }
-            if (aFav < bFav) {
-                return -1;
-            }
-            return 0;
-        });
+        /*
+        .filter(x => {
+            const augs = ns.singularity.getAugmentationsFromFaction(x);
+            const owned = ns.singularity.getOwnedAugmentations(true);
+            return augs.filter(a => !owned.includes(a)).length > 0;
+        })
+        */;
     ns.print(factions);
     for (const faction of factions) {
         ns.singularity.workForFaction(faction, "hacking", false);

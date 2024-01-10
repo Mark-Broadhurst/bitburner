@@ -1,16 +1,16 @@
 import { NS } from "@ns";
 
 const programs = [
-  { name: "AutoLink.exe", req: 25, pri: 0 },
-  { name: "BruteSSH.exe", req: 50, pri: 1 },
-  { name: "DeepscanV1.exe", req: 75, pri: 0 },
-  { name: "ServerProfiler.exe", req: 75, pri: 0 },
-  { name: "FTPCrack.exe", req: 100, pri: 1 },
-  { name: "relaySMTP.exe", req: 250, pri: 1 },
-  { name: "DeepscanV2.exe", req: 400, pri: 0 },
-  { name: "HTTPWorm.exe", req: 500, pri: 1 },
-  { name: "SQLInject.exe", req: 750, pri: 1},
-  { name: "Formulas.exe", req: 1000, pri: 0 },
+  { name: "AutoLink.exe", req: 25 },
+  { name: "BruteSSH.exe", req: 50 },
+  { name: "DeepscanV1.exe", req: 75 },
+  { name: "ServerProfiler.exe", req: 75 },
+  { name: "FTPCrack.exe", req: 100 },
+  { name: "relaySMTP.exe", req: 250 },
+  { name: "DeepscanV2.exe", req: 400 },
+  { name: "HTTPWorm.exe", req: 500 },
+  { name: "SQLInject.exe", req: 750 },
+  { name: "Formulas.exe", req: 1000 },
 ];
 
 export async function main(ns: NS): Promise<void> {
@@ -22,22 +22,7 @@ export async function main(ns: NS): Promise<void> {
 
   const progList = programs
     .filter(p => p.req < skill)
-    .filter(p => !ns.fileExists(p.name))
-    .sort((a, b) => {
-      if(a.pri > b.pri){
-        return -1;
-      }
-      if(a.pri < b.pri){
-        return 1;
-      }
-      if (a.req > b.req) {
-        return 1;
-      }
-      if (a.req < b.req) {
-        return -1;
-      }
-      return 0;
-    });
+    .filter(p => !ns.fileExists(p.name));
     for(const program of progList){
       ns.print(`${program.name} ${program.req}`);
     }

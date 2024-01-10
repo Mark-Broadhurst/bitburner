@@ -1,5 +1,5 @@
 import { CityName, NS } from "@ns";
-import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "bladeburner/enums";
+import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations } from "bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
@@ -9,7 +9,7 @@ export async function main(ns: NS): Promise<void> {
     const player = ns.getPlayer();
     if (player.hp.current < player.hp.max) {
       ns.print("Healing");
-      await startAction(ns, BladeburnerAction.HyperbolicRegenerationChamber)
+      await startAction(ns, ["general", "Hyperbolic Regeneration Chamber"]);
     } else if (getStaminaPercentage(ns) > 0.5) {
       await startStaminaAction(ns);
     } else {
@@ -79,24 +79,25 @@ function getStaminaPercentage(ns: NS): number {
 }
 
 function switchCity(ns: NS) {
+  const CityName = ns.enums.CityName;
   switch (ns.bladeburner.getCity()) {
-    case ns.enums.CityName.Sector12:
-      ns.bladeburner.switchCity(ns.enums.CityName.Aevum)
+    case CityName.Sector12:
+      ns.bladeburner.switchCity(CityName.Aevum)
       break;
-    case ns.enums.CityName.Aevum:
-      ns.bladeburner.switchCity(ns.enums.CityName.Volhaven)
+    case CityName.Aevum:
+      ns.bladeburner.switchCity(CityName.Volhaven)
       break;
-    case ns.enums.CityName.Volhaven:
-      ns.bladeburner.switchCity(ns.enums.CityName.Chongqing)
+    case CityName.Volhaven:
+      ns.bladeburner.switchCity(CityName.Chongqing)
       break;
-    case ns.enums.CityName.Chongqing:
-      ns.bladeburner.switchCity(ns.enums.CityName.NewTokyo)
+    case CityName.Chongqing:
+      ns.bladeburner.switchCity(CityName.NewTokyo)
       break;
-    case ns.enums.CityName.NewTokyo:
-      ns.bladeburner.switchCity(ns.enums.CityName.Ishima)
+    case CityName.NewTokyo:
+      ns.bladeburner.switchCity(CityName.Ishima)
       break;
-    case ns.enums.CityName.Ishima:
-      ns.bladeburner.switchCity(ns.enums.CityName.Sector12)
+    case CityName.Ishima:
+      ns.bladeburner.switchCity(CityName.Sector12)
       break;
   }
 }
@@ -112,65 +113,39 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
   await ns.sleep(time);
 }
 
-function getContract(ns: NS): [Type, Contract] | null {
-  contracts
+function getNext<T extends Contract | Operation>(ns: NS, type: string, list: string[]): [Type, T] | null {
+  list
+    .reverse()
     .map(c => {
-      const count = ns.bladeburner.getActionCountRemaining("contract", c);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("contract", c);
+      const count = ns.bladeburner.getActionCountRemaining(type, c);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c);
       return { contract: c, count, min, max };
     })
     .filter(c => c.count > 0)
     .filter(c => c.min >= 0.8)
     .filter(c => c.max >= 1)
     .sort((a, b) => b.min - a.min);
-  if (contracts.length === 0) {
+  if (list.length === 0) {
     return null;
   }
-  return ["contract", contracts[0]];
+  return [type as Type, list[0] as T];
+}
+
+function getContract(ns: NS): [Type, Contract] | null {
+  return getNext(ns, "contract", contracts);
 }
 
 
 function getOperation(ns: NS): [Type, Operation] | null {
-  operations
-    .map(op => {
-      const count = ns.bladeburner.getActionCountRemaining("op", op);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("op", op);
-      return { operation: op, count, min, max };
-    })
-    .filter(c => c.count > 0)
-    .filter(c => c.min >= 0.8)
-    .filter(c => c.max >= 1)
-    .sort((a, b) => b.min - a.min);
-  if (operations.length === 0) {
-    return null;
-  }
-  return ["op", operations[0]];
+  return getNext(ns, "op", operations);
 }
 
 function getBlackOp(ns: NS): [Type, BlackOp] | null {
-  blackOps
-    .map(bo => {
-      const count = ns.bladeburner.getActionCountRemaining("blackop", bo);
-      const rank = ns.bladeburner.getBlackOpRank(bo);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance("blackop", bo);
-      return { blackOp: bo, count, rank, min, max };
-    })
-    .filter(c => c.min >= 0.8)
-    .filter(c => c.max >= 1)
-    .filter(c => c.count > 0)
-    .filter(c => c.rank <= ns.bladeburner.getRank())
-    .sort((a, b) => {
-      if (a.rank > b.rank) {
-        return 1;
-      } else if (a.rank < b.rank) {
-        return -1;
-      } else {
-        return 0;
-      }
-    });
+  const next = ns.bladeburner.getNextBlackOp();
+  const rank = ns.bladeburner.getRank();
 
-  if (blackOps.length === 0) {
+  if (next == null || rank < next.rank) {
     return null;
   }
-  return ["blackop", blackOps[0]];
+  return ["blackop", next.name as BlackOp];
 }

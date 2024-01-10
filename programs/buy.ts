@@ -17,7 +17,7 @@ export async function main(ns: NS): Promise<void> {
             ns.print(`waiting to buy ${program.name} for ${ns.formatNumber(program.cost)}`);
             await ns.sleep(10000);
         }
-        ns.toast(`buying ${program.name} for ${ns.formatNumber(program.cost)}`);
+        ns.tprint(`buying ${program.name} for ${ns.formatNumber(program.cost)}`);
         ns.singularity.purchaseProgram(program.name);
     }
 }

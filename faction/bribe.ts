@@ -1,6 +1,5 @@
 import { NS } from "@ns";
-import { PlayerRegularFactions } from "utils/factions";
-import { Factions } from "utils/nsWrapper";
+import { PlayerRegularFactions, Factions } from "utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

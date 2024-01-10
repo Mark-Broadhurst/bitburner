@@ -7,5 +7,5 @@ export async function main(ns: NS) {
     const filename = ns.args[1] as string;
     const data = ns.codingcontract.getData(filename, hostname);
 
-    //ns.toast(`Solving Code Contract on ${hostname}:${filename} ${result}`)
+    ns.tprint(`Solving Code Contract on ${hostname}:${filename} ${result}`)
 }

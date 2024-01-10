@@ -34,7 +34,7 @@ export async function main(ns: NS): Promise<void> {
           asc.hack > threshold ||
           asc.str > threshold) {
           ns.gang.ascendMember(member);
-          ns.toast(`Ascended ${member}`);
+          ns.tprint(`Ascended ${member}`);
         }
       }
 

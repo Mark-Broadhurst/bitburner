@@ -35,7 +35,7 @@ export async function main(ns: NS): Promise<void> {
             ns.print(`waiting for rep ${ns.formatNumber(ns.singularity.getFactionRep(gangFaction))} / ${ns.formatNumber(ns.singularity.getAugmentationRepReq(aug))}`)
             await ns.gang.nextUpdate();
         }
-        ns.toast(`buying ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
+        ns.tprint(`buying ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
         ns.singularity.purchaseAugmentation(gangFaction, aug);
         ns.singularity.installAugmentations("gangs/loop.js");
     }

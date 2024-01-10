@@ -27,7 +27,7 @@ export function autocomplete(data: any, args: any) {
 }
 
 function printWork(ns: NS, work: Work[]) {
-    const acc = work.reduce((acc:any, w:Work) => {
+    const acc = work.reduce((acc: any, w: Work) => {
         if (acc[w.target] == undefined) {
             acc[w.target] = { hack: 0, grow: 0, weaken: 0 };
         }
@@ -38,7 +38,7 @@ function printWork(ns: NS, work: Work[]) {
 
     ns.print("🖥️".padEnd(19) + "💵".padEnd(7) + "🪴".padEnd(7) + "🛡️");
     ns.print("".padEnd(40, "-"));
-    for (const [server, work] of Object.entries<{hack:number,grow:number,weaken:number}>(acc)) {
+    for (const [server, work] of Object.entries<{ hack: number, grow: number, weaken: number }>(acc)) {
         ns.print(server.padEnd(19) + work.hack.toString().padEnd(7) + work.grow.toString().padEnd(7) + work.weaken.toString());
     }
     ns.print("".padEnd(40, "-"));
@@ -73,7 +73,7 @@ function caclulateWork(ns: NS, server: Server): Work[] {
 
 async function allocateWorks(ns: NS, work: Work[]): Promise<void> {
     for (const w of work) {
-        printWork(ns,work);
+        printWork(ns, work);
         ns.print(`${w.target.padEnd(18)} ${w.command} : ${w.threads}`);
         await allocateWork(ns, w.command, w.target, w.threads, w.wait);
     }
@@ -91,14 +91,14 @@ async function allocateWork(ns: NS, command: Command, target: string, threads: n
 function getTaskServers(ns: NS): WorkerServer[] {
     const serverList: Server[] = [];
     const home = ns.getServer("home");
-    if(home.maxRam <= 1024){
+    if (home.maxRam <= 1024) {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
         //serverList.push(home);
     } else if (home.maxRam >= 1024 && home.maxRam <= 262144) {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
-    } else{
+    } else {
         serverList.push(...getPlayerServers(ns));
         serverList.push(...getWorkerServers(ns));
         serverList.push(home);
@@ -137,6 +137,7 @@ function getGrowDetails(ns: NS, server: Server) {
 }
 
 function getHackDetails(ns: NS, server: Server) {
+    const hackPercent = Math.min(server.serverGrowth! / 100, 0.4)
     const threads = Math.max(1, Math.floor(ns.hackAnalyzeThreads(server.hostname, server.moneyMax! * hackPercent)));
     const security = ns.hackAnalyzeSecurity(threads, server.hostname);
     return [threads, security];

@@ -40,11 +40,11 @@ export async function main(ns: NS): Promise<void> {
         {
             ns.gang.setTerritoryWarfare(mostPowerful);
             ns.print("Territory Warfare started");
-            ns.toast("Territory Warfare started");
+            ns.tprint("Territory Warfare started");
         } else if (gang.territoryWarfareEngaged && !mostPowerful) {
             ns.gang.setTerritoryWarfare(mostPowerful);
             ns.print("Territory Warfare stopped");
-            ns.toast("Territory Warfare stopped");
+            ns.tprint("Territory Warfare stopped");
         }
 
         await ns.sleep(1000);

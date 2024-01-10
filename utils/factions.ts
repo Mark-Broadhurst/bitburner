@@ -37,7 +37,42 @@ export type Factions =
     | "Shadows of Anarchy"
 
 
-export const FactionsList = ["Illuminati", "Daedalus", "The Covenant", "ECorp", "MegaCorp", "Bachman & Associates", "Blade Industries", "NWO", "Clarke Incorporated", "OmniTek Incorporated", "Four Sigma", "KuaiGong International", "Fulcrum Secret Technologies", "BitRunners", "The Black Hand", "NiteSec", "Aevum", "Chongqing", "Ishima", "New Tokyo", "Sector-12", "Volhaven", "Speakers for the Dead", "The Dark Army", "The Syndicate", "Silhouette", "Tetrads", "Slum Snakes", "Netburners", "Tian Di Hui", "CyberSec", "Bladeburners", "Church of the Machine God", "Shadows of Anarchy"] as Factions[];
+export const FactionsList = [
+    "CyberSec",
+    "Netburners",
+    "Tian Di Hui",
+    "Slum Snakes",
+    "Sector-12",
+    "Aevum",
+    "The Black Hand",
+    "Tetrads",
+    "NiteSec",
+    "BitRunners",
+    "Ishima",
+    "New Tokyo",
+    "Chongqing",
+    "Volhaven",
+    "The Dark Army",
+    "The Syndicate",
+    "Speakers for the Dead",
+    "Bachman & Associates",
+    "ECorp",
+    "MegaCorp",
+    "Blade Industries",
+    "NWO",
+    "Clarke Incorporated",
+    "OmniTek Incorporated",
+    "Four Sigma",
+    "KuaiGong International",
+    "Fulcrum Secret Technologies",
+    "The Covenant",
+    "Illuminati",
+    "Daedalus",
+    "Silhouette",
+    "Bladeburners",
+    "Church of the Machine God",
+    "Shadows of Anarchy"
+] as Factions[];
 
 export function FactionWork(ns: NS): { faction: Factions, work: FactionWorkType[] }[] {
     const FactionWorkType = ns.enums.FactionWorkType;
@@ -97,6 +132,11 @@ export function RegularFactions(ns: NS): Factions[] {
 export function PlayerRegularFactions(ns: NS): Factions[] {
     return ns.getPlayer().factions
         .map((faction) => faction as Factions)
+        .sort((a, b) => {
+            const aIndex = FactionsList.indexOf(a);
+            const bIndex = FactionsList.indexOf(b);
+            return aIndex - bIndex;
+        })
         .filter(f => !isSpecialFaction(f))
         .filter(f => !isGangFaction(ns, f))
 }
@@ -126,6 +166,6 @@ export function isGangFaction(ns: NS, faction: Factions): boolean {
     if (ns.gang.inGang()) {
         return faction == ns.gang.getGangInformation().faction
     } else {
-        return true;
+        return false;
     }
 }

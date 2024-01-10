@@ -1,4 +1,5 @@
 import { NS } from "@ns";
+import { skills } from "bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -6,15 +7,15 @@ export async function main(ns: NS): Promise<void> {
     while (ns.bladeburner.getSkillLevel("Overclock") < 90) {
 
         while (ns.bladeburner.getSkillUpgradeCost("Overclock") > ns.bladeburner.getSkillPoints()) {
-            await ns.sleep(1000);
+            await ns.bladeburner.nextUpdate();
         }
-        ns.print("Overclock " + ns.bladeburner.getSkillLevel("Overclock"));
         ns.bladeburner.upgradeSkill("Overclock");
+        ns.print("Overclock " + ns.bladeburner.getSkillLevel("Overclock"));
         await ns.bladeburner.nextUpdate();
     }
 
     while (true) {
-        const skill = ns.bladeburner.getSkillNames()
+        const skill = skills
             .filter(skill => !(skill === "Overclock" && ns.bladeburner.getSkillLevel("Overclock") === 90))
             .reduce((a, b) => {
                 const aLevel = ns.bladeburner.getSkillLevel(a);
@@ -25,10 +26,10 @@ export async function main(ns: NS): Promise<void> {
                 return b;
             });
         while (ns.bladeburner.getSkillUpgradeCost(skill) > ns.bladeburner.getSkillPoints()) {
-            await ns.sleep(1000);
+            await ns.bladeburner.nextUpdate();
         }
-        ns.print(skill);
         ns.bladeburner.upgradeSkill(skill);
+        ns.print(skill + " " + ns.bladeburner.getSkillLevel(skill));
         await ns.bladeburner.nextUpdate();
     }
 }

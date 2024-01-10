@@ -9,7 +9,19 @@ export async function main(ns: NS): Promise<void> {
         ns.clearLog();
         var factions = PlayerRegularFactions(ns)
             .filter(f => getFactionFavourTotal(ns, f) < 150)
-            .sort((a, b) => getFactionFavourTotal(ns, b) - getFactionFavourTotal(ns, a));
+            .sort((a, b) => {
+                const ax = factionHasAugs(ns, a);
+                const bx = factionHasAugs(ns, b);
+                if(ax && !bx) {
+                    return -1;
+                }
+                if(!ax && bx) {
+                    return 1;
+                }
+                return 0;
+            }
+           );
+
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
             ns.sleeve.setToIdle(sleeveNumber);
         }
@@ -38,3 +50,8 @@ function getFactionFavourTotal(ns: NS, faction: string): number {
     return ns.singularity.getFactionFavor(faction) + ns.singularity.getFactionFavorGain(faction);
 }
 
+function factionHasAugs(ns: NS, faction: string): boolean {
+    const augs = ns.singularity.getAugmentationsFromFaction(faction);
+    const owned = ns.singularity.getOwnedAugmentations(true);
+    return augs.filter(a => !owned.includes(a)).length > 0;
+}

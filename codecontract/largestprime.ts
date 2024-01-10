@@ -10,7 +10,7 @@ export async function main(ns: NS) {
   let primes = primeFactors(data);
 
   let result = ns.codingcontract.attempt(primes[primes.length - 1], filename, hostname);
-  ns.toast(`Solving Code Contract on ${hostname}:${filename} ${result}`)
+  ns.tprint(`Solving Code Contract on ${hostname}:${filename} ${result}`)
 }
 
 function primeFactors(n: number): number[] {
