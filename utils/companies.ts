@@ -1,5 +1,5 @@
 import { NS, CompanyName, JobField, Person, JobName } from "@ns";
-import { Factions } from "utils/factions";
+import { Factions } from "utils/nsWrapper";
 
 type CompanyFaction = { company: CompanyName, faction: Factions };
 
