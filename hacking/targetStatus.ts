@@ -10,14 +10,13 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
         const servers = getTargetServers(ns);
-
         ns.print(`🖥️                💰       \\ max      🔒 \\ min  🎲 📈`);
         ns.print("".padEnd(56, "—"));
         for (const server of servers) {
             ns.print(`${server.hostname.padEnd(19)}` +
                 `${ns.formatNumber(server.moneyAvailable!).padEnd(8)} \\ ${ns.formatNumber(server.moneyMax!).padEnd(8)} ` +
                 `${ns.formatNumber(server.hackDifficulty!, 0).padEnd(3)} \\ ${ns.formatNumber(server.minDifficulty!, 0).padEnd(3)} ` +
-                `${ns.formatPercent(ns.hackAnalyzeChance(server.hostname)).padEnd(8)} ${server.serverGrowth!} ${ns.formatNumber(serverValue(server))}`
+                `${ns.formatPercent(ns.hackAnalyzeChance(server.hostname)).padEnd(8)}`
             );
         }
         await ns.sleep(1000);
@@ -25,5 +24,5 @@ export async function main(ns: NS): Promise<void> {
 }
 
 function serverValue(server: Server) : number {
-    return (server.moneyMax! / Math.max(server.serverGrowth! - server.minDifficulty!, 1));
+    return (server.moneyMax! / server.minDifficulty! / (server.serverGrowth! / 100));
 }

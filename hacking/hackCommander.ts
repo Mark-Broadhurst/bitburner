@@ -39,7 +39,7 @@ function printWork(ns: NS, work: Work[]) {
     ns.print("🖥️".padEnd(19) + "💵".padEnd(7) + "🪴".padEnd(7) + "🛡️");
     ns.print("".padEnd(40, "-"));
     for (const [server, work] of Object.entries<{ hack: number, grow: number, weaken: number }>(acc)) {
-        ns.print(server.padEnd(19) + work.hack.toString().padEnd(7) + work.grow.toString().padEnd(7) + work.weaken.toString());
+        ns.print(server.padEnd(19) + work.hack.toString().padEnd(7) + work.grow.toString().padEnd(7) + work.weaken.toString().padEnd(7) + (work.hack + work.grow + work.weaken).toString());
     }
     ns.print("".padEnd(40, "-"));
 }
@@ -91,18 +91,9 @@ async function allocateWork(ns: NS, command: Command, target: string, threads: n
 function getTaskServers(ns: NS): WorkerServer[] {
     const serverList: Server[] = [];
     const home = ns.getServer("home");
-    if (home.maxRam <= 1024) {
-        serverList.push(...getPlayerServers(ns));
-        serverList.push(...getWorkerServers(ns));
-        //serverList.push(home);
-    } else if (home.maxRam >= 1024 && home.maxRam <= 262144) {
-        serverList.push(...getPlayerServers(ns));
-        serverList.push(...getWorkerServers(ns));
-    } else {
-        serverList.push(...getPlayerServers(ns));
-        serverList.push(...getWorkerServers(ns));
-        serverList.push(home);
-    }
+    //serverList.push(home);
+    serverList.push(...getPlayerServers(ns));
+    serverList.push(...getWorkerServers(ns));
     return serverList.map(s => new WorkerServer(s));
 }
 

@@ -1,11 +1,12 @@
 import { CityName, NS } from "@ns";
-import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations } from "bladeburner/enums";
+import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
   ns.disableLog("ALL");
 
   while (true) {
+    ns.clearLog();
     const player = ns.getPlayer();
     if (player.hp.current < player.hp.max) {
       ns.print("Healing");
@@ -15,6 +16,7 @@ export async function main(ns: NS): Promise<void> {
     } else {
       await startFreeAction(ns);
     }
+    await ns.bladeburner.nextUpdate();
   }
 }
 
@@ -31,6 +33,18 @@ async function startStaminaAction(ns: NS) {
   } else {
     await startFreeAction(ns);
   }
+}
+
+function travelToCityWithCommunities(ns: NS) {
+  const CityName = ns.enums.CityName;
+  const city = [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+    .reduce((acc, city) => {
+      const aCommunities = ns.bladeburner.getCityCommunities(acc);
+      const bCommunities = ns.bladeburner.getCityCommunities(city);
+      return aCommunities < bCommunities ? acc : city;
+    });
+  ns.print(`Switching to ${city}`);
+  ns.bladeburner.switchCity(city);
 }
 
 function lowChaosCity(ns: NS): CityName {
@@ -58,13 +72,30 @@ function highChaosCity(ns: NS): CityName {
 async function startFreeAction(ns: NS) {
   const high = highChaosCity(ns);
   const low = lowChaosCity(ns);
-  if (high === low) {
+  if (usedAllActions(ns)) {
+    await startAction(ns, ["general", "Incite Violence"]);
+  } else if (high === low) {
     await startFieldAnalysis(ns);
   } else {
-    ns.bladeburner.switchCity(high);
+    //ns.bladeburner.switchCity(high);
     await startAction(ns, BladeburnerAction.Diplomacy);
   }
+}
 
+function usedAllActions(ns: NS): boolean {
+  const CityName = ns.enums.CityName;
+  const communities = [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+    .reduce((acc, city) => {
+      acc += ns.bladeburner.getCityCommunities(city);
+      return acc;
+    }, 0);
+
+  let actionTotal = 0;
+  contracts.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("contract", c));
+  operations.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("op", c));
+
+  ns.print(`Actions remaining: ${actionTotal} / ${communities}`);
+  return (communities >= actionTotal);
 }
 
 async function startFieldAnalysis(ns: NS) {
@@ -114,27 +145,28 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
 }
 
 function getNext<T extends Contract | Operation>(ns: NS, type: string, list: string[]): [Type, T] | null {
-  list
-    .reverse()
+  const actions = list
     .map(c => {
       const count = ns.bladeburner.getActionCountRemaining(type, c);
       const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c);
+      ns.print(`${c.padEnd(29)} ${count} ${ns.formatPercent(min)} ${ns.formatPercent(max)}`);
       return { contract: c, count, min, max };
     })
-    .filter(c => c.count > 0)
+    .filter(c => c.count !== 0)
     .filter(c => c.min >= 0.8)
     .filter(c => c.max >= 1)
-    .sort((a, b) => b.min - a.min);
-  if (list.length === 0) {
+    .sort((a, b) => b.min - a.min)
+    .map(c => c.contract);
+  ns.print(actions);
+  if (actions.length === 0) {
     return null;
   }
-  return [type as Type, list[0] as T];
+  return [type as Type, actions[0] as T];
 }
 
 function getContract(ns: NS): [Type, Contract] | null {
   return getNext(ns, "contract", contracts);
 }
-
 
 function getOperation(ns: NS): [Type, Operation] | null {
   return getNext(ns, "op", operations);

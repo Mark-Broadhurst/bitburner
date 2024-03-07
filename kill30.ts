@@ -6,7 +6,7 @@ export async function main(ns: NS) {
 
     const CrimeType = ns.enums.CrimeType;
     ns.singularity.commitCrime(CrimeType.homicide, false);
-    while (ns.getPlayer().numPeopleKilled < 45) {
+    while (ns.getPlayer().numPeopleKilled < 30) {
         ns.print(`Killed ${ns.getPlayer().numPeopleKilled} people`);
         await ns.sleep(4000);
     }

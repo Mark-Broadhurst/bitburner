@@ -21,7 +21,7 @@ export async function main(ns: NS): Promise<void> {
                 return 0;
             }
            );
-
+        ns.print(`Factions: ${factions.join(", ")}`);
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
             ns.sleeve.setToIdle(sleeveNumber);
         }

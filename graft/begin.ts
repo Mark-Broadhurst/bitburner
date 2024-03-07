@@ -129,11 +129,11 @@ const bladeBurnerAugs = [
 ]
 
 const augs = [
-    ...hackAugs,
     ...starterAugs,
     ...skillAugs,
-    ...hacknetAugs,
     ...charAugs,
+    ...hackAugs,
+    ...hacknetAugs,
     ...combatAugs,
     ...bladeBurnerAugs,
 ] 

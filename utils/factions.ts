@@ -102,7 +102,7 @@ export function FactionWork(ns: NS): { faction: Factions, work: FactionWorkType[
         { faction: "Speakers for the Dead", work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
         { faction: "The Dark Army", work: [FactionWorkType.hacking, FactionWorkType.field] },
         { faction: "The Syndicate", work: [FactionWorkType.hacking, FactionWorkType.security, FactionWorkType.field] },
-        { faction: "Silhouette", work: [] },
+        { faction: "Silhouette", work: [FactionWorkType.hacking, FactionWorkType.field] },
         { faction: "Tetrads", work: [FactionWorkType.security, FactionWorkType.field] },
         { faction: "Slum Snakes", work: [FactionWorkType.security, FactionWorkType.field] },
         { faction: "Netburners", work: [FactionWorkType.hacking] },

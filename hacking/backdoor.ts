@@ -3,16 +3,6 @@ import { getServers } from "utils/network";
 
 
 export async function main(ns: NS): Promise<void> {
-    async function pathTo(hostname: string) {
-        let path = [];
-        let node = hostname;
-        path.push(hostname);
-        while (node != "home") {
-            node = ns.scan(node)[0];
-            path.push(node);
-        }
-        return path.reverse();
-    }
 
     ns.disableLog("ALL");
     ns.clearLog();
@@ -33,7 +23,7 @@ export async function main(ns: NS): Promise<void> {
             ns.print(`waiting for hacklevel ${server.requiredHackingSkill} to backdoor ${server.hostname}`);
             await ns.sleep(60000);
         }
-        const path = await pathTo(server.hostname);
+        const path = await pathTo(ns, server.hostname);
         for (const element of path) {
             ns.singularity.connect(element);
         }
@@ -46,6 +36,15 @@ export async function main(ns: NS): Promise<void> {
         ns.singularity.connect("home");
 
     }
+}
 
-
+function pathTo(ns:NS, hostname: string) {
+    let path = [];
+    let node = hostname;
+    path.push(hostname);
+    while (node != "home") {
+        node = ns.scan(node)[0];
+        path.push(node);
+    }
+    return path.reverse();
 }

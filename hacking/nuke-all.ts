@@ -16,7 +16,7 @@ export async function main(ns: NS): Promise<void> {
 }
 
 async function waitForFile(ns: NS, fileName: string): Promise<void> {
-  while (!ns.fileExists(fileName)) {
+  while (!ns.fileExists(fileName, "home")) {
     await ns.sleep(1000);
   }
 }

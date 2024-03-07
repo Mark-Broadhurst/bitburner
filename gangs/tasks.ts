@@ -1,4 +1,4 @@
-import { GangGenInfo, GangMemberInfo, GangMemberAscension, NS } from "@ns";
+import { GangGenInfo, GangMemberInfo, GangMemberAscension, NS, Gang, GangTaskStats } from "@ns";
 
 const skillSteps = [0, 0, 0, 30, 50, 100, 150, 200, 300, 500, 1000, 1500, 3000, 5000];
 
@@ -27,7 +27,7 @@ export async function main(ns: NS): Promise<void> {
       const asc = ns.gang.getAscensionResult(member) as GangMemberAscension;
 
       if (asc) {
-        ns.print(`${member} ${ns.formatNumber(asc.hack)},${ns.formatNumber(asc.str)}, ${ns.formatNumber(asc.def)}, ${ns.formatNumber(asc.dex)}, ${ns.formatNumber(asc.agi)}, ${ns.formatNumber(asc.cha)}`);
+        //ns.print(`${member} ${ns.formatNumber(asc.hack)},${ns.formatNumber(asc.str)}, ${ns.formatNumber(asc.def)}, ${ns.formatNumber(asc.dex)}, ${ns.formatNumber(asc.agi)}, ${ns.formatNumber(asc.cha)}`);
         if (asc.agi > threshold ||
           asc.cha > threshold ||
           asc.def > threshold ||
@@ -64,30 +64,74 @@ export async function main(ns: NS): Promise<void> {
   }
 }
 
-function getBestRepTask(ns: NS, memberInfo: GangMemberInfo): string {
-  const gang = ns.gang.getGangInformation();
-  const tasks = ns.gang.getTaskNames()
-    .map((task) => ns.gang.getTaskStats(task));
-  let taskData = [];
-  for (const task of tasks) {
-    taskData.push({ name: task.name, respect: ns.formulas.gang.respectGain(gang, memberInfo, task), wanted: ns.formulas.gang.wantedLevelGain(gang, memberInfo, task) });
+class TaskData {
+  name: string;
+  respect: number;
+  wanted: number;
+  money: number;
+  constructor(ns: NS, gang: GangGenInfo, memberInfo: GangMemberInfo, task: GangTaskStats) {
+    this.name = task.name;
+    this.respect = ns.formulas.gang.respectGain(gang, memberInfo, task);
+    this.wanted = ns.formulas.gang.wantedLevelGain(gang, memberInfo, task);
+    this.money = ns.formulas.gang.moneyGain(gang, memberInfo, task);
   }
-  return taskData
+  print(ns: NS) {
+    ns.print(`Task: ${this.name} Respect: ${this.respect} Wanted: ${this.wanted} Money: ${this.money}`);
+  }
+}
+
+type reduceFunction = (previousValue: TaskData, currentValue: TaskData, currentIndex: number, array: TaskData[]) => TaskData;
+
+function getBestTask(ns: NS, memberInfo: GangMemberInfo, callback: reduceFunction): string {
+  const gang = ns.gang.getGangInformation();
+  return ns.gang.getTaskNames()
+    .map((task) => ns.gang.getTaskStats(task))
+    .map((task) => new TaskData(ns, gang, memberInfo, task))
     .filter(x => (x.respect / x.wanted) > 50)
-    .reduce((prev, current) => (prev.respect > current.respect) ? prev : current).name;
+    .reduce(callback)
+    .name;
+}
+
+function reduceRespect(prev: TaskData, current: TaskData) {
+  if (prev.respect > current.respect) {
+    return prev;
+  } else if (prev.respect < current.respect) {
+    return current;
+  } else if (prev.wanted < current.wanted) {
+    return prev;
+  } else if (prev.wanted > current.wanted) {
+    return current;
+  } else if (prev.money > current.money) {
+    return prev;
+  } else {
+    return current;
+  }
+}
+
+function reduceMoney(prev: TaskData, current: TaskData) {
+  if (prev.money > current.money) {
+    return prev;
+  } else if (prev.money < current.money) {
+    return current;
+  } else if (prev.respect > current.respect) {
+    return prev;
+  } else if (prev.respect < current.respect) {
+    return current;
+  } else if (prev.wanted < current.wanted) {
+    return prev;
+  } else {
+    return current;
+  }
+}
+
+
+function getBestRepTask(ns: NS, memberInfo: GangMemberInfo): string {
+  return getBestTask(ns, memberInfo, reduceRespect);
 }
 
 function getBestMoneyTask(ns: NS, memberInfo: GangMemberInfo): string {
-  const gang = ns.gang.getGangInformation();
-  const tasks = ns.gang.getTaskNames().map((task) => ns.gang.getTaskStats(task));
-  let taskData = [];
-  for (const task of tasks) {
-    taskData.push({ name: task.name, respect: ns.formulas.gang.moneyGain(gang, memberInfo, task) });
-  }
-  return taskData.reduce((prev, current) => (prev.respect > current.respect) ? prev : current).name;
+  return getBestTask(ns, memberInfo, reduceMoney);
 }
-
-
 
 function EngageInTerritoryWar(ns: NS, gang: GangGenInfo): boolean {
   let otherGangs = ns.gang.getOtherGangInformation();
@@ -107,14 +151,15 @@ function EngageInTerritoryWar(ns: NS, gang: GangGenInfo): boolean {
   if (!mostPowerfulGangs.length) {
     return false;
   }
-  else{
+  else {
     const mostPowerfulGang = mostPowerfulGangs.reduce((a, b) => {
       if (otherGangs[a].power > otherGangs[b].power) {
         return a;
       }
       return b;
     });
-    return gang.territory < 1 && gang.power < (otherGangs[mostPowerfulGang].power * 12)
+    //ns.print(`Most powerful gang: ${mostPowerfulGang} target ${(otherGangs[mostPowerfulGang].power * 5)}`);
+    return gang.territory < 1 && gang.power < (otherGangs[mostPowerfulGang].power * 5)
 
   }
 }

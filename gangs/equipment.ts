@@ -16,7 +16,7 @@ export async function main(ns: NS): Promise<void> {
   
       const member = ns.gang.getMemberNames()
         .map(ns.gang.getMemberInformation)
-        .reduce((prev, current) => ((prev.upgrades.length + prev.augmentations.length) < (current.upgrades.length + current.augmentations.length)) ? prev : current);
+        .reduce((prev, current) => ((prev.upgrades.length + prev.augmentations.length) <= (current.upgrades.length + current.augmentations.length)) ? prev : current);
   
       const equipment = equipments.filter(x => !member.upgrades.includes(x) && !member.augmentations.includes(x))[0];
       if (equipment) {

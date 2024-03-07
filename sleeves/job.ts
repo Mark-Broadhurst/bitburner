@@ -6,17 +6,17 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     while (true) {
         ns.clearLog();
-        var factions = CompaniesWithFactions(ns).filter(company => {
+        var jobs = CompaniesWithFactions(ns).filter(company => {
             const jt = ns.getPlayer().jobs[company];
             return jt != undefined && jt.length > 0;
         });
-        ns.print(`factions ${factions}`);
+        ns.print(`jobs ${jobs}`);
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
             ns.sleeve.setToIdle(sleeveNumber);
         }
         for (let sleeveNumber = 0; sleeveNumber < ns.sleeve.getNumSleeves(); sleeveNumber++) {
-            if (factions[sleeveNumber] != undefined) {
-                const faction = factions[sleeveNumber];
+            if (jobs[sleeveNumber] != undefined) {
+                const faction = jobs[sleeveNumber];
                 const work = GetBestJobField(ns, faction, ns.sleeve.getSleeve(sleeveNumber));
                 ns.print(`sleeve ${sleeveNumber} to ${faction} ${work}`);
                 ns.sleeve.setToCompanyWork(sleeveNumber, faction);
@@ -26,11 +26,10 @@ export async function main(ns: NS): Promise<void> {
                 ns.sleeve.setToIdle(sleeveNumber);
             }
         }
-        if(factions.length == 0) {
-            ns.print(`No factions to work for`);
+        if(jobs.length == 0) {
+            ns.print(`No companies to work for`);
             break;
         }
         await ns.sleep(1000);
     }
 }
-

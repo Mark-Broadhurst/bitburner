@@ -31,7 +31,7 @@ export type Operation =
   | "Stealth Retirement Operation"
   | "Assassination";
 
-export const operations = ["Investigation", "Undercover Operation", "Sting Operation", "Raid", "Stealth Retirement Operation", "Assassination"] as Operation[];
+export const operations = ["Raid","Assassination","Stealth Retirement Operation", "Sting Operation", "Undercover Operation", "Investigation"] as Operation[];
 
 export type BlackOp =
   | "Operation Typhoon"

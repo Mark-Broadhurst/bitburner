@@ -14,13 +14,12 @@ export async function main(ns: NS): Promise<void> {
             //"Generate Coding Contract",
         ];
         if (ns.getPlayer().factions.includes("Bladeburners")) {
-            actions.push("Exchange for Bladeburner Rank", "Exchange for Bladeburner SP");
+            actions.push("Exchange for Bladeburner Rank");
+            actions.push("Exchange for Bladeburner SP");
         }
         if (ns.corporation.hasCorporation()) {
-            actions.push("Sell for Corporation Funds", "Exchange for Corporation Research");
-        }
-        if (ns.getPlayer().skills.hacking > 1500) {
-            //actions.push("Reduce Minimum Security", "Increase Maximum Money");
+            actions.push("Sell for Corporation Funds");
+            actions.push("Exchange for Corporation Research");
         }
 
         const action = actions
@@ -37,10 +36,10 @@ export async function main(ns: NS): Promise<void> {
                 ns.hacknet.spendHashes("Sell for Corporation Funds", "home", 1);
                 break;
             case "Reduce Minimum Security":
-                ns.hacknet.spendHashes("Reduce Minimum Security", "home", 1);
+                //ns.hacknet.spendHashes("Reduce Minimum Security", "home", 1);
                 break;
             case "Increase Maximum Money":
-                ns.hacknet.spendHashes("Increase Maximum Money", "home", 1);
+                //ns.hacknet.spendHashes("Increase Maximum Money", "home", 1);
                 break;
             case "Exchange for Corporation Research":
                 ns.hacknet.spendHashes("Exchange for Corporation Research", "home", 1);

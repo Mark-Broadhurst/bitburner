@@ -7,13 +7,14 @@ export async function main(ns: NS): Promise<void> {
     ns.run("sleeves/crime.js");
     ns.run("hacking/nuke-all.js");
     ns.run("hacking/backdoor.js");
-    ns.run("programs/buy.js");
-    ns.run("hacking/hackCommander.js");
+    ns.run("programs/create.js");
+    ns.run("hacking/hackCommander.js", 1, "n00dles");
     const gangFaction = ns.gang.getGangInformation().faction;
     const avalibleAugs = ns.singularity.getAugmentationsFromFaction(gangFaction);
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
     const augsToBuy = avalibleAugs
         .filter(aug => !ownedAugs.includes(aug))
+        .filter(aug => ns.singularity.getAugmentationBasePrice(aug) < 1e12)
         .sort((a, b) => ns.singularity.getAugmentationBasePrice(a) - ns.singularity.getAugmentationBasePrice(b));
     if (augsToBuy.length > 0) {
         const aug = augsToBuy[0];
@@ -39,6 +40,6 @@ export async function main(ns: NS): Promise<void> {
         ns.singularity.purchaseAugmentation(gangFaction, aug);
         ns.singularity.installAugmentations("gangs/loop.js");
     }
-    ns.killall();
+    ns.killall("home",true);
     ns.run("startup.js");
 } 

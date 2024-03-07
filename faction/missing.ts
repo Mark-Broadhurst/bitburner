@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { FactionsList } from "utils/nsWrapper";
+import { FactionsList } from "utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
