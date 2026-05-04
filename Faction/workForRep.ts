@@ -1,5 +1,5 @@
 import { NS, FactionName } from "@ns";
-import { PlayerRegularFactions } from "utils/factions";
+import { PlayerRegularFactions } from "Utils/factions";
 
 export async function main(ns: NS) {
     ns.disableLog("ALL");

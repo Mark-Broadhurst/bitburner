@@ -5,10 +5,10 @@ export async function main(ns: NS): Promise<void> {
     ns.clearLog();
     ns.ui.openTail();
     ns.run("Sleeve/crime.js");
-    ns.run("hacking/nuke-all.js");
-    ns.run("hacking/backdoor.js");
-    ns.run("programs/create.js");
-    ns.run("hacking/hackCommander.js", 1, "n00dles");
+    ns.run("Hacking/nuke-all.js");
+    ns.run("Hacking/backdoor.js");
+    ns.run("Programs/create.js");
+    ns.run("Hacking/hackCommander.js", 1, "n00dles");
     const gangFaction = ns.gang.getGangInformation().faction;
     const avalibleAugs = ns.singularity.getAugmentationsFromFaction(gangFaction);
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);

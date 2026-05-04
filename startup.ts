@@ -4,10 +4,10 @@ export async function main(ns: NS) {
   ns.disableLog("ALL");
   ns.clearLog();
   ns.killall();
-  ns.run("scriptManager.js", 1, "programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "faction/bribe.js", "Hacknet/upgrade.js");
-  ns.run("hacking/nuke-all.js");
-  ns.run("hacking/backdoor.js");
-  ns.run("home/upgrade.js");
+  ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Faction/bribe.js", "Hacknet/upgrade.js");
+  ns.run("Hacking/nuke-all.js");
+  ns.run("Hacking/backdoor.js");
+  ns.run("Home/upgrade.js");
   //ns.run("Hacknet/sellHashes.js");
   ns.run("Hacknet/spendHashes.js");
   //ns.run("Hacknet/buyCompanyFavour.js");
@@ -27,9 +27,9 @@ export async function main(ns: NS) {
     //ns.run("Sleeve/diplomacy.js");
   }
   //ns.run("Sleeve/augments.js");
-  ns.run("faction/join.js", 1, false);
-  ns.run("scriptManager.js", 1, "programs/create.js", "kill30.js", "job/workForFaction.js", "job/workForPosition.js", "faction/workForRep.js", "faction/workForAugs.js")
+  ns.run("Faction/join.js", 1, false);
+  ns.run("scriptManager.js", 1, "Programs/create.js", "kill30.js", "Job/workForFaction.js", "Job/workForPosition.js", "Faction/workForRep.js", "Faction/workForAugs.js")
   ns.run("Stanek/charge.js");
   await ns.sleep(1000);
-  ns.run("scriptManager.js", 1, "hacking/prepTargets.js", "hacking/hackCommander.js");
+  ns.run("scriptManager.js", 1, "Hacking/prepTargets.js", "Hacking/hackCommander.js");
 }

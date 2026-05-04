@@ -1,5 +1,5 @@
 import { CompanyName, NS } from "@ns";
-import { CompaniesWithFactions } from "utils/companies";
+import { CompaniesWithFactions } from "Utils/companies";
 
 export async function main(ns: NS): Promise<void> {
     ns.clearLog();

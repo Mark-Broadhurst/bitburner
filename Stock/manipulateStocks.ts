@@ -1,6 +1,6 @@
 import { NS, Server } from "@ns";
-import { getWorkerServers, getPlayerServers } from "utils/network";
-import { WorkerServer, Command } from "utils/hacking";
+import { getWorkerServers, getPlayerServers } from "Utils/network";
+import { WorkerServer, Command } from "Utils/hacking";
 
 /**
  * Stock market manipulation.

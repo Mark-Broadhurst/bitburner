@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { CompaniesJobs } from "utils/companies";
+import { CompaniesJobs } from "Utils/companies";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { SleeveAugmentations } from "utils/augments";
+import { SleeveAugmentations } from "Utils/augments";
 
 export async function main(ns: NS): Promise<void> {
   ns.disableLog("ALL");

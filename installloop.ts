@@ -1,5 +1,5 @@
-import { NS, PlayerRequirement, BackdoorRequirement, SkillRequirement } from "@ns";
-import { Factions } from "utils/factions";
+import { NS, PlayerRequirement, SkillRequirement } from "@ns";
+import { Factions } from "Utils/factions";
 
 export async function main(ns: NS) {
     ns.clearLog();
@@ -21,10 +21,6 @@ function joinFaction(ns: NS, faction: Factions) {
         ns.print(req.type);
         switch (req.type) {
             case "backdoorInstalled":
-                {
-                    const bd = req as BackdoorRequirement;
-                    ns.run("requirement/backdoor.js", 1, bd.server);
-                }
                 break;
             case "skills":
                 {

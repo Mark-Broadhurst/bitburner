@@ -60,13 +60,13 @@ export async function main(ns: NS): Promise<void> {
 async function bn1(ns: NS, level: number) {
     ns.killall();
     // Sequential setup: buy programs → fill server slots → upgrade RAM → grow hacknet
-    ns.run("scriptManager.js", 1, "programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Hacknet/upgrade.js");
+    ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Hacknet/upgrade.js");
     // Daemons: run continuously in parallel
-    ns.run("hacking/nuke-all.js");
-    ns.run("home/upgrade.js");
+    ns.run("Hacking/nuke-all.js");
+    ns.run("Home/upgrade.js");
     ns.run("Hacknet/spendHashes.js");
-    ns.run("faction/join.js");
-    ns.run("hacking/hackCommander.js");
+    ns.run("Faction/join.js");
+    ns.run("Hacking/hackCommander.js");
     // Train stats before grinding factions
     const trainPid = ns.run("train.js", 1, "--hacking", 200, "--charisma", 200);
     if (trainPid === 0) {
@@ -76,7 +76,7 @@ async function bn1(ns: NS, level: number) {
     while (ns.isRunning(trainPid)) {
         await ns.sleep(1000);
     }
-    ns.run("faction/workForAugs.js");
+    ns.run("Faction/workForAugs.js");
 }
 async function bn2(ns: NS, level: number) {}
 async function bn3(ns: NS, level: number) {}

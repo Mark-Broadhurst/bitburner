@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { Factions, isExclusiveFaction } from "/utils/factions";
+import { Factions, isExclusiveFaction } from "/Utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

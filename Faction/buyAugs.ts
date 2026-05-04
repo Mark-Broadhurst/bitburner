@@ -1,6 +1,6 @@
 import { NS } from "@ns";
-import { Augmentation, getAugmentationDetails, AugmentationDetails } from "utils/augments";
-import { Factions } from "/utils";
+import { Augmentation, getAugmentationDetails, AugmentationDetails } from "Utils/augments";
+import { Factions } from "/Utils";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

@@ -1,6 +1,6 @@
 import { NS, FactionName, FactionWorkType } from "@ns";
-import { getBestField } from "faction/factionWork";
-import { FactionWork, FactionsWithAugs } from "utils/factions";
+import { getBestField } from "Faction/factionWork";
+import { FactionWork, FactionsWithAugs } from "Utils/factions";
 
 const NEUROFLUX = "NeuroFlux Governor";
 

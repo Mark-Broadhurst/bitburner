@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { findBestCrime, printCrimeStats } from "utils/crime";
+import { findBestCrime, printCrimeStats } from "Utils/crime";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

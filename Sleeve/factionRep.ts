@@ -1,6 +1,6 @@
 import { NS, FactionName } from "@ns";
-import { getBestField } from "faction/factionWork";
-import { PlayerRegularFactions } from "/utils/factions";
+import { getBestField } from "Faction/factionWork";
+import { PlayerRegularFactions } from "/Utils/factions";
 
 export async function main(ns: NS): Promise<void> {
     ns.clearLog();

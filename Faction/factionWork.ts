@@ -1,5 +1,5 @@
 import { NS, FactionWorkType, FactionName, Person } from "@ns";
-import { FactionWork } from "utils/factions";
+import { FactionWork } from "Utils/factions";
 
 export function getBestField(ns: NS, faction: FactionName, person: Person): FactionWorkType {
   const favour = ns.singularity.getFactionFavor(faction);

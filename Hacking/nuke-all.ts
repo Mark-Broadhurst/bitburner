@@ -1,5 +1,5 @@
 import { NS, Server } from "@ns";
-import { getServers } from "utils/network";
+import { getServers } from "Utils/network";
 
 // Worker scripts to copy onto every newly-rooted server
 const WORKER_FILES = ["grow.js", "weaken.js", "hack.js", "share.js", "charge.js"];

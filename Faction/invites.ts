@@ -1,5 +1,5 @@
 import { NS, PlayerRequirement, Server } from "@ns";
-import { RegularFactions, FactionsList } from "utils/factions";
+import { RegularFactions, FactionsList } from "Utils/factions";
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 

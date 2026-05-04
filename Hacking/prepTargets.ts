@@ -1,6 +1,6 @@
 import { NS, Server } from "@ns";
-import { getTargetServers, getWorkerServers, getPlayerServers } from "utils/network";
-import { WorkerServer, Command } from "utils/hacking";
+import { getTargetServers, getWorkerServers, getPlayerServers } from "Utils/network";
+import { WorkerServer, Command } from "Utils/hacking";
 
 const HOME_RESERVED_RAM = 64;            // GB to keep free on home
 const SPACING           = 200;           // ms between grow landing and weaken landing

@@ -1,5 +1,5 @@
 import { NS, HacknetServerHashUpgrade } from "@ns";
-import { getTargetServers } from "utils/network";
+import { getTargetServers } from "Utils/network";
 
 const MONEY_THRESHOLD  = 5_000_000; // $5m — sell hashes for cash below this
 const OVERFLOW_BUFFER  = 40;        // sell if within this many hashes of capacity

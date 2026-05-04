@@ -1,5 +1,5 @@
 import { NS, CompanyName, JobField, Person, JobName } from "@ns";
-import { Factions } from "utils/factions";
+import { Factions } from "Utils/factions";
 
 type CompanyFaction = { company: CompanyName, faction: Factions };
 

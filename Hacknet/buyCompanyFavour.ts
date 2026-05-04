@@ -1,6 +1,6 @@
 import { NS } from "@ns";
 import { getHashLimit } from "Hacknet/hashLimit";
-import { CompaniesWithFactions } from "utils/companies";
+import { CompaniesWithFactions } from "Utils/companies";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");

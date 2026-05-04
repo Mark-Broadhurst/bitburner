@@ -1,5 +1,5 @@
 import { NS, CompanyName, JobField, JobName } from "@ns";
-import { CompaniesJobs } from "utils/companies";
+import { CompaniesJobs } from "Utils/companies";
 
 // Field priority when Formulas.exe is unavailable
 const FIELD_PRIORITY: JobField[] = [

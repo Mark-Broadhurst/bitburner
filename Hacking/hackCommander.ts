@@ -1,6 +1,6 @@
 import { NS, Server } from "@ns";
-import { getTargetServers, getWorkerServers, getPlayerServers } from "utils/network";
-import { Work, WorkerServer, Command } from "utils/hacking";
+import { getTargetServers, getWorkerServers, getPlayerServers } from "Utils/network";
+import { Work, WorkerServer, Command } from "Utils/hacking";
 
 const HACK_PERCENT       = 0.5;           // fraction of maxMoney to steal per hack
 const SPACING            = 200;           // ms gap between each op landing

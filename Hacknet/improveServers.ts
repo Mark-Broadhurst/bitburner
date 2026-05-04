@@ -1,5 +1,5 @@
 import { NS, HacknetServerHashUpgrade } from "@ns";
-import { getServers } from "utils/network";
+import { getServers } from "Utils/network";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
