@@ -54,7 +54,7 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
 
-    if (!ns.stock.hasTIXAPIAccess()) {
+    if (!ns.stock.hasTixApiAccess()) {
         ns.tprint("❌ No TIX API access — cannot read stock positions.");
         return;
     }

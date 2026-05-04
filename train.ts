@@ -10,18 +10,19 @@ export async function main(ns: NS): Promise<void> {
         ["charisma",  0],
     ]);
 
-    const L = ns.enums.LocationName;
+    const C  = ns.enums.CityName;
+    const L  = ns.enums.LocationName;
     const uc = ns.enums.UniversityClassType;
     const gt = ns.enums.GymType;
     const focus = true;
 
     const cityFacilities: Record<string, { university?: string; gym?: string }> = {
-        [L.Sector12]:  { university: L.Sector12RothmanUniversity,         gym: L.Sector12PowerhouseGym         },
-        [L.Aevum]:     { university: L.AevumSummitUniversity,             gym: L.AevumCrushFitnessGym          },
-        [L.Volhaven]:  { university: L.VolhavenZBInstituteOfTechnology,   gym: L.VolhavenMilleniumFitnessGym   },
-        [L.Chongqing]: {},
-        [L.NewTokyo]:  {},
-        [L.Ishima]:    {},
+        [C.Sector12]:  { university: L.Sector12RothmanUniversity,         gym: L.Sector12PowerhouseGym         },
+        [C.Aevum]:     { university: L.AevumSummitUniversity,             gym: L.AevumCrushFitnessGym          },
+        [C.Volhaven]:  { university: L.VolhavenZBInstituteOfTechnology,   gym: L.VolhavenMilleniumFitnessGym   },
+        [C.Chongqing]: {},
+        [C.NewTokyo]:  {},
+        [C.Ishima]:    {},
     };
 
     const city = ns.getPlayer().city;

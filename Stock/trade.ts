@@ -16,12 +16,12 @@ export async function main(ns: NS): Promise<void> {
     ns.ui.openTail();
     ns.ui.resizeTail(720, 600);
 
-    if (!ns.stock.hasTIXAPIAccess()) {
+    if (!ns.stock.hasTixApiAccess()) {
         ns.print("❌ No TIX API access — purchase WSE account first.");
         return;
     }
 
-    if (!ns.stock.has4SDataTIXAPI()) {
+    if (!ns.stock.has4SDataTixApi()) {
         ns.print("⚠  No 4S TIX data — forecast signals unavailable.");
         ns.print("   Trading paused until 4S data is purchased.");
     }
@@ -29,7 +29,7 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
 
-        const has4S   = ns.stock.has4SDataTIXAPI();
+        const has4S   = ns.stock.has4SDataTixApi();
         const symbols = ns.stock.getSymbols();
         let   stocks  = symbols.map(s => readStock(ns, s, has4S));
 

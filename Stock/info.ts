@@ -16,7 +16,7 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
 
-        const has4S   = ns.stock.has4SDataTIXAPI();
+        const has4S   = ns.stock.has4SDataTixApi();
         const symbols = ns.stock.getSymbols();
 
         const stocks = symbols.map(sym => {
