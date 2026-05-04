@@ -1,5 +1,5 @@
 import { NS, PlayerRequirement, BackdoorRequirement, SkillRequirement } from "@ns";
-import { Factions } from "./utils";
+import { Factions } from "utils/factions";
 
 export async function main(ns: NS) {
     ns.clearLog();
@@ -12,7 +12,7 @@ export async function main(ns: NS) {
         buyAugs(ns, faction);
     }
     //ns.singularity.installAugmentations("installloop.js")
-    ns.singularity.destroyW0r1dD43m0n(12, "startup.js");
+    ns.singularity.destroyW0r1dD43m0n(12, "init.js");
 }
 
 function joinFaction(ns: NS, faction: Factions) {
@@ -69,7 +69,7 @@ function getCurrentGroup(ns: NS): Factions[] {
     for (const factionGroup of factionGroups) {
         for (const faction of factionGroup) {
             const factionAugs = ns.singularity.getAugmentationsFromFaction(faction);
-            if (!ownAugs.every(a => factionAugs.includes(a))) {
+            if (factionAugs.some(a => !ownAugs.includes(a))) {
                 return factionGroup as Factions[];
             }
         }

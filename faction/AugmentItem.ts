@@ -1,15 +1,15 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 
 export default class AugmentItem {
 
-    faction: string;
+    faction: FactionName;
     factionRep: number;
     augment: string;
     augmentPrice: number;
     augmentRep: number;
     requiredRep: number;
 
-    constructor(ns: NS, faction: string, augment: string) {
+    constructor(ns: NS, faction: FactionName, augment: string) {
         this.faction = faction;
         this.factionRep = ns.singularity.getFactionRep(faction);
         this.augment = augment;

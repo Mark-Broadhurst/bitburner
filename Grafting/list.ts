@@ -14,9 +14,9 @@ export async function main(ns: NS): Promise<void> {
         const time = ns.grafting.getAugmentationGraftTime(aug);
         totalPrice += price;
         totalTime += time;
-        ns.print(`${aug.padEnd(43)}\t${ns.formatNumber(price).padEnd(9)}\t${ns.tFormat(time)}`);
+        ns.print(`${aug.padEnd(43)}\t${ns.format.number(price).padEnd(9)}\t${ns.format.time(time)}`);
     }
     ns.print("".padEnd(100, "-"));
-    ns.print(`Total\t\t\t\t\t\t${ns.formatNumber(totalPrice).padEnd(9)}\t${ns.tFormat(totalTime)}`);
+    ns.print(`Total\t\t\t\t\t\t${ns.format.number(totalPrice).padEnd(9)}\t${ns.format.time(totalTime)}`);
 
 }

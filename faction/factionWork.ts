@@ -1,7 +1,7 @@
-import { NS, FactionWorkType, Person } from "@ns";
+import { NS, FactionWorkType, FactionName, Person } from "@ns";
 import { FactionWork } from "utils/factions";
 
-export function getBestField(ns: NS, faction: string, person: Person): FactionWorkType {
+export function getBestField(ns: NS, faction: FactionName, person: Person): FactionWorkType {
   const favour = ns.singularity.getFactionFavor(faction);
   const workTypes = FactionWork(ns)
     .find(fw => fw.faction == faction)

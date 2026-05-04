@@ -1,4 +1,4 @@
-import { NS, CityName, LocationName } from "@ns";
+import { NS, CityName, UniversityLocationName, GymLocationName } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
     const UniversityClassType = ns.enums.UniversityClassType;
@@ -87,32 +87,32 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-function getUniversity(ns: NS, city: CityName): LocationName | null {
+function getUniversity(ns: NS, city: CityName): UniversityLocationName | null {
     const CityName = ns.enums.CityName;
     const LocationName = ns.enums.LocationName;
 
     switch (city) {
         case CityName.Sector12:
-            return LocationName.Sector12RothmanUniversity;
+            return LocationName.Sector12RothmanUniversity as UniversityLocationName;
         case CityName.Aevum:
-            return LocationName.AevumSummitUniversity;
+            return LocationName.AevumSummitUniversity as UniversityLocationName;
         case CityName.Volhaven:
-            return LocationName.VolhavenZBInstituteOfTechnology;
+            return LocationName.VolhavenZBInstituteOfTechnology as UniversityLocationName;
         default:
             return null;
     }
 }
 
-function getGym(ns: NS, city: CityName): LocationName | null {
+function getGym(ns: NS, city: CityName): GymLocationName | null {
     const CityName = ns.enums.CityName;
     const LocationName = ns.enums.LocationName;
     switch (city) {
         case CityName.Sector12:
-            return LocationName.Sector12PowerhouseGym;
+            return LocationName.Sector12PowerhouseGym as GymLocationName;
         case CityName.Aevum:
-            return LocationName.AevumCrushFitnessGym;
+            return LocationName.AevumCrushFitnessGym as GymLocationName;
         case CityName.Volhaven:
-            return LocationName.VolhavenMilleniumFitnessGym;
+            return LocationName.VolhavenMilleniumFitnessGym as GymLocationName;
         default:
             return null;
     }

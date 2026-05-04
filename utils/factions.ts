@@ -1,40 +1,6 @@
-import { NS, FactionWorkType } from '@ns';
+import { NS, FactionName, FactionWorkType } from '@ns';
 
-export type Factions =
-    | "Illuminati"
-    | "Daedalus"
-    | "The Covenant"
-    | "ECorp"
-    | "MegaCorp"
-    | "Bachman & Associates"
-    | "Blade Industries"
-    | "NWO"
-    | "Clarke Incorporated"
-    | "OmniTek Incorporated"
-    | "Four Sigma"
-    | "KuaiGong International"
-    | "Fulcrum Secret Technologies"
-    | "BitRunners"
-    | "The Black Hand"
-    | "NiteSec"
-    | "Aevum"
-    | "Chongqing"
-    | "Ishima"
-    | "New Tokyo"
-    | "Sector-12"
-    | "Volhaven"
-    | "Speakers for the Dead"
-    | "The Dark Army"
-    | "The Syndicate"
-    | "Silhouette"
-    | "Tetrads"
-    | "Slum Snakes"
-    | "Netburners"
-    | "Tian Di Hui"
-    | "CyberSec"
-    | "Bladeburners"
-    | "Church of the Machine God"
-    | "Shadows of Anarchy"
+export type Factions = FactionName;
 
 
 export const FactionsList = [
@@ -72,7 +38,7 @@ export const FactionsList = [
     "Bladeburners",
     "Church of the Machine God",
     "Shadows of Anarchy"
-] as Factions[];
+] as FactionName[];
 
 export function FactionWork(ns: NS): { faction: Factions, work: FactionWorkType[] }[] {
     const FactionWorkType = ns.enums.FactionWorkType;

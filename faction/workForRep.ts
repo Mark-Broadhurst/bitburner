@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 import { PlayerRegularFactions } from "utils/factions";
 
 export async function main(ns: NS) {
@@ -23,7 +23,7 @@ export async function main(ns: NS) {
         while (fav <= 150) {
             ns.clearLog();
             printFactions(ns, factions);
-            ns.print(`waiting for Favour for ${faction} : ${ns.formatNumber(fav, 0)} / 150`);
+            ns.print(`waiting for Favour for ${faction} : ${ns.format.number(fav, 0)} / 150`);
             await ns.sleep(1000);
             fav = ns.singularity.getFactionFavorGain(faction) + currentFav;
         }
@@ -31,12 +31,12 @@ export async function main(ns: NS) {
     ns.singularity.stopAction();
 }
 
-function printFactions(ns: NS, factions: string[]) {
+function printFactions(ns: NS, factions: FactionName[]) {
     ns.print("Faction\t\t\t\tFavour\tRep");
     for (const faction of factions) {
         let rep = ns.singularity.getFactionRep(faction);
         let fav = ns.singularity.getFactionFavor(faction);
         let gain = ns.singularity.getFactionFavorGain(faction);
-        ns.print(`${faction.padEnd(25)}\t${ns.formatNumber(fav + gain)}\t${ns.formatNumber(rep)}`);
+        ns.print(`${faction.padEnd(25)}\t${ns.format.number(fav + gain)}\t${ns.format.number(rep)}`);
     };
 }

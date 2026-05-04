@@ -4,7 +4,6 @@ const officeSize = 522;
 
 const divisionPriorities: CorpIndustryName[] = [
   "Agriculture",
-  "Spring Water",
   "Chemical",
   "Tobacco",
   "Restaurant",
@@ -75,7 +74,7 @@ function allIndustriesHaveAllOffices(ns: NS, corpInfo: CorporationInfo): boolean
 function expandIndustry(ns: NS, corpInfo: CorporationInfo) {
   const industries = divisionPriorities
     .filter(industry => !corpInfo.divisions
-      .map(divisionName => ns.corporation.getDivision(divisionName).type)
+      .map(divisionName => ns.corporation.getDivision(divisionName).industry)
       .includes(industry))
     .map(industry => {
       const data = ns.corporation.getIndustryData(industry);
@@ -110,16 +109,16 @@ function expandIndustry(ns: NS, corpInfo: CorporationInfo) {
     return;
   }
   if (industry.cost <= corpInfo.funds) {
-    ns.tprint(`Expanding ${industry.industry} for ${ns.formatNumber(industry.cost)}`);
-    ns.print(`Expanding ${industry.industry} for ${ns.formatNumber(industry.cost)}`);
+    ns.tprint(`Expanding ${industry.industry} for ${ns.format.number(industry.cost)}`);
+    ns.print(`Expanding ${industry.industry} for ${ns.format.number(industry.cost)}`);
     const divisionName = industry.industry + "-Corp";
     ns.corporation.expandIndustry(industry.industry, divisionName);
     const division = ns.corporation.getDivision(divisionName);
-    if (ns.corporation.hasUnlock("Smart Supply")) {
+    if (ns.corporation.hasUnlock("Smart Supply" as CorpUnlockName)) {
       ns.corporation.setSmartSupply(divisionName, "Sector-12", true);
     }
 
-    const id = ns.corporation.getIndustryData(division.type);
+    const id = ns.corporation.getIndustryData(division.industry);
     if (id.makesMaterials) {
       for (const material of id.producedMaterials!) {
         ns.print(`Selling ${material}`);
@@ -154,15 +153,15 @@ function manageOfficeExpansion(ns: NS, division: Division) {
     }
 
     ns.corporation.expandCity(division.name, city);
-    if (ns.corporation.hasUnlock("Warehouse API")) {
+    if (ns.corporation.hasUnlock("Warehouse API" as CorpUnlockName)) {
       ns.corporation.purchaseWarehouse(division.name, city);
     }
-    if (ns.corporation.hasUnlock("Smart Supply")) {
+    if (ns.corporation.hasUnlock("Smart Supply" as CorpUnlockName)) {
       ns.corporation.setSmartSupply(division.name, city, true);
     }
 
 
-    const industry = ns.corporation.getIndustryData(division.type);
+    const industry = ns.corporation.getIndustryData(division.industry);
     if (industry.makesMaterials) {
       for (const material of industry.producedMaterials!) {
         ns.corporation.sellMaterial(division.name, city, material, "MAX", "MP");
@@ -185,15 +184,15 @@ function manageShares(ns: NS) {
   }
   if (corpInfo.issueNewSharesCooldown === 0) {
     const shares = ns.corporation.issueNewShares();
-    ns.print(`Issued ${ns.formatNumber(shares)} shares`);
-    ns.tprint(`Issued ${ns.formatNumber(shares)} shares`);
+    ns.print(`Issued ${ns.format.number(shares)} shares`);
+    ns.tprint(`Issued ${ns.format.number(shares)} shares`);
 
   }
 }
 
 function manageUpgrades(ns: NS) {
   const funds = ns.corporation.getCorporation().funds;
-  const upgrade = [
+  const upgrade = ([
     "Smart Factories",
     "Smart Storage",
     "DreamSense",
@@ -204,7 +203,7 @@ function manageUpgrades(ns: NS) {
     "FocusWires",
     "ABC SalesBots",
     "Project Insight",
-  ]
+  ] as CorpUpgradeName[])
     .reduce((a, b) => {
       const costA = ns.corporation.getUpgradeLevelCost(a);
       const costB = ns.corporation.getUpgradeLevelCost(b);
@@ -223,7 +222,7 @@ function manageUpgrades(ns: NS) {
 function manageUnlocks(ns: NS) {
   const corpInfo = ns.corporation.getCorporation();
 
-  const unlock = [
+  const unlock = ([
     "Warehouse API",
     "Smart Supply",
     "Market Research - Demand",
@@ -232,7 +231,7 @@ function manageUnlocks(ns: NS) {
     "Export",
     "Shady Accounting",
     "Government Partnership",
-  ]
+  ] as CorpUnlockName[])
     .filter(unlock => !ns.corporation.hasUnlock(unlock))[0];
 
   if (unlock === undefined) {
@@ -257,7 +256,7 @@ function manageUnlocks(ns: NS) {
 }
 
 function manageResearch(ns: NS, division: Division) {
-  let defaultResearch = [
+  let defaultResearch: CorpResearchName[] = [
     "Hi-Tech R&D Laboratory",
     "AutoBrew",
     "AutoPartyManager",
@@ -267,7 +266,6 @@ function manageResearch(ns: NS, division: Division) {
     "CPH4 Injections",
     "Drones - Assembly",
     "Drones - Transport",
-    "Go-Juice",
     "HRBuddy-Recruitment",
     "HRBuddy-Training",
     "Market-TA.I",
@@ -282,7 +280,7 @@ function manageResearch(ns: NS, division: Division) {
       "uPgrade: Capacity.I",
       "uPgrade: Capacity.II",
       "uPgrade: Dashboard",
-    ]);
+    ] as CorpResearchName[]);
   }
 
   const research = defaultResearch
@@ -292,7 +290,7 @@ function manageResearch(ns: NS, division: Division) {
     return;
   }
   const cost = ns.corporation.getResearchCost(division.name, research);
-  ns.print(`Researching ${research} for ${division.name} ${ns.formatNumber(cost)}`)
+  ns.print(`Researching ${research} for ${division.name} ${ns.format.number(cost)}`)
   if (division.researchPoints < cost) {
     return;
   }
@@ -301,8 +299,8 @@ function manageResearch(ns: NS, division: Division) {
   ns.corporation.research(division.name, research);
 
   if (research == "Market-TA.I") {
-    if (ns.corporation.getIndustryData(division.type).producedMaterials != undefined) {
-      ns.corporation.getIndustryData(division.type).producedMaterials!.forEach(material => {
+    if (ns.corporation.getIndustryData(division.industry).producedMaterials != undefined) {
+      ns.corporation.getIndustryData(division.industry).producedMaterials!.forEach(material => {
         for (const cityName of division.cities) {
           ns.corporation.setMaterialMarketTA1(division.name, cityName, material, true);
         }
@@ -313,8 +311,8 @@ function manageResearch(ns: NS, division: Division) {
     });
   }
   if (research == "Market-TA.II") {
-    if (ns.corporation.getIndustryData(division.type).producedMaterials != undefined) {
-      ns.corporation.getIndustryData(division.type).producedMaterials!.forEach(material => {
+    if (ns.corporation.getIndustryData(division.industry).producedMaterials != undefined) {
+      ns.corporation.getIndustryData(division.industry).producedMaterials!.forEach(material => {
         for (const cityName of division.cities) {
           ns.corporation.setMaterialMarketTA2(division.name, cityName, material, true);
         }
@@ -352,7 +350,7 @@ function manageAdverts(ns: NS) {
 
 function expandOfficeSize(ns: NS) {
   const {division, city, size, cost} = getSmallestOffice(ns);
-  ns.print(`Upgrading ${division} office in ${city} to size ${size + 3} for ${ns.formatNumber(cost)}`);
+  ns.print(`Upgrading ${division} office in ${city} to size ${size + 3} for ${ns.format.number(cost)}`);
   if (cost <= ns.corporation.getCorporation().funds) {
     ns.tprint(`Upgrading ${division} office in ${city} to size ${size + 3}`);
     ns.print(`Upgrading ${division} office in ${city} to size ${size + 3}`);
@@ -371,7 +369,7 @@ async function manageOffice(ns: NS, corp: CorporationInfo, divisionName: string,
 
 function hasResearch(ns: NS, divisionName: string): boolean {
   const division = ns.corporation.getDivision(divisionName);
-  let defaultResearch = [
+  let defaultResearch: CorpResearchName[] = [
     "Hi-Tech R&D Laboratory",
     "AutoBrew",
     "AutoPartyManager",
@@ -381,7 +379,6 @@ function hasResearch(ns: NS, divisionName: string): boolean {
     "CPH4 Injections",
     "Drones - Assembly",
     "Drones - Transport",
-    "Go-Juice",
     "HRBuddy-Recruitment",
     "HRBuddy-Training",
     "Market-TA.I",
@@ -396,7 +393,7 @@ function hasResearch(ns: NS, divisionName: string): boolean {
       "uPgrade: Capacity.I",
       "uPgrade: Capacity.II",
       "uPgrade: Dashboard",
-    ]);
+    ] as CorpResearchName[]);
   }
   defaultResearch = defaultResearch.filter(research => !ns.corporation.hasResearched(divisionName, research));
   return defaultResearch.length > 0;
@@ -416,12 +413,12 @@ function jobAssignments(ns: NS, divisionName: string, cityName: CityName) {
   let research = 0;
   let intern = 0;
 
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Operations", operations);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Engineer", engineer);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Business", business);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Management", management);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Research & Development", research);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Intern", intern);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Operations", operations);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Engineer", engineer);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Business", business);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Management", management);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Research & Development", research);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Intern", intern);
 
   if (doResearch) {
 
@@ -464,12 +461,12 @@ function jobAssignments(ns: NS, divisionName: string, cityName: CityName) {
     employees -= operations;
   }
 
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Operations", operations);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Engineer", engineer);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Business", business);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Management", management);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Research & Development", research);
-  ns.corporation.setAutoJobAssignment(divisionName, cityName, "Intern", intern);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Operations", operations);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Engineer", engineer);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Business", business);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Management", management);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Research & Development", research);
+  ns.corporation.setJobAssignment(divisionName, cityName, "Intern", intern);
 }
 
 function setupExports(ns: NS) {
@@ -477,7 +474,7 @@ function setupExports(ns: NS) {
 
   const divisionCities = corpInfo.divisions
     .map(divisionName => ns.corporation.getDivision(divisionName))
-    .flatMap(division => division.cities.map(cityName => [division.name, division.type, cityName] as [string, CorpIndustryName, CityName]))
+    .flatMap(division => division.cities.map(cityName => [division.name, division.industry, cityName] as [string, CorpIndustryName, CityName]))
 
   for (const [d1, t1, c1] of divisionCities) {
     for (const [d2, t2, c2] of divisionCities) {

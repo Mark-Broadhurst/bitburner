@@ -38,13 +38,25 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-function pathTo(ns:NS, hostname: string) {
-    let path = [];
-    let node = hostname;
-    path.push(hostname);
-    while (node != "home") {
-        node = ns.scan(node)[0];
-        path.push(node);
+/**
+ * BFS from home to find the shortest path to hostname.
+ * Returns the path including "home" as the first element.
+ * Using ns.scan(node)[0] is unreliable — the first neighbour isn't
+ * always the parent toward home, so we use a proper BFS instead.
+ */
+function pathTo(ns: NS, hostname: string): string[] {
+    const visited = new Set<string>(["home"]);
+    const queue: { host: string; path: string[] }[] = [{ host: "home", path: ["home"] }];
+
+    while (queue.length > 0) {
+        const { host, path } = queue.shift()!;
+        if (host === hostname) return path;
+        for (const neighbor of ns.scan(host)) {
+            if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push({ host: neighbor, path: [...path, neighbor] });
+            }
+        }
     }
-    return path.reverse();
+    return [hostname]; // fallback — shouldn't be reached
 }

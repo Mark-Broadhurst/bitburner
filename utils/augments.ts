@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 import { Factions } from "./factions";
 
 export type Augmentation =
@@ -347,12 +347,12 @@ export const SleeveAugmentations: SleeveAugmentation[] = [
     "QLink",
 ];
 
-export function getAugmentationsFromFaction(ns: NS, faction: string): string[] {
+export function getAugmentationsFromFaction(ns: NS, faction: FactionName): string[] {
     return ns.singularity.getAugmentationsFromFaction(faction)
         .filter(x => x != "NeuroFlux Governor");
 }
 
-export function getAugmentationsFromFactionsExcludeOwned(ns: NS, faction: string): string[] {
+export function getAugmentationsFromFactionsExcludeOwned(ns: NS, faction: FactionName): string[] {
     const augs = getAugmentationsFromFaction(ns, faction);
     const ownedAugs = ns.singularity.getOwnedAugmentations(true);
     return augs.filter(aug => !ownedAugs.includes(aug));

@@ -7,13 +7,15 @@ export async function main(ns: NS): Promise<void> {
   for (let i = 0; i < scripts.length; i++) {
     const script = scripts[i];
     ns.print(`Running ${script}`);
-    if (i == scripts.length - 1) {
-      ns.spawn(script, 1);
-    }
-    else {
-      ns.run(script);
-      await ns.sleep(100);
-      while (ns.scriptRunning(script, "home")) {
+    if (i === scripts.length - 1) {
+      ns.spawn(script, { spawnDelay: 0 });
+    } else {
+      const pid = ns.run(script);
+      if (pid === 0) {
+        ns.tprint(`ERROR scriptManager: failed to start ${script}`);
+        return;
+      }
+      while (ns.isRunning(pid)) {
         await ns.sleep(1000);
       }
     }

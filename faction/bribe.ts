@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 import { PlayerRegularFactions, Factions } from "utils/factions";
 
 export async function main(ns: NS): Promise<void> {
@@ -23,8 +23,8 @@ export async function main(ns: NS): Promise<void> {
             ns.clearLog();
             const donationAmount = getDonationAmount(ns, faction, maxRep);
             printFactionReps(ns, factions, faction);
-            ns.print(`max rep for ${faction} is ${ns.formatNumber(maxRep)}`);
-            ns.print(`donating ${ns.formatNumber(donationAmount)} to ${faction}`);
+            ns.print(`max rep for ${faction} is ${ns.format.number(maxRep)}`);
+            ns.print(`donating ${ns.format.number(donationAmount)} to ${faction}`);
             ns.singularity.donateToFaction(faction, donationAmount);
             await ns.sleep(1000);
         }
@@ -44,14 +44,14 @@ function getDonationAmount(ns: NS, faction: Factions, maxRep: number): number {
     return Math.min(moneyNeeded, ns.getServerMoneyAvailable("home"));
 }
 
-function printFactionReps(ns: NS, factions: string[], currentFaction: string): void {
+function printFactionReps(ns: NS, factions: FactionName[], currentFaction: FactionName): void {
     ns.print("Faction\t\t\t\tRep");
     for (const faction of factions) {
         if (faction == currentFaction) {
-            ns.print(`\u001b[31m${faction.padEnd(25)}\t${ns.formatNumber(ns.singularity.getFactionRep(faction))}\u001b[0m`);
+            ns.print(`\u001b[31m${faction.padEnd(25)}\t${ns.format.number(ns.singularity.getFactionRep(faction))}\u001b[0m`);
         }
         else {
-            ns.print(`${faction.padEnd(25)}\t${ns.formatNumber(ns.singularity.getFactionRep(faction))}`);
+            ns.print(`${faction.padEnd(25)}\t${ns.format.number(ns.singularity.getFactionRep(faction))}`);
 
         }
 

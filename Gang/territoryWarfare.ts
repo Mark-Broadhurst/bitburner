@@ -8,7 +8,7 @@ export async function main(ns: NS): Promise<void> {
     while (gang.territory < 1) {
         ns.clearLog();
         gang = ns.gang.getGangInformation();
-        let otherGangs = ns.gang.getOtherGangInformation();
+        let otherGangs = ns.gang.getAllGangInformation();
 
         const mostPowerfulGangs = [
             "Slum Snakes",

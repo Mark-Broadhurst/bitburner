@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, HacknetServerHashUpgrade } from "@ns";
 import { getServers } from "utils/network";
 
 export async function main(ns: NS): Promise<void> {
@@ -6,11 +6,11 @@ export async function main(ns: NS): Promise<void> {
     ns.clearLog();
     let servers = getServers(ns);
     while (servers.length) {
-        //ns.print(servers.map(s => `${s.hostname} ${ns.formatNumber(s.moneyMax!)}`).join("\n"));
-        const action = [
+        //ns.print(servers.map(s => `${s.hostname} ${ns.format.number(s.moneyMax!)}`).join("\n"));
+        const action = ([
             "Reduce Minimum Security",
             "Increase Maximum Money",
-        ]
+        ] as HacknetServerHashUpgrade[])
             .map(a => ({ name: a, cost: ns.hacknet.hashCost(a) }))
             .reduce((a, b) => a.cost <= b.cost ? a : b);
 
@@ -37,7 +37,7 @@ export async function main(ns: NS): Promise<void> {
                     .reverse();
 
 
-                ns.print(`Increasing money on ${servers[0].hostname} from ${ns.formatNumber(servers[0].moneyMax!)}`);
+                ns.print(`Increasing money on ${servers[0].hostname} from ${ns.format.number(servers[0].moneyMax!)}`);
                 ns.hacknet.spendHashes("Increase Maximum Money", servers[0].hostname, 1);
                 break;
         }

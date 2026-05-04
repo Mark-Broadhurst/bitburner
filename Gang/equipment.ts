@@ -15,19 +15,19 @@ export async function main(ns: NS): Promise<void> {
       ns.clearLog();
   
       const member = ns.gang.getMemberNames()
-        .map(ns.gang.getMemberInformation)
+        .map(m => ns.gang.getMemberInformation(m))
         .reduce((prev, current) => ((prev.upgrades.length + prev.augmentations.length) <= (current.upgrades.length + current.augmentations.length)) ? prev : current);
   
       const equipment = equipments.filter(x => !member.upgrades.includes(x) && !member.augmentations.includes(x))[0];
       if (equipment) {
         let result = ns.gang.purchaseEquipment(member.name, equipment);
         if (result) {
-          const message = `Purchased ${equipment} for ${member.name} ($${ns.formatNumber(ns.gang.getEquipmentCost(equipment))})`;
+          const message = `Purchased ${equipment} for ${member.name} ($${ns.format.number(ns.gang.getEquipmentCost(equipment))})`;
           ns.print(message);
           ns.tprint(message);
         }
         else {
-          const message = `Waiting for ${equipment} for ${member.name} ($${ns.formatNumber(ns.gang.getEquipmentCost(equipment))})`;
+          const message = `Waiting for ${equipment} for ${member.name} ($${ns.format.number(ns.gang.getEquipmentCost(equipment))})`;
           ns.print(message);
           await ns.sleep(1000);
         }

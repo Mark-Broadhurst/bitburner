@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 import { getBestField } from "faction/factionWork";
 import { PlayerRegularFactions } from "/utils/factions";
 
@@ -46,11 +46,11 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-function getFactionFavourTotal(ns: NS, faction: string): number {
+function getFactionFavourTotal(ns: NS, faction: FactionName): number {
     return ns.singularity.getFactionFavor(faction) + ns.singularity.getFactionFavorGain(faction);
 }
 
-function factionHasAugs(ns: NS, faction: string): boolean {
+function factionHasAugs(ns: NS, faction: FactionName): boolean {
     const augs = ns.singularity.getAugmentationsFromFaction(faction);
     const owned = ns.singularity.getOwnedAugmentations(true);
     return augs.filter(a => !owned.includes(a)).length > 0;

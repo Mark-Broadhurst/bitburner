@@ -1,26 +1,31 @@
-import { NS } from "@ns";
+import { NS, ProgramName } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
-    ns.disableLog("ALL")
+    ns.disableLog("ALL");
     ns.clearLog();
-    while (ns.getServerMoneyAvailable("home") < 200000) {
-        await ns.sleep(100);
+
+    // Wait until we can afford the TOR router
+    while (ns.getServerMoneyAvailable("home") < 200_000) {
+        await ns.sleep(1000);
     }
     ns.singularity.purchaseTor();
-    const programs = ns.singularity.getDarkwebPrograms()
-        .map(prog => { return { name: prog, cost: ns.singularity.getDarkwebProgramCost(prog) } })
+
+    const programs = (ns.singularity.getDarkwebPrograms() as ProgramName[])
+        .map(prog => ({ name: prog, cost: ns.singularity.getDarkwebProgramCost(prog) }))
         .sort((a, b) => a.cost - b.cost);
 
     for (const program of programs) {
         if (ns.fileExists(program.name, "home")) {
-            ns.print(`skipping ${program.name}`);
+            ns.print(`✅ Already have: ${program.name}`);
             continue;
         }
         while (ns.getServerMoneyAvailable("home") < program.cost) {
-            ns.print(`waiting to buy ${program.name} for ${ns.formatNumber(program.cost)}`);
+            ns.print(`⏳ Waiting to buy ${program.name} — need $${ns.format.number(program.cost)}`);
             await ns.sleep(1000);
         }
-        ns.tprint(`buying ${program.name} for ${ns.formatNumber(program.cost)}`);
+        ns.tprint(`💾 Buying ${program.name} for $${ns.format.number(program.cost)}`);
         ns.singularity.purchaseProgram(program.name);
     }
+
+    ns.tprint("✅ All darkweb programs purchased.");
 }

@@ -11,10 +11,10 @@ export async function main(ns: NS): Promise<void> {
     ns.print(`Augmentations to buy: ${list.length}`);
     for (const line of list) {
         if(line.faction[0] === undefined){
-            ns.print(`${line.name.padEnd(47)}${"none".padEnd(27)}${ns.formatNumber(line.cost).padEnd(9)} ${ns.formatNumber(line.rep).padEnd(8)}`);
+            ns.print(`${line.name.padEnd(47)}${"none".padEnd(27)}${ns.format.number(line.cost).padEnd(9)} ${ns.format.number(line.rep).padEnd(8)}`);
 
         } else {
-        ns.print(`${line.name.padEnd(47)}${line.faction[0].padEnd(27)}${ns.formatNumber(line.cost).padEnd(9)} ${ns.formatNumber(line.rep).padEnd(8)}`);
+        ns.print(`${line.name.padEnd(47)}${line.faction[0].padEnd(27)}${ns.format.number(line.cost).padEnd(9)} ${ns.format.number(line.rep).padEnd(8)}`);
         }
     }
 
@@ -28,7 +28,7 @@ export async function main(ns: NS): Promise<void> {
 
         await ns.sleep(100);
     }
-    ns.singularity.installAugmentations("startup.js")
+    ns.singularity.installAugmentations("init.js")
 }
 
 function getAugmentations(ns: NS, factions: Factions[]) {

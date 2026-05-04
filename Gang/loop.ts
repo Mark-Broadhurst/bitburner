@@ -3,8 +3,8 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    ns.tail();
-    ns.run("sleeves/crime.js");
+    ns.ui.openTail();
+    ns.run("Sleeve/crime.js");
     ns.run("hacking/nuke-all.js");
     ns.run("hacking/backdoor.js");
     ns.run("programs/create.js");
@@ -25,7 +25,7 @@ export async function main(ns: NS): Promise<void> {
         }
 
         while (ns.getServerMoneyAvailable("home") < ns.singularity.getAugmentationBasePrice(aug)) {
-            ns.print(`waiting to buy ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
+            ns.print(`waiting to buy ${aug} for ${ns.format.number(ns.singularity.getAugmentationBasePrice(aug))}`);
             await ns.gang.nextUpdate();
         }
         for (const member of members) {
@@ -33,12 +33,12 @@ export async function main(ns: NS): Promise<void> {
         }
 
         while(ns.singularity.getFactionRep(gangFaction) < ns.singularity.getAugmentationRepReq(aug)) {
-            ns.print(`waiting for rep ${ns.formatNumber(ns.singularity.getFactionRep(gangFaction))} / ${ns.formatNumber(ns.singularity.getAugmentationRepReq(aug))}`)
+            ns.print(`waiting for rep ${ns.format.number(ns.singularity.getFactionRep(gangFaction))} / ${ns.format.number(ns.singularity.getAugmentationRepReq(aug))}`)
             await ns.gang.nextUpdate();
         }
-        ns.tprint(`buying ${aug} for ${ns.formatNumber(ns.singularity.getAugmentationBasePrice(aug))}`);
+        ns.tprint(`buying ${aug} for ${ns.format.number(ns.singularity.getAugmentationBasePrice(aug))}`);
         ns.singularity.purchaseAugmentation(gangFaction, aug);
-        ns.singularity.installAugmentations("gangs/loop.js");
+        ns.singularity.installAugmentations("Gang/loop.js");
     }
     ns.killall("home",true);
     ns.run("startup.js");

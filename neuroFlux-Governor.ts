@@ -3,28 +3,32 @@ import { NS } from "@ns";
 export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
-    const augName = "NeuroFlux Governor";
-    const requiredRep = ns.singularity.getAugmentationRepReq(augName);
-    const faction = ns.getPlayer().factions
-      .filter(faction => ns.singularity.getAugmentationsFromFaction(faction).includes(augName))
-      .filter(faction => ns.singularity.getFactionRep(faction) > requiredRep)
-      .reduce((a, b) => {
-        const aRep = ns.singularity.getFactionRep(a);
-        const bRep = ns.singularity.getFactionRep(b);
-        if (aRep > bRep) {
-          return a;
-        }
-        return b;
-      });
-  
-    ns.print(faction);
-  
-    let money = ns.getServerMoneyAvailable("home");
-  
-    while (money > 0) {
-      const cost = ns.singularity.getAugmentationPrice(augName);
-      money = money - cost;
-      ns.singularity.purchaseAugmentation(faction, augName);
+
+    const augName      = "NeuroFlux Governor";
+    const requiredRep  = ns.singularity.getAugmentationRepReq(augName);
+
+    // Find the faction with the highest rep that has NeuroFlux and meets the requirement
+    const factions = ns.getPlayer().factions
+        .filter(f => ns.singularity.getAugmentationsFromFaction(f).includes(augName))
+        .filter(f => ns.singularity.getFactionRep(f) >= requiredRep);
+
+    if (factions.length === 0) {
+        ns.tprint("ERROR: No faction with sufficient rep for NeuroFlux Governor.");
+        return;
     }
-  
+
+    const faction = factions.reduce((a, b) =>
+        ns.singularity.getFactionRep(a) >= ns.singularity.getFactionRep(b) ? a : b
+    );
+
+    ns.print(`Buying NeuroFlux Governor from ${faction}`);
+
+    // Re-check actual balance each iteration — price increases with every purchase
+    while (ns.getServerMoneyAvailable("home") >= ns.singularity.getAugmentationPrice(augName)) {
+        const cost = ns.singularity.getAugmentationPrice(augName);
+        ns.singularity.purchaseAugmentation(faction, augName);
+        ns.print(`Purchased for $${ns.format.number(cost)}`);
+    }
+
+    ns.tprint(`Done — bought as many NeuroFlux Governors as affordable.`);
 }

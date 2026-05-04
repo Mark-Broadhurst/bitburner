@@ -32,10 +32,10 @@ export function printCrimeStats(ns: NS, person:Person, selectedCrime: CrimeType 
             print += "\u001b[31m"
         }
         print += crime.padEnd(15);
-        print += ns.formatPercent(chance).padEnd(8);
-        print += ns.tFormat(stats.time).padEnd(21);
-        print += ns.formatNumber(stats.money).padEnd(9);
-        print += ns.formatNumber(weight, 4);
+        print += ns.format.percent(chance).padEnd(8);
+        print += ns.format.time(stats.time).padEnd(21);
+        print += ns.format.number(stats.money).padEnd(9);
+        print += ns.format.number(weight, 4);
         if(selectedCrime == crime) {
             print +="\u001b[0m"
         }

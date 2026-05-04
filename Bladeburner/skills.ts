@@ -1,11 +1,11 @@
-import { NS } from "@ns";
-import { skills } from "bladeburner/enums";
+import { NS, BladeburnerSkillName } from "@ns";
+import { skills } from "Bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
     while (ns.bladeburner.getSkillLevel("Overclock") < 90) {
-        const skill = ["Overclock","Hyperdrive"]
+        const skill = (["Overclock","Hyperdrive"] as BladeburnerSkillName[])
           .filter(skill => !(skill === "Overclock" && ns.bladeburner.getSkillLevel("Overclock") === 90))
           .reduce((a, b) => {
             const aLevel = ns.bladeburner.getSkillLevel(a);

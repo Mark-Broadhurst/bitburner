@@ -17,7 +17,7 @@ export function getServerNames(ns: NS): string[] {
 
 export function getServers(ns: NS): Server[] {
   return getServerNames(ns)
-    .map(hostname => ns.getServer(hostname));
+    .map(hostname => ns.getServer(hostname) as Server);
 }
 
 export function getWorkerServers(ns: NS): Server[] {
@@ -30,7 +30,7 @@ export function getTargetServers(ns: NS): Server[] {
   const targets = ns.args as string[];
 
   if(targets.length){
-    return targets.map(ns.getServer)
+    return targets.map(t => ns.getServer(t) as Server)
   }
 
   return getServers(ns)
@@ -55,6 +55,6 @@ export function getTargetServer(ns: NS): Server {
 }
 
 export function getPlayerServers(ns: NS): Server[] {
-  return ns.getPurchasedServers()
-    .map(hostname => ns.getServer(hostname));
+  return ns.cloud.getServerNames()
+    .map(hostname => ns.getServer(hostname) as Server);
 }

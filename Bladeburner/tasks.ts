@@ -1,5 +1,5 @@
-import { CityName, NS } from "@ns";
-import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "bladeburner/enums";
+import { CityName, NS, BladeburnerActionName } from "@ns";
+import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "Bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
     const player = ns.getPlayer();
     if (player.hp.current < player.hp.max) {
       ns.print("Healing");
-      await startAction(ns, ["general", "Hyperbolic Regeneration Chamber"]);
+      await startAction(ns, ["General", "Hyperbolic Regeneration Chamber"]);
     } else if (getStaminaPercentage(ns) > 0.5) {
       await startStaminaAction(ns);
     } else {
@@ -73,7 +73,7 @@ async function startFreeAction(ns: NS) {
   const high = highChaosCity(ns);
   const low = lowChaosCity(ns);
   if (usedAllActions(ns)) {
-    await startAction(ns, ["general", "Incite Violence"]);
+    await startAction(ns, ["General", "Incite Violence"]);
   } else if (high === low) {
     await startFieldAnalysis(ns);
   } else {
@@ -91,8 +91,8 @@ function usedAllActions(ns: NS): boolean {
     }, 0);
 
   let actionTotal = 0;
-  contracts.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("contract", c));
-  operations.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("op", c));
+  contracts.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("Contracts", c));
+  operations.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("Operations", c));
 
   ns.print(`Actions remaining: ${actionTotal} / ${communities}`);
   return (communities >= actionTotal);
@@ -105,7 +105,7 @@ async function startFieldAnalysis(ns: NS) {
 
 function getStaminaPercentage(ns: NS): number {
   const [current, max] = ns.bladeburner.getStamina();
-  ns.print(`Stamina: ${ns.formatPercent(current / max)}`);
+  ns.print(`Stamina: ${ns.format.percent(current / max)}`);
   return current / max;
 }
 
@@ -144,12 +144,12 @@ async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Op
   await ns.sleep(time);
 }
 
-function getNext<T extends Contract | Operation>(ns: NS, type: string, list: string[]): [Type, T] | null {
+function getNext<T extends Contract | Operation>(ns: NS, type: Type, list: string[]): [Type, T] | null {
   const actions = list
     .map(c => {
-      const count = ns.bladeburner.getActionCountRemaining(type, c);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c);
-      ns.print(`${c.padEnd(29)} ${count} ${ns.formatPercent(min)} ${ns.formatPercent(max)}`);
+      const count = ns.bladeburner.getActionCountRemaining(type, c as BladeburnerActionName);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c as BladeburnerActionName);
+      ns.print(`${c.padEnd(29)} ${count} ${ns.format.percent(min)} ${ns.format.percent(max)}`);
       return { contract: c, count, min, max };
     })
     .filter(c => c.count !== 0)
@@ -165,11 +165,11 @@ function getNext<T extends Contract | Operation>(ns: NS, type: string, list: str
 }
 
 function getContract(ns: NS): [Type, Contract] | null {
-  return getNext(ns, "contract", contracts);
+  return getNext(ns, "Contracts", contracts);
 }
 
 function getOperation(ns: NS): [Type, Operation] | null {
-  return getNext(ns, "op", operations);
+  return getNext(ns, "Operations", operations);
 }
 
 function getBlackOp(ns: NS): [Type, BlackOp] | null {
@@ -179,5 +179,5 @@ function getBlackOp(ns: NS): [Type, BlackOp] | null {
   if (next == null || rank < next.rank) {
     return null;
   }
-  return ["blackop", next.name as BlackOp];
+  return ["Black Operations", next.name as BlackOp];
 }

@@ -146,14 +146,14 @@ export async function main(ns: NS): Promise<void> {
         const price = ns.grafting.getAugmentationGraftPrice(aug) + 200_000;
         const time = ns.grafting.getAugmentationGraftTime(aug);
         while(ns.getServerMoneyAvailable("home") < price){
-            ns.print(`Waiting for ${aug} ${ns.formatNumber(price)} ${ns.formatNumber(ns.getServerMoneyAvailable("home"))}`);
+            ns.print(`Waiting for ${aug} ${ns.format.number(price)} ${ns.format.number(ns.getServerMoneyAvailable("home"))}`);
             await ns.sleep(1000);
         }
 
         if(ns.getPlayer().city != ns.enums.CityName.NewTokyo){
             ns.singularity.travelToCity(ns.enums.CityName.NewTokyo);
         }
-        ns.print(`Grafting ${aug} ${ns.formatNumber(price)} ${ns.tFormat(time)} ${listofAugs.indexOf(aug)} / ${listofAugs.length}`);
+        ns.print(`Grafting ${aug} ${ns.format.number(price)} ${ns.format.time(time)} ${listofAugs.indexOf(aug)} / ${listofAugs.length}`);
         ns.grafting.graftAugmentation(aug);
 
         await ns.sleep(time + 1000);

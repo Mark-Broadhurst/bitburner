@@ -1,20 +1,26 @@
-import { NS, JobField } from "@ns";
-import { CompaniesJobs } from "utils/index";
+import { NS } from "@ns";
+import { CompaniesJobs } from "utils/companies";
 
 export async function main(ns: NS): Promise<void> {
-  ns.disableLog("ALL");
-  ns.clearLog();
-  const JobField = ns.enums.JobField;
-  const player = ns.getPlayer();
+    ns.disableLog("ALL");
+    ns.clearLog();
 
-  for (const {company, jobField} of CompaniesJobs(ns)) {
-    if (player.jobs[company] !== undefined) continue;
-    for(const field of jobField) {
-      const result = ns.singularity.applyToCompany(company, field);
-      if (result) {
-        ns.print(`Applied to ${company} for ${field}`);
-      }
+    const player = ns.getPlayer();
+    let applied  = 0;
+
+    for (const { company, jobField } of CompaniesJobs(ns)) {
+        if (player.jobs[company] !== undefined) {
+            ns.print(`Already employed at ${company}`);
+            continue;
+        }
+        // Try every field — each successful application upgrades the position
+        for (const field of jobField) {
+            if (ns.singularity.applyToCompany(company, field)) {
+                ns.print(`✅ ${company} — ${field}`);
+                applied++;
+            }
+        }
     }
-    ns.singularity.applyToCompany(company, JobField.security);
-  }
+
+    ns.tprint(`Got ${applied} position(s) across all companies.`);
 }

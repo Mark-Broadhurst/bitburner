@@ -29,8 +29,8 @@ export async function main(ns: NS): Promise<void> {
         });
 
       if (smallestWarehouse.cost <= funds) {
-        ns.print(`Upgrading warehouse in ${smallestWarehouse.division}:${smallestWarehouse.city} for ${ns.formatNumber(smallestWarehouse.cost)}`);
-        ns.tprint(`Upgrading warehouse in ${smallestWarehouse.division}:${smallestWarehouse.city} for ${ns.formatNumber(smallestWarehouse.cost)}`);
+        ns.print(`Upgrading warehouse in ${smallestWarehouse.division}:${smallestWarehouse.city} for ${ns.format.number(smallestWarehouse.cost)}`);
+        ns.tprint(`Upgrading warehouse in ${smallestWarehouse.division}:${smallestWarehouse.city} for ${ns.format.number(smallestWarehouse.cost)}`);
         if (smallestWarehouse.size === 0) {
           ns.corporation.purchaseWarehouse(smallestWarehouse.division, smallestWarehouse.city);
         }
@@ -70,7 +70,7 @@ export async function main(ns: NS): Promise<void> {
         const amountAffordable = Math.floor(corpFunds / (matData.baseCost * matData.baseMarkup));
         const amount = Math.floor(Math.min(amountToBuy, amountAffordable));
 
-        ns.print(`ToBuy: ${amountToBuy} Affordable: ${amountAffordable} amount: ${ns.formatNumber(amount * matData.baseCost * matData.baseMarkup)}`);
+        ns.print(`ToBuy: ${amountToBuy} Affordable: ${amountAffordable} amount: ${ns.format.number(amount * matData.baseCost * matData.baseMarkup)}`);
 
         if (amount > 0) {
           ns.print(`Buying ${amount} ${bestFactor.material} in ${cityName}`);
@@ -97,19 +97,19 @@ type Factor = {
 
 function getBestFactor(ns: NS, division: Division): Factor {
 
-  const industryData = ns.corporation.getIndustryData(division.type);
+  const industryData = ns.corporation.getIndustryData(division.industry);
   const factor = [];
-  ns.print(`Division Type: ${division.type}`);
-  if (division.type !== "Real Estate") {
+  ns.print(`Division Type: ${division.industry}`);
+  if (division.industry !== "Real Estate") {
     factor.push({ material: "Real Estate", size: 0.005, factor: industryData.realEstateFactor!, } as Factor);
   }
-  if (division.type !== "Software") {
+  if (division.industry !== "Software") {
     factor.push({ material: "AI Cores", size: 0.1, factor: industryData.aiCoreFactor! } as Factor,);
   }
-  if (division.type !== "Computer Hardware") {
+  if (division.industry !== "Computer Hardware") {
     factor.push({ material: "Hardware", size: 0.06, factor: industryData.hardwareFactor! } as Factor,);
   }
-  if (division.type !== "Robotics") {
+  if (division.industry !== "Robotics") {
     factor.push({ material: "Robots", size: 0.5, factor: industryData.robotFactor! } as Factor,);
   }
   return factor

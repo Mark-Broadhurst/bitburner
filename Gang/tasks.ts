@@ -27,7 +27,7 @@ export async function main(ns: NS): Promise<void> {
       const asc = ns.gang.getAscensionResult(member) as GangMemberAscension;
 
       if (asc) {
-        //ns.print(`${member} ${ns.formatNumber(asc.hack)},${ns.formatNumber(asc.str)}, ${ns.formatNumber(asc.def)}, ${ns.formatNumber(asc.dex)}, ${ns.formatNumber(asc.agi)}, ${ns.formatNumber(asc.cha)}`);
+        //ns.print(`${member} ${ns.format.number(asc.hack)},${ns.format.number(asc.str)}, ${ns.format.number(asc.def)}, ${ns.format.number(asc.dex)}, ${ns.format.number(asc.agi)}, ${ns.format.number(asc.cha)}`);
         if (asc.agi > threshold ||
           asc.cha > threshold ||
           asc.def > threshold ||
@@ -134,7 +134,7 @@ function getBestMoneyTask(ns: NS, memberInfo: GangMemberInfo): string {
 }
 
 function EngageInTerritoryWar(ns: NS, gang: GangGenInfo): boolean {
-  let otherGangs = ns.gang.getOtherGangInformation();
+  let otherGangs = ns.gang.getAllGangInformation();
 
   const mostPowerfulGangs = [
     "Slum Snakes",

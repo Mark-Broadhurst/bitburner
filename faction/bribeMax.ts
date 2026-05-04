@@ -21,7 +21,7 @@ export async function main(ns: NS): Promise<void> {
 
         let requiredDonation = (reqRep / repGain) * 1e6;
 
-        ns.print(`Donating ${ns.formatNumber(requiredDonation)} to ${faction}`);
+        ns.print(`Donating ${ns.format.number(requiredDonation)} to ${faction}`);
 
         while (ns.singularity.getFactionRep(faction) < reqRep) {
             const donation = Math.min(requiredDonation, ns.getServerMoneyAvailable("home"));

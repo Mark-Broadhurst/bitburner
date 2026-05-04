@@ -6,7 +6,7 @@ export async function main(ns: NS): Promise<void> {
     const corp = ns.corporation.getCorporation();
     let investmentAmount = parseInt("1".padEnd(Math.round(corp.funds).toString().length, "0"));
     while (investmentAmount < 1e60) {
-        ns.print(`Investment: ${ns.formatNumber(investmentAmount, 0)}`)
+        ns.print(`Investment: ${ns.format.number(investmentAmount, 0)}`)
 
         for (let i = 0; i < 5; i++) {
             for (const divisionName of corp.divisions) {
@@ -17,7 +17,7 @@ export async function main(ns: NS): Promise<void> {
                     await ns.corporation.nextUpdate();
                 }
 
-                const newProductName = divisionName.substring(0, divisionName.length - 5) + "-" + ns.formatNumber(investmentAmount, 0) + "-" + i;
+                const newProductName = divisionName.substring(0, divisionName.length - 5) + "-" + ns.format.number(investmentAmount, 0) + "-" + i;
 
                 if (productExists(ns, divisionName, newProductName)) {
                     continue;
