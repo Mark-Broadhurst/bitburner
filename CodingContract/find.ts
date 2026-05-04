@@ -1,27 +1,20 @@
 import { NS } from "@ns";
+import { getServerNames } from "Utils/network";
 
 export async function main(ns: NS) {
   ns.disableLog("ALL");
   ns.clearLog();
   let contracts = [];
 
-  /*
-    for (const server of network(ns)) {
-      for (const contract of ns.ls(server.hostname, ".cct")) {
-        contracts.push({
-          hostname: server.hostname,
-          contract: contract,
-          type: ns.codingcontract.getContractType(contract, server.hostname)
-        });
-      }
+  const servers = ["home", ...getServerNames(ns)];
+  for (const hostname of servers) {
+    for (const contract of ns.ls(hostname, ".cct")) {
+      contracts.push({
+        hostname,
+        contract,
+        type: ns.codingcontract.getContractType(contract, hostname)
+      });
     }
-  */
-  for (const contract of ns.ls("home", ".cct")) {
-    contracts.push({
-      hostname: "home",
-      contract: contract,
-      type: ns.codingcontract.getContractType(contract, "home")
-    });
   }
   ns.print("Hostname\tContract\t\tType");
   for (const x of contracts) {
