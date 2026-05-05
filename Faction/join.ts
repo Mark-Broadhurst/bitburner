@@ -4,22 +4,17 @@ import { Factions, isExclusiveFaction } from "/Utils/factions";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    const withAugs = ns.args[0] ?? false;
-    const augs = ns.singularity.getOwnedAugmentations();
     while (true) {
-      let factions = ns.singularity.checkFactionInvitations()
-        .map(faction => faction as Factions)
-        .filter(f => !isExclusiveFaction(f));
-      if (withAugs) {
-        factions = factions.filter(faction => ns.singularity.getAugmentationsFromFaction(faction)
-          .filter(x => !augs.includes(x)).length);
-      }
-      for(const faction of factions){
-        ns.singularity.joinFaction(faction);
-        ns.print(`joined ${faction} faction`);
-        ns.tprint(`joined ${faction} faction`);
-      }
-  
-      await ns.sleep(10000);
+        const owned = ns.singularity.getOwnedAugmentations(true);
+        const factions = ns.singularity.checkFactionInvitations()
+            .map(f => f as Factions)
+            .filter(f => !isExclusiveFaction(f))
+            .filter(f => ns.singularity.getAugmentationsFromFaction(f).some(a => !owned.includes(a)));
+        for (const faction of factions) {
+            ns.singularity.joinFaction(faction);
+            ns.print(`joined ${faction}`);
+            ns.tprint(`joined ${faction}`);
+        }
+        await ns.sleep(10000);
     }
 }
