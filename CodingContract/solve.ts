@@ -386,7 +386,7 @@ function lzCompress(plain: string): string {
         }
         // Type-1: literal chunk (L ≥ 1) → advances to type-2
         if (dp[i][1] !== null) {
-            const cur = dp[i][1];
+            const cur = dp[i][1]!;
             for (let L = 1; L <= 9 && i + L <= n; L++) {
                 const cand = cur + L + plain.slice(i, i + L);
                 if (dp[i + L][2] === null || cand.length < dp[i + L][2]!.length)
@@ -395,7 +395,7 @@ function lzCompress(plain: string): string {
         }
         // Type-2: backreference (L ≥ 1) → advances to type-1
         if (dp[i][2] !== null) {
-            const cur = dp[i][2];
+            const cur = dp[i][2]!;
             for (let L = 1; L <= 9 && i + L <= n; L++) {
                 for (let D = 1; D <= 9 && D <= i; D++) {
                     let ok = true;
