@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, Server } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
     const { currentNode, ownedSF } = ns.getResetInfo();
@@ -82,7 +82,7 @@ async function bn1(ns: NS, level: number) {
     // Wait until hacking level is high enough to destroy w0r1d_d43m0n
     const daemon = "w0r1d_d43m0n";
     while (true) {
-        const required = ns.getServer(daemon).requiredHackingSkill ?? 3000;
+        const required = (ns.getServer(daemon) as Server).requiredHackingSkill ?? 3000;
         const current  = ns.getHackingLevel();
         if (current >= required) break;
         ns.tprint(`INFO BN1 win condition: hacking ${current} / ${required}`);
