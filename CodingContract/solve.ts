@@ -25,7 +25,7 @@ export async function main(ns: NS): Promise<void> {
                 ns.tprint(`✅ [${type}]  ${hostname}:${file}  — ${reward}`);
                 solved++;
             } else {
-                ns.tprint(`❌ [${type}]  ${hostname}:${file}`);
+                ns.tprint(`❌ [${type}]  ${hostname}:${file}  submitted: ${JSON.stringify(answer)}`);
                 failed++;
             }
         }
@@ -410,7 +410,10 @@ function lzCompress(plain: string): string {
             }
         }
     }
-    return dp[n][1] ?? dp[n][2] ?? "";
+    const a = dp[n][1], b = dp[n][2];
+    if (a === null) return b ?? "";
+    if (b === null) return a;
+    return a.length <= b.length ? a : b;
 }
 
 function caesarCipher([text, shift]: [string, number]): string {
