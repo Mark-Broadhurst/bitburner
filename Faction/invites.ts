@@ -14,15 +14,19 @@ export async function main(ns: NS): Promise<void> {
 
         const joined  = ns.getPlayer().factions;
         const invited = ns.singularity.checkFactionInvitations();
+        const owned   = ns.singularity.getOwnedAugmentations(true);
+        const hasAugs = (f: string) =>
+            ns.singularity.getAugmentationsFromFaction(f as any).some(a => !owned.includes(a));
 
-        // Accept any pending invites immediately
-        for (const faction of invited) {
+        // Accept any pending invites that still have unowned augments
+        for (const faction of invited.filter(hasAugs)) {
             ns.singularity.joinFaction(faction);
             ns.print(`📬 Joined ${faction}`);
         }
 
         const pending = RegularFactions(ns)
             .filter(f => !joined.includes(f) && !invited.includes(f))
+            .filter(hasAugs)
             .sort((a, b) => FactionsList.indexOf(a) - FactionsList.indexOf(b));
 
         ns.print(`Joined: ${joined.length}  |  Pending: ${pending.length}`);
