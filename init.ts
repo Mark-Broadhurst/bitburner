@@ -78,6 +78,17 @@ async function bn1(ns: NS, level: number) {
         await ns.sleep(1000);
     }
     ns.run("Faction/workForAugs.js");
+
+    // Wait until hacking level is high enough to destroy w0r1d_d43m0n
+    const daemon = "w0r1d_d43m0n";
+    while (true) {
+        const required = ns.getServer(daemon).requiredHackingSkill ?? 3000;
+        const current  = ns.getHackingLevel();
+        if (current >= required) break;
+        ns.tprint(`INFO BN1 win condition: hacking ${current} / ${required}`);
+        await ns.sleep(60000);
+    }
+    ns.singularity.destroyW0r1dD43m0n(12, "init.js");
 }
 async function bn2(ns: NS, level: number) {}
 async function bn3(ns: NS, level: number) {}
