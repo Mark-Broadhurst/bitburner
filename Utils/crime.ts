@@ -1,7 +1,7 @@
 import { NS, CrimeType, Person } from '@ns';
 
 export function findBestCrime(ns: NS, person:Person): CrimeType {
-    const crime = (Object.keys(ns.enums.CrimeType) as CrimeType[])
+    const crime = (Object.values(ns.enums.CrimeType) as CrimeType[])
         .filter(crime => ns.formulas.work.crimeSuccessChance(person, crime) > 0.8);
 
     if (crime.length === 0) {
@@ -18,11 +18,10 @@ export function findBestCrime(ns: NS, person:Person): CrimeType {
     });
 }
 
-
 export function printCrimeStats(ns: NS, person:Person, selectedCrime: CrimeType | null = null) {
     ns.print(`🚨            🎲      ⌚                   💵       ⚖️`);
     ns.print(`-----------------------------------------------------------`);
-    (Object.keys(ns.enums.CrimeType) as CrimeType[]).forEach(crime => {
+    (Object.values(ns.enums.CrimeType) as CrimeType[]).forEach(crime => {
 
         const chance = ns.formulas.work.crimeSuccessChance(person, crime);
         const stats = ns.singularity.getCrimeStats(crime);

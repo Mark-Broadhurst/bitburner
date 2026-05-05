@@ -56,5 +56,5 @@ export function getTargetServer(ns: NS): Server {
 
 export function getPlayerServers(ns: NS): Server[] {
   return ns.cloud.getServerNames()
-    .map(hostname => ns.getServer(hostname) as Server);
+    .map((hostname:string) => ns.getServer(hostname) as Server);
 }

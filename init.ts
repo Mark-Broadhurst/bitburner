@@ -41,7 +41,7 @@ export async function main(ns: NS): Promise<void> {
             await bn11(ns, level);
             break;
         case 12: // The Recursion
-            await bn12(ns, level);
+            await bn1(ns, level);
             break;
         case 13: // They're Lunatics
             await bn13(ns, level);
@@ -59,6 +59,7 @@ export async function main(ns: NS): Promise<void> {
 
 async function bn1(ns: NS, level: number) {
     ns.killall();
+    ns.run("CodingContract/solve.js");
     // Sequential setup: buy programs → fill server slots → upgrade RAM → grow hacknet
     ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Hacknet/upgrade.js");
     // Daemons: run continuously in parallel

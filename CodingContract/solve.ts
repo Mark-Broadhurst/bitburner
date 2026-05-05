@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, CodingContractName, CodingContractNameEnumType, CodingContractSignatures, CodingContractObject } from "@ns";
 import { getServerNames } from "Utils/network";
 
 export async function main(ns: NS): Promise<void> {
@@ -63,6 +63,9 @@ function solve(type: string, data: any): any {
         case "Compression III: LZ Compression":         return lzCompress(data);
         case "Encryption I: Caesar Cipher":             return caesarCipher(data);
         case "Encryption II: Vigenère Cipher":          return vigenereCipher(data);
+        case "Square Root":                             return squareRoot(data);
+        case "Total Number of Primes":                  return totalPrimesInRange(data);
+        case "Largest Rectangle in a Matrix":           return largestRectangle(data);
         default:                                        return null;
     }
 }
@@ -367,33 +370,41 @@ function lzDecompress(data: string): string {
 
 function lzCompress(plain: string): string {
     const n = plain.length;
-    // dp[i][t] = shortest encoding of plain[0..i-1] with next chunk type t (1 or 2)
     const dp: (string | null)[][] = Array.from({ length: n + 1 }, () => [null, null, null]);
     dp[0][1] = "";
     for (let i = 0; i <= n; i++) {
-        for (let t = 1; t <= 2; t++) {
-            const cur = dp[i][t];
-            if (cur === null) continue;
-            const nt = 3 - t;
-            if (t === 1) {
-                for (let L = 0; L <= 9 && i + L <= n; L++) {
-                    const cand = cur + L + plain.slice(i, i + L);
-                    if (dp[i + L][nt] === null || cand.length < dp[i + L][nt]!.length)
-                        dp[i + L][nt] = cand;
-                }
-            } else {
-                const cand0 = cur + "0";
-                if (dp[i][nt] === null || cand0.length < dp[i][nt]!.length) dp[i][nt] = cand0;
-                for (let L = 1; L <= 9 && i + L <= n; L++) {
-                    for (let D = 1; D <= 9 && D <= i; D++) {
-                        let ok = true;
-                        for (let k = 0; k < L; k++)
-                            if (plain[i + k] !== plain[i - D + k % D]) { ok = false; break; }
-                        if (ok) {
-                            const cand = cur + L + D;
-                            if (dp[i + L][nt] === null || cand.length < dp[i + L][nt]!.length)
-                                dp[i + L][nt] = cand;
-                        }
+        // Resolve same-position 0-skips before advancing transitions.
+        // Type-1 L=0 → Type-2 (same pos), then Type-2 L=0 → Type-1 (same pos).
+        // Each skip adds 1 char, so at most one productive pass each direction.
+        if (dp[i][1] !== null) {
+            const s = dp[i][1] + "0";
+            if (dp[i][2] === null || s.length < dp[i][2]!.length) dp[i][2] = s;
+        }
+        if (dp[i][2] !== null) {
+            const s = dp[i][2] + "0";
+            if (dp[i][1] === null || s.length < dp[i][1]!.length) dp[i][1] = s;
+        }
+        // Type-1: literal chunk (L ≥ 1) → advances to type-2
+        if (dp[i][1] !== null) {
+            const cur = dp[i][1];
+            for (let L = 1; L <= 9 && i + L <= n; L++) {
+                const cand = cur + L + plain.slice(i, i + L);
+                if (dp[i + L][2] === null || cand.length < dp[i + L][2]!.length)
+                    dp[i + L][2] = cand;
+            }
+        }
+        // Type-2: backreference (L ≥ 1) → advances to type-1
+        if (dp[i][2] !== null) {
+            const cur = dp[i][2];
+            for (let L = 1; L <= 9 && i + L <= n; L++) {
+                for (let D = 1; D <= 9 && D <= i; D++) {
+                    let ok = true;
+                    for (let k = 0; k < L; k++)
+                        if (plain[i + k] !== plain[i - D + k % D]) { ok = false; break; }
+                    if (ok) {
+                        const cand = cur + L + D;
+                        if (dp[i + L][1] === null || cand.length < dp[i + L][1]!.length)
+                            dp[i + L][1] = cand;
                     }
                 }
             }
@@ -416,4 +427,60 @@ function vigenereCipher([text, key]: [string, string]): string {
         out += String.fromCharCode(((c.charCodeAt(0) - 65 + shift) % 26) + 65);
     }
     return out;
+}
+
+function squareRoot(n: bigint): string {
+    if (n <= 1n) return n.toString();
+    let x = n;
+    let y = (x + 1n) >> 1n;
+    while (y < x) { x = y; y = (x + n / x) >> 1n; }
+    return x.toString();
+}
+
+function totalPrimesInRange([a, b]: number[]): number {
+    const sqrtB = Math.ceil(Math.sqrt(b));
+    const small = new Uint8Array(sqrtB + 1);
+    small[0] = small[1] = 1;
+    for (let i = 2; i <= sqrtB; i++)
+        if (!small[i]) for (let j = i * i; j <= sqrtB; j += i) small[j] = 1;
+    const primes: number[] = [];
+    for (let i = 2; i <= sqrtB; i++) if (!small[i]) primes.push(i);
+
+    const lo = Math.max(a, 2);
+    const size = b - lo + 1;
+    if (size <= 0) return 0;
+    const sieve = new Uint8Array(size);
+    for (const p of primes) {
+        const start = Math.max(p * p, Math.ceil(lo / p) * p);
+        for (let j = start; j <= b; j += p) sieve[j - lo] = 1;
+    }
+    let count = 0;
+    for (let i = 0; i < size; i++) if (!sieve[i]) count++;
+    return count;
+}
+
+function largestRectangle(grid: number[][]): [[number, number], [number, number]] {
+    const rows = grid.length, cols = grid[0].length;
+    const h = new Array(cols).fill(0);
+    let bestArea = 0;
+    let r1 = 0, c1 = 0, r2 = 0, c2 = 0;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) h[c] = grid[r][c] === 0 ? 0 : h[c] + 1;
+        const stack: number[] = [];
+        for (let c = 0; c <= cols; c++) {
+            const cur = c < cols ? h[c] : 0;
+            while (stack.length && h[stack[stack.length - 1]] > cur) {
+                const top = stack.pop()!;
+                const height = h[top];
+                const left = stack.length ? stack[stack.length - 1] + 1 : 0;
+                const area = height * (c - left);
+                if (area > bestArea) {
+                    bestArea = area;
+                    r1 = r - height + 1; c1 = left; r2 = r; c2 = c - 1;
+                }
+            }
+            stack.push(c);
+        }
+    }
+    return [[r1, c1], [r2, c2]];
 }
