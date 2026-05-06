@@ -36,41 +36,31 @@ export async function main(ns: NS): Promise<void> {
         const passwords  = loadPasswords(ns);
         const probeHosts = ns.dnet.probe();
 
-        // Crack all visible uncracked servers in parallel.
-        // Each host is wrapped in try/catch so one failure doesn't abort the rest.
-        const newPasswords = new Map<string, string>();
-        await Promise.all(probeHosts.map(async host => {
+        // Process each visible server sequentially
+        for (const host of probeHosts) {
             try {
                 const auth = ns.dnet.getServerAuthDetails(host);
-                if (!auth.isOnline || !auth.isConnectedToCurrentServer) return;
-                if (auth.hasSession) return; // already cracked, handled below
+                if (!auth.isOnline || !auth.isConnectedToCurrentServer) continue;
+
+                if (auth.hasSession) {
+                    // Re-spread so the crawler stays alive even if the remote instance died
+                    const pw = passwords[host];
+                    if (pw) {
+                        ns.dnet.connectToSession(host, pw);
+                        await spread(ns, host);
+                    }
+                    continue;
+                }
+
                 const pw = await crack(ns, host, auth, passwords);
-                if (pw !== null) newPasswords.set(host, pw);
-            } catch (e) {
-                ns.tprint(`WARN crawler: exception cracking ${host}: ${e}`);
-            }
-        }));
+                if (pw === null) continue;
 
-        // Save new passwords and spread to newly cracked servers
-        for (const [host, pw] of newPasswords) {
-            await savePassword(ns, host, pw);
-            await spread(ns, host);
-        }
-
-        // Re-spread to already-cracked servers in parallel.
-        // preventDuplicates makes this a no-op if the crawler is still alive;
-        // if the instance died (mutation restart, OOM, etc.) this revives it.
-        await Promise.all(probeHosts.map(async host => {
-            if (newPasswords.has(host)) return; // just handled above
-            try {
-                const auth = ns.dnet.getServerAuthDetails(host);
-                if (!auth.isOnline || !auth.isConnectedToCurrentServer || !auth.hasSession) return;
-                const pw = passwords[host];
-                if (!pw) return;
-                ns.dnet.connectToSession(host, pw);
+                await savePassword(ns, host, pw);
                 await spread(ns, host);
-            } catch { /* skip — host may be momentarily unreachable */ }
-        }));
+            } catch (e) {
+                ns.tprint(`WARN crawler: exception on ${host}: ${e}`);
+            }
+        }
 
         // Wait for topology to change, then do local maintenance
         await ns.dnet.nextMutation();
