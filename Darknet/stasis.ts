@@ -25,15 +25,28 @@ export async function main(ns: NS): Promise<void> {
         const pinned    = ns.dnet.getStasisLinkedServers();
         const limit     = ns.dnet.getStasisLinkLimit();
 
-        // Sort cracked online servers by usable RAM descending
+        // Sort cracked online servers by usable RAM descending.
+        // Guard against stale/invalid entries in passwords.txt (e.g. non-darknet hosts).
+        const invalidHosts: string[] = [];
         const candidates = Object.keys(passwords)
-            .map(host => {
-                const auth = ns.dnet.getServerAuthDetails(host);
-                const srv  = ns.getServer(host) as any;
-                return { host, ram: (srv.maxRam ?? 0) - (srv.blockedRam ?? 0), online: auth.isOnline };
+            .flatMap(host => {
+                try {
+                    const auth = ns.dnet.getServerAuthDetails(host);
+                    const srv  = ns.getServer(host) as any;
+                    return [{ host, ram: (srv.maxRam ?? 0) - (srv.blockedRam ?? 0), online: auth.isOnline }];
+                } catch {
+                    invalidHosts.push(host);
+                    return [];
+                }
             })
             .filter(s => s.online && s.ram > 0)
             .sort((a, b) => b.ram - a.ram);
+
+        // Evict any hosts that threw (not darknet servers)
+        if (invalidHosts.length > 0) {
+            ns.tprint(`WARN stasis: evicting invalid password entries: ${invalidHosts.join(", ")}`);
+            evictPasswords(ns, invalidHosts);
+        }
 
         const targets = candidates.slice(0, limit).map(s => s.host);
 
@@ -112,4 +125,10 @@ async function deployPhish(ns: NS, host: string, password: string): Promise<void
 function loadPasswords(ns: NS): Record<string, string> {
     if (!ns.fileExists(PASSWORDS_FILE, "home")) return {};
     try { return JSON.parse(ns.read(PASSWORDS_FILE)); } catch { return {}; }
+}
+
+function evictPasswords(ns: NS, hosts: string[]): void {
+    const stored = loadPasswords(ns);
+    for (const host of hosts) delete stored[host];
+    ns.write(PASSWORDS_FILE, JSON.stringify(stored, null, 2), "w");
 }
