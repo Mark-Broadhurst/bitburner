@@ -61,10 +61,10 @@ async function bn1(ns: NS, level: number) {
     ns.killall();
     ns.run("CodingContract/solve.js");
     // Sequential setup: buy programs → fill server slots → upgrade RAM → grow hacknet
-    ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Hacknet/upgrade.js");
+    ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js");
     // Daemons: run continuously in parallel
     ns.run("Hacking/nuke-all.js");
-    ns.run("Home/upgrade.js");
+    ns.run("upgrade.js");
     ns.run("Hacknet/spendHashes.js");
     ns.run("Faction/join.js");
     ns.run("Hacking/hackCommander.js");

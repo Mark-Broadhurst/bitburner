@@ -4,10 +4,10 @@ export async function main(ns: NS) {
   ns.disableLog("ALL");
   ns.clearLog();
   ns.killall();
-  ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Cloud/upgrade.js", "Faction/bribe.js", "Hacknet/upgrade.js");
+  ns.run("scriptManager.js", 1, "Programs/buy.js", "Cloud/purchase.js", "Faction/bribe.js");
   ns.run("Hacking/nuke-all.js");
   ns.run("Hacking/backdoor.js");
-  ns.run("Home/upgrade.js");
+  ns.run("upgrade.js");
   //ns.run("Hacknet/sellHashes.js");
   ns.run("Hacknet/spendHashes.js");
   //ns.run("Hacknet/buyCompanyFavour.js");
