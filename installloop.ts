@@ -105,13 +105,13 @@ function getOrderedFactions(ns: NS, route: Route): Factions[] {
  * across all its unowned augments (excluding NeuroFlux Governor).
  * Each multiplier is 1.x, so (value - 1) gives the actual bonus.
  */
-function scoreFaction(ns: NS, faction: string, route: Route, ownedAugs: string[]): number {
+function scoreFaction(ns: NS, faction: Factions, route: Route, ownedAugs: string[]): number {
     const keys = route === "hacking" ? HACKING_STATS : PHYSICAL_STATS;
 
     return ns.singularity.getAugmentationsFromFaction(faction)
         .filter(a => a !== "NeuroFlux Governor" && !ownedAugs.includes(a))
         .reduce((total, aug) => {
-            const stats = ns.singularity.getAugmentationStats(aug) as Record<string, number>;
+            const stats = ns.singularity.getAugmentationStats(aug) as unknown as Record<string, number>;
             return total + keys.reduce((s, k) => s + ((stats[k] ?? 1) - 1), 0);
         }, 0);
 }
