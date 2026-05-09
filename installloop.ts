@@ -71,6 +71,7 @@ export async function main(ns: NS): Promise<void> {
 
         // Phase 2 — buy all affordable augs from this faction, hold the install
         ns.print("  Buying augs...");
+        const beforeBuy = pendingAugCount(ns);
         const buyPid = ns.run("Faction/buyAugs.js", 1, "--no-install", faction);
         if (buyPid > 0) {
             while (ns.isRunning(buyPid)) await ns.sleep(1_000);
@@ -79,11 +80,19 @@ export async function main(ns: NS): Promise<void> {
             ns.print("  WARN: could not start buyAugs.js");
         }
 
-        // Install early if we've hit the threshold
-        const queued = pendingAugCount(ns);
-        ns.print(`  Queued: ${queued}/${INSTALL_THRESHOLD}`);
+        // Check install triggers
+        const queued       = pendingAugCount(ns);
+        const boughtSome   = queued > beforeBuy;
+        const exhausted    = isFactionExhausted(ns, faction);
+        ns.print(`  Queued: ${queued}/${INSTALL_THRESHOLD}  Exhausted: ${exhausted ? "yes" : "no"}`);
+
         if (queued >= INSTALL_THRESHOLD) {
             ns.print(`\n⚡ ${queued} augs queued — installing now.`);
+            ns.singularity.installAugmentations("init.js");
+            return;
+        }
+        if (boughtSome && exhausted) {
+            ns.print(`\n⚡ ${faction} fully exhausted — installing now.`);
             ns.singularity.installAugmentations("init.js");
             return;
         }
@@ -100,6 +109,17 @@ export async function main(ns: NS): Promise<void> {
 function pendingAugCount(ns: NS): number {
     return ns.singularity.getOwnedAugmentations(true).length
          - ns.singularity.getOwnedAugmentations(false).length;
+}
+
+/**
+ * True when every non-NeuroFlux aug offered by the faction has been
+ * bought (is in the owned+queued list).
+ */
+function isFactionExhausted(ns: NS, faction: Factions): boolean {
+    const owned = new Set(ns.singularity.getOwnedAugmentations(true));
+    return ns.singularity.getAugmentationsFromFaction(faction)
+        .filter(a => a !== "NeuroFlux Governor")
+        .every(a => owned.has(a));
 }
 
 // ── Faction ordering ──────────────────────────────────────────────────────────
