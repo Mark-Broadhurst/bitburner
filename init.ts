@@ -77,7 +77,7 @@ async function bn1(ns: NS, level: number) {
     while (ns.isRunning(trainPid)) {
         await ns.sleep(1000);
     }
-    ns.run("Faction/workForAugs.js");
+    ns.run("installloop.js");
 
     // Wait until hacking level is high enough to destroy w0r1d_d43m0n
     const daemon = "w0r1d_d43m0n";
