@@ -19,6 +19,10 @@ type Route = "hacking" | "physical";
 // BitNodes where physical (combat) stats are the primary progression path.
 const PHYSICAL_BITNODES = new Set([2, 6, 7]);
 
+// Install augments once this many are queued up, rather than waiting for
+// all factions to be exhausted.
+const INSTALL_THRESHOLD = 9;
+
 const HACKING_STATS  = ["hacking", "hacking_exp", "hacking_chance", "hacking_speed", "hacking_money", "hacking_grow"];
 const PHYSICAL_STATS = ["strength", "strength_exp", "defense", "defense_exp",
                         "dexterity", "dexterity_exp", "agility", "agility_exp"];
@@ -74,11 +78,28 @@ export async function main(ns: NS): Promise<void> {
         } else {
             ns.print("  WARN: could not start buyAugs.js");
         }
+
+        // Install early if we've hit the threshold
+        const queued = pendingAugCount(ns);
+        ns.print(`  Queued: ${queued}/${INSTALL_THRESHOLD}`);
+        if (queued >= INSTALL_THRESHOLD) {
+            ns.print(`\n⚡ ${queued} augs queued — installing now.`);
+            ns.singularity.installAugmentations("init.js");
+            return;
+        }
     }
 
     ns.print("\n─".repeat(60));
     ns.print("All factions processed — installing augmentations...");
     ns.singularity.installAugmentations("init.js");
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Number of augments bought but not yet installed. */
+function pendingAugCount(ns: NS): number {
+    return ns.singularity.getOwnedAugmentations(true).length
+         - ns.singularity.getOwnedAugmentations(false).length;
 }
 
 // ── Faction ordering ──────────────────────────────────────────────────────────
