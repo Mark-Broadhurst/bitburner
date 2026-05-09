@@ -5,7 +5,8 @@ import { Factions } from "/Utils";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    const factions = ns.args as Factions[];
+    const noInstall = (ns.args as string[]).includes("--no-install");
+    const factions  = (ns.args as string[]).filter(a => a !== "--no-install") as Factions[];
     const list = getAugmentations(ns, factions);
 
     ns.print(`Augmentations to buy: ${list.length}`);
@@ -28,7 +29,7 @@ export async function main(ns: NS): Promise<void> {
 
         await ns.sleep(100);
     }
-    ns.singularity.installAugmentations("init.js")
+    if (!noInstall) ns.singularity.installAugmentations("init.js");
 }
 
 function getAugmentations(ns: NS, factions: Factions[]) {
