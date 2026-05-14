@@ -1,14 +1,9 @@
-import { NS, Server } from "@ns";
-import { getWorkerServers, getPlayerServers } from "Utils/network";
-import { WorkerServer, Command } from "Utils/hacking";
+import { NS } from "@ns";
 
 /**
- * Stock market manipulation.
- * When we hold a LONG position in a stock, grow the linked server to
- * push the price up.  When SHORT, hack it to push the price down.
- *
- * This gives a small edge on top of forecast-based trading.
- * Requires TIX API access to read positions.
+ * Writes Stock/positions.txt each tick so hackCommander can pass stock:true
+ * to its hack/grow dispatches for servers linked to held positions.
+ * This script does no exec'ing — hackCommander owns all dispatch.
  */
 
 // Symbol → server hostname mapping (null = no linked server)
@@ -32,7 +27,7 @@ const SYMBOL_SERVER: Record<string, string | null> = {
     SLRS:  "solaris",
     GPH:   "global-pharm",
     NVMD:  "nova-med",
-    WDS:   null,           // no linked server
+    WDS:   null,
     LXO:   "lexo-corp",
     RHOC:  "rho-construction",
     APHE:  "alpha-ent",
@@ -48,67 +43,34 @@ const SYMBOL_SERVER: Record<string, string | null> = {
     TITN:  "titan-labs",
 };
 
-// ── Entry point ───────────────────────────────────────────────────────────────
-
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
 
-    if (!ns.stock.hasTixApiAccess()) {
-        ns.tprint("❌ No TIX API access — cannot read stock positions.");
-        return;
+    while (!ns.stock.hasTixApiAccess()) {
+        await ns.sleep(10_000);
     }
 
     while (true) {
-        ns.clearLog();
-
-        const pool = buildPool(ns);
+        const grow: string[] = [];
+        const hack: string[] = [];
 
         for (const symbol of ns.stock.getSymbols()) {
-            const target = SYMBOL_SERVER[symbol];
-            if (!target) continue; // no linked server for this symbol
+            const server = SYMBOL_SERVER[symbol];
+            if (!server) continue;
 
             const [longShares, , shortShares] = ns.stock.getPosition(symbol);
-
-            if (longShares > 0) {
-                allocateWork(ns, pool, "grow", target, 1);
-            }
-            if (shortShares > 0) {
-                allocateWork(ns, pool, "hack", target, 1);
-            }
+            if (longShares  > 0) grow.push(server);
+            if (shortShares > 0) hack.push(server);
         }
 
+        ns.write("Stock/positions.txt", JSON.stringify({ grow, hack }), "w");
+
+        ns.clearLog();
+        if (grow.length > 0) ns.print(`Long (grow): ${grow.join(", ")}`);
+        if (hack.length > 0) ns.print(`Short (hack): ${hack.join(", ")}`);
+        if (grow.length + hack.length === 0) ns.print("No active positions.");
+
         await ns.stock.nextUpdate();
-    }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function buildPool(ns: NS): WorkerServer[] {
-    return [
-        ...getPlayerServers(ns),
-        ...getWorkerServers(ns),
-    ].map(s => new WorkerServer(s));
-}
-
-/**
- * Non-blocking work allocation — finds a worker with free threads and
- * dispatches the job.  Skips silently if no RAM is available rather than
- * looping forever.
- */
-function allocateWork(
-    ns:      NS,
-    pool:    WorkerServer[],
-    command: Command,
-    target:  string,
-    threads: number,
-): void {
-    for (const worker of pool) {
-        if (threads <= 0) break;
-        if (worker.freeThreads <= 0) continue;
-        const use = Math.min(threads, worker.freeThreads);
-        ns.exec(`${command}.js`, worker.hostname, use, target, 0);
-        worker.freeThreads -= use;
-        threads -= use;
     }
 }

@@ -25,6 +25,7 @@ export async function main(ns: NS): Promise<void> {
         }
         ns.tprint(`💾 Buying ${program.name} for $${ns.format.number(program.cost)}`);
         ns.singularity.purchaseProgram(program.name);
+        ns.run("Hacking/nuke-all.js");
     }
 
     ns.tprint("✅ All darkweb programs purchased.");

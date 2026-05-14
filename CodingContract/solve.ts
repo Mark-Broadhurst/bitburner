@@ -437,6 +437,8 @@ function squareRoot(n: bigint): string {
     let x = n;
     let y = (x + 1n) >> 1n;
     while (y < x) { x = y; y = (x + n / x) >> 1n; }
+    // Newton's method converges from above; x may land one step high — correct it.
+    while (x * x > n) x -= 1n;
     return x.toString();
 }
 

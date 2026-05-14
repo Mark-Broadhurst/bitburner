@@ -40,6 +40,7 @@ export async function main(ns: NS): Promise<void> {
             await ns.sleep(1000);
         }
         ns.print(`✅ Done: ${program.name}`);
+        ns.run("Hacking/nuke-all.js");
     }
 
     ns.tprint("✅ All programs created.");

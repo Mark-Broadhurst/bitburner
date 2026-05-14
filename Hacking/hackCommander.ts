@@ -34,13 +34,22 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
 
-        // farmPool: purchased + hacked servers — used for HWGW batches only
-        const farmPool = getTaskServers(ns);
+        // Read stock position signals written by manipulateStocks.ts.
+        // Servers in these sets get stock:true on their hack/grow dispatches.
+        const { grow: stockGrow, hack: stockHack } = readStockSignals(ns);
 
-        // prepPool: farmPool + home — used for prep work only
-        // (farmPool objects are shared by reference so farm allocations are
-        //  visible here; home is appended as an extra source of threads)
+        // Unified pool: purchased + hacked servers + home (HOME_RESERVED_RAM kept free).
+        // Both farm and prep passes draw from this same array (shared WorkerServer
+        // objects), so allocations in one pass are immediately visible to the other.
+        // Home is last so dedicated servers fill first.
+        const farmPool = getTaskServers(ns);
         const prepPool = buildPrepPool(ns, farmPool);
+
+        // Home's actual CPU core count — used to correctly predict grow thread
+        // needs for prep work.  Home is the dominant prep worker once farm
+        // servers are saturated; grow.js uses the running server's cores
+        // automatically at runtime, so predicting with 1 core over-allocates.
+        const homeCores = ns.getServer("home").cpuCores;
 
         // All viable targets, sorted highest value first so RAM fills with the
         // best servers when capacity is limited.
@@ -50,27 +59,47 @@ export async function main(ns: NS): Promise<void> {
             .filter(s => ns.hackAnalyzeChance(s.hostname) > 0)
             .sort((a, b) => (b.moneyMax! / b.minDifficulty!) - (a.moneyMax! / a.minDifficulty!));
 
-        // ── Farm pass: fill RAM with HWGW batches for prepped targets ──────
-        for (const server of targets) {
-            const fresh = ns.getServer(server.hostname) as Server;
-            if (!isPrepped(fresh)) continue;
-
-            const batch   = calcFarmBatch(ns, fresh);
-            const timings = calcTimings(ns, fresh);
-
-            while (canAllocate(farmPool, batch.totalThreads)) {
-                dispatchFarmBatch(ns, farmPool, fresh, batch, timings);
-            }
-        }
-
-        // ── Prep pass: weaken / grow non-prepped targets (home allowed) ────
+        // ── Prep pass FIRST: weaken / grow non-prepped targets ─────────────
+        // Runs before farm so desynced servers can always claim RAM to recover.
         for (const server of targets) {
             const fresh = ns.getServer(server.hostname) as Server;
             if (isPrepped(fresh)) continue;
 
-            const works = calcPrepWork(ns, fresh);
+            const works = calcPrepWork(ns, fresh, homeCores);
             for (const w of works) {
-                allocateWork(ns, prepPool, w.command, w.target, w.threads, w.wait);
+                const stock = w.command === "grow" && stockGrow.has(w.target);
+                allocateWork(ns, prepPool, w.command, w.target, w.threads, w.wait, stock);
+            }
+        }
+
+        // ── Farm pass SECOND: fill remaining RAM with pipelined HWGW batches
+        // Each successive batch is offset by 4×SPACING so ops land sequentially
+        // rather than simultaneously — prevents the security spiral caused by
+        // many hacks landing at once before their corresponding weakens.
+        for (const server of targets) {
+            const fresh = ns.getServer(server.hostname) as Server;
+            if (!isPrepped(fresh)) continue;
+
+            const batch    = calcFarmBatch(ns, fresh);
+            const timings  = calcTimings(ns, fresh);
+            const doGrow   = stockGrow.has(fresh.hostname);
+            const doHack   = stockHack.has(fresh.hostname);
+
+            let batchIdx = 0;
+            while (canAllocate(farmPool, batch.totalThreads)) {
+                // Re-check live security before each dispatch — stop immediately
+                // if the server has drifted out of prepped state.
+                const live = ns.getServer(server.hostname) as Server;
+                if (!isPrepped(live)) break;
+
+                const offset = batchIdx * 4 * SPACING;
+                dispatchFarmBatch(ns, farmPool, fresh, batch, {
+                    hackDelay:    timings.hackDelay    + offset,
+                    weaken1Delay: timings.weaken1Delay + offset,
+                    growDelay:    timings.growDelay    + offset,
+                    weaken2Delay: timings.weaken2Delay + offset,
+                }, doGrow, doHack);
+                batchIdx++;
             }
         }
 
@@ -145,8 +174,13 @@ function calcTimings(ns: NS, server: Server): BatchTimings {
  * Calculate prep work for a non-prepped server.
  *   - Security above min  → weaken only
  *   - Security at min     → grow + weaken (staggered so weaken lands after grow)
+ *
+ * workerCores should be the CPU core count of the primary prep worker (home).
+ * grow.js automatically uses the running server's cores at runtime, so passing
+ * home's actual core count here gives an accurate thread estimate and avoids
+ * over-allocating grow threads when home handles the bulk of prep work.
  */
-function calcPrepWork(ns: NS, server: Server): Work[] {
+function calcPrepWork(ns: NS, server: Server, workerCores = 1): Work[] {
     const host       = server.hostname;
     const works: Work[] = [];
 
@@ -162,13 +196,14 @@ function calcPrepWork(ns: NS, server: Server): Work[] {
         if (moneyRatio > 1.01) {
             const weakenTime = ns.getWeakenTime(host);
             const growTime   = ns.getGrowTime(host);
-            const cores      = server.cpuCores;
 
-            const growThreads   = Math.max(1, Math.ceil(ns.growthAnalyze(host, moneyRatio, cores)));
-            const growSecurity  = ns.growthAnalyzeSecurity(growThreads, host, cores);
+            // Use the worker's actual core count so thread prediction matches
+            // runtime behaviour (multi-core home needs fewer grow threads).
+            const growThreads   = Math.max(1, Math.ceil(ns.growthAnalyze(host, moneyRatio, workerCores)));
+            const growSecurity  = ns.growthAnalyzeSecurity(growThreads, host, workerCores);
             const weakenThreads = Math.ceil(growSecurity / 0.05);
 
-            // Grow lands first; weaken lands 200ms later
+            // Grow lands first; weaken lands SPACING ms later
             const growDelay   = Math.ceil(weakenTime - growTime);
             const weakenDelay = SPACING;
 
@@ -192,11 +227,13 @@ function dispatchFarmBatch(
     server: Server,
     batch: BatchThreads,
     timings: BatchTimings,
+    stockGrow = false,
+    stockHack = false,
 ): void {
     const host = server.hostname;
-    allocateWork(ns, pool, "hack",   host, batch.hackThreads,    timings.hackDelay);
+    allocateWork(ns, pool, "hack",   host, batch.hackThreads,    timings.hackDelay,    stockHack);
     allocateWork(ns, pool, "weaken", host, batch.weaken1Threads, timings.weaken1Delay);
-    allocateWork(ns, pool, "grow",   host, batch.growThreads,    timings.growDelay);
+    allocateWork(ns, pool, "grow",   host, batch.growThreads,    timings.growDelay,    stockGrow);
     allocateWork(ns, pool, "weaken", host, batch.weaken2Threads, timings.weaken2Delay);
 }
 
@@ -212,37 +249,63 @@ function allocateWork(
     target: string,
     threads: number,
     wait: number,
+    stock = false,
 ): void {
     for (const worker of pool) {
         if (threads <= 0) break;
         if (worker.freeThreads <= 0) continue;
         const use = Math.min(threads, worker.freeThreads);
-        ns.exec(`${command}.js`, worker.hostname, use, target, wait);
+        ns.exec(`${command}.js`, worker.hostname, use, target, wait, stock);
         worker.freeThreads -= use;
         threads -= use;
     }
 }
 
-/** Build the farm pool: purchased + hacked servers (home excluded). */
-function getTaskServers(ns: NS): WorkerServer[] {
-    return [
-        ...getPlayerServers(ns),
-        ...getWorkerServers(ns),
-    ].map(s => new WorkerServer(s));
+/**
+ * Read the stock position signals written by manipulateStocks.ts.
+ * Returns empty sets when the file is absent or malformed (safe default).
+ */
+function readStockSignals(ns: NS): { grow: Set<string>; hack: Set<string> } {
+    const raw = ns.read("Stock/positions.txt");
+    if (!raw) return { grow: new Set(), hack: new Set() };
+    try {
+        const parsed = JSON.parse(raw) as { grow: string[]; hack: string[] };
+        return { grow: new Set(parsed.grow), hack: new Set(parsed.hack) };
+    } catch {
+        return { grow: new Set(), hack: new Set() };
+    }
 }
 
 /**
- * Build the prep pool by appending a home WorkerServer to the existing farmPool.
- * Shares the farmPool objects by reference so farm allocations are already
- * reflected here. HOME_RESERVED_RAM GB is kept free on home for other scripts.
+ * Build the unified worker pool: purchased servers + hacked servers + home.
+ * Home is appended last so purchased/hacked servers fill first.
+ * HOME_RESERVED_RAM GB is kept free on home for management scripts.
+ *
+ * Both the farm pass and the prep pass draw from this same pool (shared
+ * WorkerServer objects), so prep allocations are visible to the farm pass
+ * and vice-versa — no threads are double-counted.
  */
-function buildPrepPool(ns: NS, farmPool: WorkerServer[]): WorkerServer[] {
+function getTaskServers(ns: NS): WorkerServer[] {
+    const servers = [
+        ...getPlayerServers(ns),
+        ...getWorkerServers(ns),
+    ].map(s => new WorkerServer(s));
+
     const home       = ns.getServer("home") as Server;
     const freeRam    = Math.max(0, home.maxRam - home.ramUsed - HOME_RESERVED_RAM);
     const homeWorker = new WorkerServer(home);
     homeWorker.freeThreads = Math.floor(freeRam / 1.75);
-    // Put home last so purchased/hacked servers are used first
-    return [...farmPool, homeWorker];
+    servers.push(homeWorker);
+
+    return servers;
+}
+
+/**
+ * Prep pool = farm pool — home is already included in getTaskServers().
+ * Returns the same array so prep allocations are reflected in the farm pass.
+ */
+function buildPrepPool(_ns: NS, farmPool: WorkerServer[]): WorkerServer[] {
+    return farmPool;
 }
 
 /** Print a status table to the tail log. */

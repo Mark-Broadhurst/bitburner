@@ -195,7 +195,6 @@ function manageUpgrades(ns: NS) {
   const upgrade = ([
     "Smart Factories",
     "Smart Storage",
-    "DreamSense",
     "Wilson Analytics",
     "Nuoptimal Nootropic Injector Implants",
     "Speech Processor Implants",
@@ -227,7 +226,7 @@ function manageUnlocks(ns: NS) {
     "Smart Supply",
     "Market Research - Demand",
     "Market Data - Competition",
-    "VeChain",
+    "Office API",
     "Export",
     "Shady Accounting",
     "Government Partnership",

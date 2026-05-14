@@ -133,33 +133,12 @@ function getBestMoneyTask(ns: NS, memberInfo: GangMemberInfo): string {
   return getBestTask(ns, memberInfo, reduceMoney);
 }
 
-function EngageInTerritoryWar(ns: NS, gang: GangGenInfo): boolean {
-  let otherGangs = ns.gang.getAllGangInformation();
-
-  const mostPowerfulGangs = [
-    "Slum Snakes",
-    "Tetrads",
-    "The Syndicate",
-    "The Dark Army",
-    "Speakers for the Dead",
-    "NiteSec",
-    "The Black Hand"
-  ]
-    .filter(x => x != gang.faction)
-    .filter(x => otherGangs[x].territory);
-
-  if (!mostPowerfulGangs.length) {
-    return false;
-  }
-  else {
-    const mostPowerfulGang = mostPowerfulGangs.reduce((a, b) => {
-      if (otherGangs[a].power > otherGangs[b].power) {
-        return a;
-      }
-      return b;
-    });
-    //ns.print(`Most powerful gang: ${mostPowerfulGang} target ${(otherGangs[mostPowerfulGang].power * 5)}`);
-    return gang.territory < 1 && gang.power < (otherGangs[mostPowerfulGang].power * 5)
-
-  }
+/**
+ * Returns true when the gang should assign members to the "Territory Warfare"
+ * task.  We sync this to the actual territoryWarfareEngaged flag so that
+ * members keep earning money (and buying equipment) right up until
+ * territoryWarfare.js decides real battles are worthwhile.
+ */
+function EngageInTerritoryWar(_ns: NS, gang: GangGenInfo): boolean {
+    return gang.territory < 1 && gang.territoryWarfareEngaged;
 }

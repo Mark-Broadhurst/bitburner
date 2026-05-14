@@ -13,6 +13,11 @@ const DAEMONS: string[] = [
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
 
+    while (!ns.fileExists("DarkscapeNavigator.exe", "home")) {
+        ns.print("Waiting for DarkscapeNavigator.exe...");
+        await ns.sleep(5_000);
+    }
+
     // Kill legacy scripts and current daemons to start fresh
     for (const script of [...LEGACY, ...DAEMONS]) {
         if (ns.isRunning(script)) {

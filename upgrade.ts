@@ -8,11 +8,13 @@ import { NS, Server } from "@ns";
  * once they hit their respective limits; hacknet keeps going indefinitely.
  */
 
-const POLL_MS        = 1000;
+const POLL_MS        = 100;   // how often to check if we can afford the next upgrade
+const DISPLAY_MS     = 1_000; // how often to redraw the tail window (avoids flicker)
 const MAX_HOME_CORES = 8;
 const MAX_HOME_RAM   = 536_870_912; // 512 TB in GB
 
-type UpgradeDomain = "home-cores" | "home-ram" | "cloud" | "hn-level" | "hn-ram" | "hn-cores" | "hn-cache" | "hn-node";
+type UpgradeDomain = "home-cores" | "home-ram" | "cloud" | "hn-level" | "hn-ram" | "hn-cores" | "hn-cache" | "hn-node"
+                  | "stock-wse" | "stock-tix" | "stock-4s" | "stock-4s-tix";
 
 interface Upgrade {
     domain: UpgradeDomain;
@@ -55,16 +57,20 @@ export async function main(ns: NS): Promise<void> {
 
         const best = candidates.reduce((a, b) => a.cost <= b.cost ? a : b);
 
+        let lastDisplay = 0;
         while (ns.getServerMoneyAvailable("home") < best.cost) {
-            ns.clearLog();
-            printStatus(ns, best);
+            const now = Date.now();
+            if (now - lastDisplay >= DISPLAY_MS) {
+                ns.clearLog();
+                printStatus(ns, best);
+                lastDisplay = now;
+            }
             await ns.sleep(POLL_MS);
         }
 
         ns.clearLog();
         printStatus(ns, best);
         perform(ns, best);
-        await ns.sleep(200);
     }
 }
 
@@ -125,6 +131,22 @@ function buildCandidates(ns: NS): Upgrade[] {
     const nodeCost = ns.hacknet.getPurchaseNodeCost();
     if (isFinite(nodeCost)) upgrades.push({ domain: "hn-node", label: "new hacknet node", cost: nodeCost });
 
+    // Stock market access — sequential dependency chain.
+    // Each upgrade unlocks the next; only offer the next unowned one.
+    if (!ns.stock.hasWseAccount())
+        upgrades.push({ domain: "stock-wse",    label: "WSE Account",        cost:   200_000_000 });
+    else if (!ns.stock.hasTixApiAccess())
+        upgrades.push({ domain: "stock-tix",    label: "TIX API",            cost: 5_000_000_000 });
+    else if (!ns.stock.has4SData())
+        upgrades.push({ domain: "stock-4s",     label: "4S Market Data",     cost: 1_000_000_000 });
+    else if (!ns.stock.has4SDataTixApi())
+        upgrades.push({ domain: "stock-4s-tix", label: "4S Market Data TIX", cost: 25_000_000_000 });
+
+    // Don't touch hacknet until every cloud server is at the RAM cap.
+    if (upgrades.some(u => u.domain === "cloud")) {
+        return upgrades.filter(u => !u.domain.startsWith("hn-"));
+    }
+
     return upgrades;
 }
 
@@ -140,6 +162,10 @@ function perform(ns: NS, u: Upgrade): void {
         case "hn-cores":   ns.hacknet.upgradeCore(u.node!);             break;
         case "hn-cache":   ns.hacknet.upgradeCache(u.node!);            break;
         case "hn-node":    ns.hacknet.purchaseNode();                   break;
+        case "stock-wse":    ns.stock.purchaseWseAccount();         break;
+        case "stock-tix":    ns.stock.purchaseTixApi();             break;
+        case "stock-4s":     ns.stock.purchase4SMarketData();       break;
+        case "stock-4s-tix": ns.stock.purchase4SMarketDataTixApi(); break;
     }
 }
 
@@ -182,6 +208,14 @@ function printStatus(ns: NS, next: Upgrade): void {
     } else {
         ns.print(`  Total: $${ns.format.number(totalProd, 3)}/s`);
     }
+
+    // Stock market access
+    const wse  = ns.stock.hasWseAccount()    ? "✅" : "⬜";
+    const tix  = ns.stock.hasTixApiAccess()  ? "✅" : "⬜";
+    const s4s  = ns.stock.has4SData()        ? "✅" : "⬜";
+    const s4st = ns.stock.has4SDataTixApi()  ? "✅" : "⬜";
+    ns.print("── Stock Market ──────────────────────────────────────────────");
+    ns.print(`  WSE ${wse}  TIX API ${tix}  4S Data ${s4s}  4S TIX API ${s4st}`);
 
     // Next upgrade
     ns.print("─────────────────────────────────────────────────────────────");
