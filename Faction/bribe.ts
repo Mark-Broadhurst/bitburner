@@ -4,7 +4,8 @@ import { PlayerRegularFactions, Factions } from "Utils/factions";
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
-    const minFavour = 150;
+    const minFavour = ns.getFavorToDonate();
+    ns.print(`Favour required to donate: ${minFavour}`);
     const factions = PlayerRegularFactions(ns)
         .filter((faction) => ns.singularity.getFactionFavor(faction) > minFavour);
 

@@ -39,7 +39,7 @@ export async function main(ns: NS): Promise<void> {
         // Process each visible server sequentially
         for (const host of probeHosts) {
             try {
-                const auth = ns.dnet.getServerAuthDetails(host);
+                const auth = ns.dnet.getServerDetails(host);
                 if (!auth.isOnline || !auth.isConnectedToCurrentServer) continue;
 
                 if (auth.hasSession) {
@@ -103,7 +103,7 @@ async function spread(ns: NS, host: string): Promise<void> {
 async function crack(
     ns: NS,
     host: string,
-    auth: ReturnType<typeof ns.dnet.getServerAuthDetails>,
+    auth: ReturnType<typeof ns.dnet.getServerDetails>,
     passwords: Record<string, string>
 ): Promise<string | null> {
     const { passwordHint: hint, passwordFormat: format, passwordLength: length, data, modelId } = auth as any;

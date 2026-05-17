@@ -43,7 +43,7 @@ export async function main(ns: NS): Promise<void> {
             continue;
         }
 
-        if (!ns.dnet.getServerAuthDetails(host).isOnline) {
+        if (!ns.dnet.getServerDetails(host).isOnline) {
             ns.tprint(`SKIP ${host}: offline`);
             continue;
         }

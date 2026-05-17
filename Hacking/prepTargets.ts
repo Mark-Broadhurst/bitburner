@@ -2,9 +2,9 @@ import { NS, Server } from "@ns";
 import { getTargetServers, getWorkerServers, getPlayerServers } from "Utils/network";
 import { WorkerServer, Command } from "Utils/hacking";
 
-const HOME_RESERVED_RAM = 64;            // GB to keep free on home
+const HOME_RESERVED_RAM = 128;           // GB to keep free on home
 const SPACING           = 200;           // ms between grow landing and weaken landing
-const MAX_WEAKEN        = 5 * 60 * 1000; // skip servers with weakenTime > 5 min
+const MAX_WEAKEN        = 10 * 60 * 1000; // skip servers with weakenTime > 10 min
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 

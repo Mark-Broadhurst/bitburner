@@ -15,34 +15,75 @@ const programs: { name: ProgramName; req: number }[] = [
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
-    ns.clearLog();
     ns.ui.openTail();
-    ns.ui.resizeTail(420, 280);
+    ns.ui.resizeTail(420, 320);
 
-    const player = ns.getPlayer();
-    const skill  = player.skills.hacking + player.skills.intelligence;
+    while (true) {
+        ns.clearLog();
 
-    const queue = programs
-        .filter(p => p.req < skill)
-        .filter(p => !ns.fileExists(p.name, "home"));
+        const player  = ns.getPlayer();
+        const skill   = player.skills.hacking + player.skills.intelligence;
+        const current = ns.singularity.getCurrentWork();
+        const activeProgram = current?.type === "CREATE_PROGRAM" ? current.programName : null;
 
-    if (queue.length === 0) {
-        ns.print("✅ All creatable programs already exist.");
-        await ns.sleep(3000);
-        ns.ui.closeTail();
-        return;
-    }
+        // Find the next program to create (first unlocked, not owned, not already active)
+        const next = programs
+            .filter(p => p.req <= skill && !ns.fileExists(p.name, "home") && p.name !== activeProgram)[0];
 
-    for (const program of queue) {
-        ns.print(`🔧 Creating ${program.name} (req: ${program.req})...`);
-        ns.singularity.createProgram(program.name);
-        while (!ns.fileExists(program.name, "home")) {
-            await ns.sleep(1000);
+        // Start creating if nothing is active
+        if (!activeProgram && next !== undefined) {
+            ns.singularity.createProgram(next.name);
         }
-        ns.print(`✅ Done: ${program.name}`);
-        ns.run("Hacking/nuke-all.js");
+
+        // Print status table
+        ns.print(`Hack: ${skill}  (hacking ${player.skills.hacking} + int ${player.skills.intelligence})`);
+        ns.print("─".repeat(42));
+        ns.print("Program              Req    Status");
+        ns.print("─".repeat(42));
+
+        for (const p of programs) {
+            const owned   = ns.fileExists(p.name, "home");
+            const active  = p.name === activeProgram;
+            const locked  = p.req > skill;
+
+            let icon: string;
+            let status: string;
+            if (owned) {
+                icon   = "☑";
+                status = "done";
+            } else if (active) {
+                icon   = "⚙";
+                status = "creating...";
+            } else if (locked) {
+                icon   = "☐";
+                status = `locked (need ${p.req})`;
+            } else {
+                icon   = "☐";
+                status = "queued";
+            }
+
+            ns.print(`${icon} ${p.name.padEnd(20)} ${String(p.req).padEnd(6)} ${status}`);
+        }
+
+        ns.print("─".repeat(42));
+
+        // Exit when everything is done
+        if (programs.every(p => ns.fileExists(p.name, "home"))) {
+            ns.print("✅ All programs created.");
+            ns.tprint("✅ All programs created.");
+            break;
+        }
+
+        // Poll every second while a program is being created; longer when waiting on skill
+        await ns.sleep(1000);
+
+        // After sleep, check if active program finished and trigger nuke-all
+        const workNow = ns.singularity.getCurrentWork();
+        const stillActive = workNow?.type === "CREATE_PROGRAM" ? workNow.programName : null;
+        if (activeProgram && !stillActive && ns.fileExists(activeProgram as string, "home")) {
+            ns.run("Hacking/nuke-all.js");
+        }
     }
 
-    ns.tprint("✅ All programs created.");
     ns.ui.closeTail();
 }

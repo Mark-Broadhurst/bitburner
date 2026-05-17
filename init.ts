@@ -57,6 +57,29 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
+/**
+ * Polls home RAM every 3 s and launches `script` as soon as there is enough
+ * free RAM to fit it.  Gives up after 10 minutes and prints a warning.
+ * Concurrent calls interleave at each sleep so multiple scripts queue in
+ * parallel without blocking each other.
+ */
+async function launchWhenReady(ns: NS, script: string, ...args: (string | number | boolean)[]): Promise<void> {
+    const needed   = ns.getScriptRam(script, "home");
+    const deadline = Date.now() + 10 * 60_000; // 10-minute timeout
+    while (Date.now() < deadline) {
+        const { maxRam, ramUsed } = ns.getServer("home");
+        if (maxRam - ramUsed >= needed) {
+            const pid = ns.run(script, 1, ...args);
+            if (pid !== 0) {
+                ns.tprint(`INFO init: launched ${script}`);
+                return;
+            }
+        }
+        await ns.sleep(3_000);
+    }
+    ns.tprint(`WARN init: could not launch ${script} — needs ${needed.toFixed(1)} GB, only ${(ns.getServer("home").maxRam - ns.getServer("home").ramUsed).toFixed(1)} GB free`);
+}
+
 async function bn1(ns: NS, level: number) {
     ns.killall();
     ns.run("CodingContract/solve.js");
@@ -109,7 +132,72 @@ async function bn4(ns: NS, level: number) {}
 async function bn5(ns: NS, level: number) {}
 async function bn6(ns: NS, level: number) {}
 async function bn7(ns: NS, level: number) {}
-async function bn8(ns: NS, level: number) {}
+async function bn8(ns: NS, level: number) {
+    ns.killall();
+
+    // ── 1. Bootstrap home RAM ─────────────────────────────────────────────────
+    // Keep $150M liquid; with ~$250M start this naturally stops at 128 GB.
+    //   32→64  costs ~$22M  → $228M remaining ✓
+    //   64→128 costs ~$44M  → $184M remaining ✓
+    //   128→256 costs ~$88M → $96M remaining  ✗ (stop — too little for trading)
+    // The monitor loop (step 4) continues buying upgrades as trading profits grow,
+    // eventually pushing to 256 GB which lets stockHack.js start automatically.
+    const RAM_RESERVE = 150_000_000;
+    while (true) {
+        const cost = ns.singularity.getUpgradeHomeRamCost();
+        if (ns.getServerMoneyAvailable("home") - cost >= RAM_RESERVE) {
+            ns.singularity.upgradeHomeRam();
+        } else break;
+    }
+    ns.tprint(`INFO BN8: home RAM = ${ns.getServer("home").maxRam} GB  cash = ${ns.format.number(ns.getServerMoneyAvailable("home"))}`);
+
+    // ── 2. Scripts that launch and self-terminate ─────────────────────────────
+    ns.run("Hacking/nuke-all.js");
+    ns.run("Hacking/backdoor.js");
+    ns.run("Programs/create.js");      // exits when all programs are created
+    ns.run("CodingContract/solve.js"); // exits when no contracts remain
+    ns.run("Faction/join.js");
+    ns.run("Cloud/purchase.js");       // buys initial server fleet for hacking workers
+
+    // ── 3. Critical daemons — wait for enough RAM ─────────────────────────────
+    await Promise.all([
+        launchWhenReady(ns, "Stock/trade.js"),
+        launchWhenReady(ns, "installloop.js"),
+    ]);
+
+    // ── 4. Monitor loop ───────────────────────────────────────────────────────
+    // init.js stays alive as the BN8 orchestrator:
+    //   • Buys RAM upgrades every minute as trading capital grows.
+    //     128→256 GB unlocks when cash exceeds ~$238M (≈ $88M cost + $150M reserve).
+    //   • Relaunches optional daemons once RAM is available (or if they crashed).
+    //   • Watches the win condition once The Red Pill aug is installed.
+    while (true) {
+        await ns.sleep(60_000);
+
+        // Incremental RAM upgrade — runs every minute, buys when affordable.
+        const cost = ns.singularity.getUpgradeHomeRamCost();
+        if (ns.getServerMoneyAvailable("home") - cost >= RAM_RESERVE) {
+            ns.singularity.upgradeHomeRam();
+            ns.tprint(`INFO BN8: home RAM → ${ns.getServer("home").maxRam} GB  cash = ${ns.format.number(ns.getServerMoneyAvailable("home"))}`);
+        }
+
+        // Launch optional daemons (no-op if already running, silently fails if not enough RAM).
+        if (!ns.isRunning("Stock/stockHack.js"))       ns.run("Stock/stockHack.js");
+        if (!ns.isRunning("Hacking/hackCommander.js")) ns.run("Hacking/hackCommander.js");
+        if (!ns.isRunning("Hacking/nuke-all.js"))      ns.run("Hacking/nuke-all.js");
+        if (!ns.isRunning("Hacking/backdoor.js"))      ns.run("Hacking/backdoor.js");
+
+        // Win condition (only relevant after The Red Pill aug is installed).
+        if (!ns.singularity.getOwnedAugmentations(false).includes("The Red Pill")) continue;
+        const required = (ns.getServer("w0r1d_d43m0n") as Server).requiredHackingSkill ?? 3000;
+        const current  = ns.getHackingLevel();
+        if (current >= required) {
+            ns.singularity.destroyW0r1dD43m0n(9, "init.js");
+            return;
+        }
+        ns.tprint(`INFO BN8 win condition: hacking ${current} / ${required}`);
+    }
+}
 async function bn9(ns: NS, level: number) {}
 async function bn10(ns: NS, level: number) {}
 async function bn11(ns: NS, level: number) {}

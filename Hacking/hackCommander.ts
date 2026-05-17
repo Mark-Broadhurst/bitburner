@@ -5,7 +5,8 @@ import { Work, WorkerServer, Command } from "Utils/hacking";
 const HACK_PERCENT       = 0.5;           // fraction of maxMoney to steal per hack
 const SPACING            = 200;           // ms gap between each op landing
 const MAX_WEAKEN         = 5 * 60 * 1000; // skip servers with weakenTime > 5 min
-const HOME_RESERVED_RAM  = 64;            // GB to keep free on home for other scripts
+const MAX_LOOKAHEAD      = 30 * 1000;     // don't stagger batches more than 30s ahead
+const HOME_RESERVED_RAM  = 128;           // GB to keep free on home for other scripts
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,12 +88,13 @@ export async function main(ns: NS): Promise<void> {
 
             let batchIdx = 0;
             while (canAllocate(farmPool, batch.totalThreads)) {
+                const offset = batchIdx * 4 * SPACING;
+                if (offset > MAX_LOOKAHEAD) break;
+
                 // Re-check live security before each dispatch — stop immediately
                 // if the server has drifted out of prepped state.
                 const live = ns.getServer(server.hostname) as Server;
                 if (!isPrepped(live)) break;
-
-                const offset = batchIdx * 4 * SPACING;
                 dispatchFarmBatch(ns, farmPool, fresh, batch, {
                     hackDelay:    timings.hackDelay    + offset,
                     weaken1Delay: timings.weaken1Delay + offset,
