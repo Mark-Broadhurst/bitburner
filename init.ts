@@ -49,7 +49,7 @@ export async function main(ns: NS): Promise<void> {
         case 14: // IPvGO Subnet Takeover
             await bn14(ns, level);
             break;
-        case 15: // The Eye of the Sun
+        case 15: // The Secrets of the Dark Net
             await bn15(ns, level);
             break;
         default:
@@ -204,4 +204,12 @@ async function bn11(ns: NS, level: number) {}
 async function bn12(ns: NS, level: number) {}
 async function bn13(ns: NS, level: number) {}
 async function bn14(ns: NS, level: number) {}
-async function bn15(ns: NS, level: number) {}
+async function bn15(ns: NS, level: number) {
+    ns.killall();
+    ns.tprint(`INFO BN15.${level}: starting`);
+
+    ns.run("Cloud/purchase.js");           // buy servers for hacking workers
+    ns.run("Darknet/startup.js");          // crawler + mutationWatch + stasis
+    ns.run("Hacking/nuke-all.js");
+    ns.run("Hacking/hackCommander.js");
+}
