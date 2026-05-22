@@ -30,20 +30,42 @@ const NO_HEARTBLEED_MODELS = new Set([
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
+
+    // Open a tail window only on home — remote instances are silent helpers.
+    const onHome = ns.getHostname() === "home";
+    if (onHome) {
+        ns.ui.openTail();
+        ns.ui.resizeTail(720, 480);
+    }
+
     await localMaintenance(ns);
 
     while (true) {
         const passwords  = loadPasswords(ns);
         const probeHosts = ns.dnet.probe();
 
+        if (onHome) {
+            ns.clearLog();
+            ns.print(`Passwords saved: ${Object.keys(passwords).length}   Visible from home: ${probeHosts.length}`);
+            ns.print("─".repeat(64));
+        }
+
         // Process each visible server sequentially
         for (const host of probeHosts) {
             try {
                 const auth = ns.dnet.getServerAuthDetails(host);
-                if (!auth.isOnline || !auth.isConnectedToCurrentServer) continue;
+
+                if (!auth.isOnline) {
+                    if (onHome) ns.print(`  ${host.padEnd(20)} offline`);
+                    continue;
+                }
+                if (!auth.isConnectedToCurrentServer) {
+                    if (onHome) ns.print(`  ${host.padEnd(20)} not connected`);
+                    continue;
+                }
 
                 if (auth.hasSession) {
-                    // Re-spread so the crawler stays alive even if the remote instance died
+                    if (onHome) ns.print(`  ${host.padEnd(20)} ✅ session — re-spreading crawler`);
                     const pw = passwords[host];
                     if (pw) {
                         ns.dnet.connectToSession(host, pw);
@@ -52,14 +74,27 @@ export async function main(ns: NS): Promise<void> {
                     continue;
                 }
 
+                const modelId = (auth as any).modelId ?? "?";
+                if (onHome) ns.print(`  ${host.padEnd(20)} 🔓 [${modelId}] ${auth.passwordFormat}[${auth.passwordLength}]  hint="${auth.passwordHint}"`);
+
                 const pw = await crack(ns, host, auth, passwords);
-                if (pw === null) continue;
+                if (pw === null) {
+                    if (onHome) ns.print(`  ${host.padEnd(20)} ❌ crack failed`);
+                    continue;
+                }
 
                 await savePassword(ns, host, pw);
                 await spread(ns, host);
+                if (onHome) ns.print(`  ${host.padEnd(20)} ✅ cracked! pw="${pw}"`);
             } catch (e) {
                 ns.tprint(`WARN crawler: exception on ${host}: ${e}`);
+                if (onHome) ns.print(`  ${host.padEnd(20)} ⚠ ${e}`);
             }
+        }
+
+        if (onHome) {
+            ns.print("─".repeat(64));
+            ns.print("Waiting for next mutation...");
         }
 
         // Wait for topology to change, then do local maintenance
