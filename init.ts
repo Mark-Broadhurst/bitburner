@@ -211,5 +211,6 @@ async function bn15(ns: NS, level: number) {
     ns.run("Cloud/purchase.js");           // buy servers for hacking workers
     ns.run("Darknet/startup.js");          // crawler + mutationWatch + stasis
     ns.run("Hacking/nuke-all.js");
+    ns.run("Hacking/backdoor.js");
     ns.run("Hacking/hackCommander.js");
 }

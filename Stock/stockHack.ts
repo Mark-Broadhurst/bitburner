@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, Server } from "@ns";
 import { getWorkerServers, getPlayerServers } from "Utils/network";
 import { WorkerServer } from "Utils/hacking";
 
@@ -102,7 +102,7 @@ export async function main(ns: NS): Promise<void> {
             ...getWorkerServers(ns),
         ].map(s => new WorkerServer(s));
 
-        const home       = ns.getServer("home");
+        const home       = ns.getServer("home") as Server;
         const homeWorker = new WorkerServer(home);
         homeWorker.freeThreads = Math.floor(
             Math.max(0, home.maxRam - home.ramUsed - HOME_RESERVED_RAM) / 1.75
@@ -149,7 +149,7 @@ export async function main(ns: NS): Promise<void> {
 
         // Dispatch W → G/H → W batches — each target gets an equal thread budget
         for (const target of focusedTargets) {
-            const srv        = ns.getServer(target.server);
+            const srv        = ns.getServer(target.server) as Server;
             const weakenTime = ns.getWeakenTime(target.server);
             const opTime     = target.command === "grow"
                 ? ns.getGrowTime(target.server)
