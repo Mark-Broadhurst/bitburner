@@ -27,7 +27,7 @@ export async function main(ns: NS): Promise<void> {
         const discovered = discoverAll(ns);
         const targets    = [...discovered].filter(h => {
             if (h in passwords) return false;
-            const a = ns.dnet.getServerDetails(h);
+            const a = ns.dnet.getServerAuthDetails(h);
             return a.isOnline && !a.hasSession;
         });
 
@@ -83,7 +83,7 @@ export async function main(ns: NS): Promise<void> {
                 const deadline = Date.now() + 45_000;
                 while (Date.now() < deadline) {
                     const pw = loadPasswords(ns);
-                    if (pw[target] !== undefined || ns.dnet.getServerDetails(target).hasSession) break;
+                    if (pw[target] !== undefined || ns.dnet.getServerAuthDetails(target).hasSession) break;
                     await ns.sleep(0);
                 }
             }
@@ -95,7 +95,7 @@ export async function main(ns: NS): Promise<void> {
         ns.print(`Known: ${discovered.size}  Cracked: ${Object.keys(updated).length}`);
         ns.print("─".repeat(60));
         for (const target of targets) {
-            const ok = updated[target] !== undefined || ns.dnet.getServerDetails(target).hasSession;
+            const ok = updated[target] !== undefined || ns.dnet.getServerAuthDetails(target).hasSession;
             ns.print(`${ok ? "✅" : "❌"} ${target}`);
         }
 

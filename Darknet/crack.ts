@@ -19,7 +19,7 @@ export async function main(ns: NS): Promise<void> {
     }
 
     try {
-        const auth    = ns.dnet.getServerDetails(host);
+        const auth    = ns.dnet.getServerAuthDetails(host);
         const modelId = (auth as any).modelId ?? "";
         const charReq  = ns.dnet.getServerRequiredCharismaLevel(host);
         const charisma = ns.getPlayer().skills.charisma;
@@ -104,7 +104,7 @@ async function hopAndCrack(ns: NS, target: string, parent: string): Promise<void
 
 async function attemptCrack(
     ns: NS, host: string,
-    auth: ReturnType<typeof ns.dnet.getServerDetails>,
+    auth: ReturnType<typeof ns.dnet.getServerAuthDetails>,
     modelId: string, charisma: number, charReq: number
 ): Promise<void> {
     if (charisma >= charReq) {
