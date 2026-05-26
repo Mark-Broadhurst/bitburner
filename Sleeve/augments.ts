@@ -1,5 +1,4 @@
 import { NS } from "@ns";
-import { SleeveAugmentations } from "Utils/augments";
 
 export async function main(ns: NS): Promise<void> {
   ns.disableLog("ALL");
@@ -31,29 +30,41 @@ export async function main(ns: NS): Promise<void> {
   }
 }
 
-function printSleeveAugStatus(ns:NS) {
-  const augs = SleeveAugmentations;
-
-  const sleeveAugs = [];
+/**
+ * Build the universe of sleeve-eligible augment names dynamically:
+ * union of what each sleeve already has installed and what each sleeve
+ * can still purchase.  Sorted alphabetically for a stable display order.
+ */
+function getAllSleeveAugNames(ns: NS): string[] {
+  const all = new Set<string>();
   for (let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
-    const aug = ns.sleeve.getSleeveAugmentations(i);
-    sleeveAugs.push(aug);
-  } 
+    for (const name of ns.sleeve.getSleeveAugmentations(i))
+      all.add(name);
+    for (const { name } of ns.sleeve.getSleevePurchasableAugs(i))
+      all.add(name);
+  }
+  return [...all].sort();
+}
+
+function printSleeveAugStatus(ns: NS) {
+  const augs      = getAllSleeveAugNames(ns);
+  const numSleeves = ns.sleeve.getNumSleeves();
+
+  const sleeveAugs = Array.from({ length: numSleeves }, (_, i) =>
+    ns.sleeve.getSleeveAugmentations(i)
+  );
+  const purchasable = Array.from({ length: numSleeves }, (_, i) =>
+    new Set(ns.sleeve.getSleevePurchasableAugs(i).map(a => a.name))
+  );
 
   ns.print(`║${"Augment🦾".padEnd(54)}║ 0║ 1║ 2║ 3║ 4║ 5║ 6║ 7║`);
   ns.print(`${"╠".padEnd(55, "═")}╬══╬══╬══╬══╬══╬══╬══╬══╣`);
-  for(const aug of augs) {
+  for (const aug of augs) {
     let line = `║${aug.padEnd(54)}`;
-    for(let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
-      const sleeve = sleeveAugs[i];
-
-      if (sleeve.includes(aug)) {
-        line += `║🟩`;
-      } else if (ns.sleeve.getSleevePurchasableAugs(i).map(x=>x.name).includes(aug)) {
-        line += `║🟨`;
-      } else {
-        line += `║🟥`;
-      }
+    for (let i = 0; i < numSleeves; i++) {
+      if      (sleeveAugs[i].includes(aug)) line += `║🟩`;
+      else if (purchasable[i].has(aug))     line += `║🟨`;
+      else                                  line += `║🟥`;
     }
     line += "║";
     ns.print(line);

@@ -1,6 +1,13 @@
 import { CityName, NS, BladeburnerActionName, BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName, BladeburnerBlackOpName } from "@ns";
 import { BladeburnerAction } from "Bladeburner/enums";
 
+// All six playable cities — used for chaos/community queries throughout this file.
+// Defined once here to avoid repeating the array in every function.
+const CITIES = (ns: NS): CityName[] => {
+    const C = ns.enums.CityName;
+    return [C.Sector12, C.Aevum, C.Volhaven, C.Chongqing, C.NewTokyo, C.Ishima];
+};
+
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
   ns.disableLog("ALL");
@@ -36,8 +43,7 @@ async function startStaminaAction(ns: NS) {
 }
 
 function travelToCityWithCommunities(ns: NS) {
-  const CityName = ns.enums.CityName;
-  const city = [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+  const city = CITIES(ns)
     .reduce((acc, city) => {
       const aCommunities = ns.bladeburner.getCityCommunities(acc);
       const bCommunities = ns.bladeburner.getCityCommunities(city);
@@ -48,8 +54,7 @@ function travelToCityWithCommunities(ns: NS) {
 }
 
 function lowChaosCity(ns: NS): CityName {
-  const CityName = ns.enums.CityName;
-  return [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+  return CITIES(ns)
     .reduce((acc, city) => {
       const aChaos = ns.bladeburner.getCityChaos(acc);
       const bChaos = ns.bladeburner.getCityChaos(city);
@@ -58,8 +63,7 @@ function lowChaosCity(ns: NS): CityName {
 }
 
 function highChaosCity(ns: NS): CityName {
-  const CityName = ns.enums.CityName;
-  return [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+  return CITIES(ns)
     .reduce((acc, city) => {
       const aChaos = ns.bladeburner.getCityChaos(acc);
       const bChaos = ns.bladeburner.getCityChaos(city);
@@ -81,8 +85,7 @@ async function startFreeAction(ns: NS) {
 
 function usedAllActions(ns: NS): boolean {
   const BB = ns.enums.BladeburnerActionType;
-  const CityName = ns.enums.CityName;
-  const communities = [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
+  const communities = CITIES(ns)
     .reduce((acc, city) => {
       acc += ns.bladeburner.getCityCommunities(city);
       return acc;

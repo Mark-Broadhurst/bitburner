@@ -1,9 +1,11 @@
-import { NS, HacknetServerHashUpgrade } from "@ns";
+import { NS, HacknetServerHashUpgrade, CompanyName } from "@ns";
+import { minBy } from "Utils/array";
 import { getTargetServers } from "Utils/network";
 
 const MONEY_THRESHOLD  = 5_000_000; // $5m — sell hashes for cash below this
 const OVERFLOW_BUFFER  = 40;        // sell if within this many hashes of capacity
 const MAX_SERVER_MONEY = 1e13;      // don't waste hashes on already-massive servers
+const FAVOR_CAP = 150; // top up company favour to this level
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,10 +44,19 @@ export async function main(ns: NS): Promise<void> {
             if (actions.length === 0) {
                 ns.print("⚠ No hash actions available.");
             } else {
-                const best = actions.reduce((a, b) => a.cost <= b.cost ? a : b);
+                const best     = minBy(actions, a => a.cost);
+                const capacity = getTotalHashCapacity(ns);
                 printStatus(ns, actions, best);
+
                 if (ns.hacknet.numHashes() >= best.cost) {
                     ns.hacknet.spendHashes(best.name, best.target ?? "home");
+                    if (best.name === "Generate Coding Contract") {
+                        await ns.sleep(500); // let the contract appear on the network
+                        ns.run("CodingContract/solve.js");
+                    }
+                } else if (capacity > 0 && best.cost > capacity) {
+                    // Cheapest action costs more than we can ever store — sell for money
+                    ns.hacknet.spendHashes("Sell for Money");
                 }
             }
         }
@@ -64,9 +75,18 @@ export async function main(ns: NS): Promise<void> {
 function buildActions(ns: NS): HashAction[] {
     const actions: HashAction[] = [];
 
-    // 1. Studying + gym — always available
-    actions.push({ name: "Improve Studying",     cost: ns.hacknet.hashCost("Improve Studying") });
-    actions.push({ name: "Improve Gym Training", cost: ns.hacknet.hashCost("Improve Gym Training") });
+    // 1. Always-available upgrades
+    actions.push({ name: "Improve Studying",        cost: ns.hacknet.hashCost("Improve Studying") });
+    actions.push({ name: "Improve Gym Training",    cost: ns.hacknet.hashCost("Improve Gym Training") });
+    actions.push({ name: "Generate Coding Contract", cost: ns.hacknet.hashCost("Generate Coding Contract") });
+
+    // Company Favor — top up all companies to 150, largest first (closest to cap)
+    const companyTarget = (Object.values(ns.enums.CompanyName) as CompanyName[])
+        .map(c => ({ name: c, favor: ns.singularity.getCompanyFavor(c) }))
+        .filter(c => c.favor > 0 && c.favor < FAVOR_CAP)
+        .sort((a, b) => b.favor - a.favor)[0];
+    if (companyTarget)
+        actions.push({ name: "Company Favor", target: companyTarget.name, cost: ns.hacknet.hashCost("Company Favor") });
 
     // 2. Server improvements — boost best hacking targets
     const servers = getTargetServers(ns)

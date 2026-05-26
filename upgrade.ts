@@ -1,4 +1,5 @@
 import { NS, Server } from "@ns";
+import { minBy } from "Utils/array";
 
 /**
  * Unified upgrade daemon — home cores/RAM, cloud server RAM, and hacknet nodes/servers.
@@ -55,7 +56,7 @@ export async function main(ns: NS): Promise<void> {
             continue;
         }
 
-        const best = candidates.reduce((a, b) => a.cost <= b.cost ? a : b);
+        const best = minBy(candidates, u => u.cost);
 
         let lastDisplay = 0;
         while (ns.getServerMoneyAvailable("home") < best.cost) {

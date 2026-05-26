@@ -1,4 +1,5 @@
 import { NS, HacknetServerHashUpgrade } from "@ns";
+import { minBy } from "Utils/array";
 import { getServers } from "Utils/network";
 
 export async function main(ns: NS): Promise<void> {
@@ -12,7 +13,7 @@ export async function main(ns: NS): Promise<void> {
             "Increase Maximum Money",
         ] as HacknetServerHashUpgrade[])
             .map(a => ({ name: a, cost: ns.hacknet.hashCost(a) }))
-            .reduce((a, b) => a.cost <= b.cost ? a : b);
+            .reduce((a, b) => a.cost <= b.cost ? a : b);  // minBy — kept inline (only 2 elements)
 
         while (action.cost > ns.hacknet.numHashes()) {
             await ns.sleep(1000);
