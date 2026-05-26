@@ -34,7 +34,7 @@ export async function main(ns: NS): Promise<void> {
     ns.tprint(`Done — solved: ${solved}  failed: ${failed}  skipped: ${skipped}`);
 }
 
-function solve(type: string, data: any): any {
+function solve(type: CodingContractName, data: any): any {
     switch (type) {
         case "Find Largest Prime Factor":               return largestPrimeFactor(data);
         case "Subarray with Maximum Sum":               return subarrayMaxSum(data);

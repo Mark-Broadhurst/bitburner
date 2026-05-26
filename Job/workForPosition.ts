@@ -1,17 +1,6 @@
 import { NS, CompanyName, JobField, JobName } from "@ns";
 import { CompaniesJobs } from "Utils/companies";
 
-// Field priority when Formulas.exe is unavailable
-const FIELD_PRIORITY: JobField[] = [
-    "software"           as JobField,
-    "it"                 as JobField,
-    "security"           as JobField,
-    "business"           as JobField,
-    "agent"              as JobField,
-    "software consultant" as JobField,
-    "employee"           as JobField,
-    "waiter"             as JobField,
-];
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -99,7 +88,7 @@ function getCompanyFields(ns: NS, company: CompanyName): JobField[] {
  * Uses Formulas.exe when available; otherwise falls back to FIELD_PRIORITY order.
  */
 function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobField {
-    if (fields.length === 0) return "software" as JobField;
+    if (fields.length === 0) return ns.enums.JobField.software;
 
     if (ns.fileExists("Formulas.exe", "home")) {
         const player  = ns.getPlayer();
@@ -120,7 +109,12 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
         }
     }
 
-    // Fallback: prefer by priority
+    // Fallback: prefer by priority (most desirable first)
+    const JF = ns.enums.JobField;
+    const FIELD_PRIORITY: JobField[] = [
+        JF.software, JF.it, JF.security, JF.business,
+        JF.agent, JF.softwareConsultant, JF.employee, JF.waiter,
+    ];
     for (const preferred of FIELD_PRIORITY) {
         if (fields.includes(preferred)) return preferred;
     }

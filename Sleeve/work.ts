@@ -56,7 +56,7 @@ export async function main(ns: NS): Promise<void> {
                 ns.sleeve.setToGymWorkout(i, getGym(ns, current.city)!, GymType.agility);
             } else if (player.numPeopleKilled < 45 && karma > -54_000 && !ns.gang.inGang()) {
                 ns.print(`Synth ${i} set to Homicide`);
-                ns.sleeve.setToCommitCrime(i, "Homicide");
+                ns.sleeve.setToCommitCrime(i, ns.enums.CrimeType.homicide);
                 await ns.sleep(10 * 1000);
             } else {
                 ns.print(`Synth ${i} set to Idle`);

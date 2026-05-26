@@ -1,17 +1,6 @@
 import { NS, CompanyName, JobField } from "@ns";
 import { CompaniesWithFactions, CompaniesJobs } from "Utils/companies";
 
-// Field priority when Formulas.exe is unavailable — software gives best rep via hacking skill
-const FIELD_PRIORITY: JobField[] = [
-    "software"  as JobField,
-    "it"        as JobField,
-    "security"  as JobField,
-    "business"  as JobField,
-    "agent"     as JobField,
-    "software consultant" as JobField,
-    "employee"  as JobField,
-    "waiter"    as JobField,
-];
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -94,7 +83,7 @@ function getCompanyFields(ns: NS, company: CompanyName): JobField[] {
  * Uses Formulas.exe when available; otherwise falls back to FIELD_PRIORITY order.
  */
 function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobField {
-    if (fields.length === 0) return "software" as JobField;
+    if (fields.length === 0) return ns.enums.JobField.software;
 
     if (ns.fileExists("Formulas.exe", "home")) {
         const player = ns.getPlayer();
@@ -118,8 +107,9 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
         }
     }
 
-    // Fallback: use priority order
-    for (const preferred of FIELD_PRIORITY) {
+    // Fallback: use priority order (most desirable field first)
+    const JF = ns.enums.JobField;
+    for (const preferred of [JF.software, JF.it, JF.security, JF.business, JF.agent, JF.softwareConsultant, JF.employee, JF.waiter]) {
         if (fields.includes(preferred)) return preferred;
     }
     return fields[0];

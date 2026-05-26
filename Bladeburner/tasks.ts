@@ -1,5 +1,5 @@
-import { CityName, NS, BladeburnerActionName } from "@ns";
-import { Type, Action, Contract, Operation, BlackOp, BladeburnerAction, contracts, operations, blackOps } from "Bladeburner/enums";
+import { CityName, NS, BladeburnerActionName, BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName, BladeburnerBlackOpName } from "@ns";
+import { BladeburnerAction } from "Bladeburner/enums";
 
 export async function main(ns: NS): Promise<void> {
   ns.clearLog();
@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
     const player = ns.getPlayer();
     if (player.hp.current < player.hp.max) {
       ns.print("Healing");
-      await startAction(ns, ["General", "Hyperbolic Regeneration Chamber"]);
+      await startAction(ns, BladeburnerAction.HyperbolicRegenerationChamber);
     } else if (getStaminaPercentage(ns) > 0.5) {
       await startStaminaAction(ns);
     } else {
@@ -55,7 +55,6 @@ function lowChaosCity(ns: NS): CityName {
       const bChaos = ns.bladeburner.getCityChaos(city);
       return aChaos < bChaos ? acc : city;
     });
-
 }
 
 function highChaosCity(ns: NS): CityName {
@@ -68,21 +67,20 @@ function highChaosCity(ns: NS): CityName {
     });
 }
 
-
 async function startFreeAction(ns: NS) {
   const high = highChaosCity(ns);
   const low = lowChaosCity(ns);
   if (usedAllActions(ns)) {
-    await startAction(ns, ["General", "Incite Violence"]);
+    await startAction(ns, BladeburnerAction.InciteViolence);
   } else if (high === low) {
     await startFieldAnalysis(ns);
   } else {
-    //ns.bladeburner.switchCity(high);
     await startAction(ns, BladeburnerAction.Diplomacy);
   }
 }
 
 function usedAllActions(ns: NS): boolean {
+  const BB = ns.enums.BladeburnerActionType;
   const CityName = ns.enums.CityName;
   const communities = [CityName.Sector12, CityName.Aevum, CityName.Volhaven, CityName.Chongqing, CityName.NewTokyo, CityName.Ishima]
     .reduce((acc, city) => {
@@ -91,8 +89,8 @@ function usedAllActions(ns: NS): boolean {
     }, 0);
 
   let actionTotal = 0;
-  contracts.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("Contracts", c));
-  operations.forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining("Operations", c));
+  ns.bladeburner.getContractNames().forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining(BB.Contract, c));
+  ns.bladeburner.getOperationNames().forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining(BB.Operation, c));
 
   ns.print(`Actions remaining: ${actionTotal} / ${communities}`);
   return (communities >= actionTotal);
@@ -112,43 +110,35 @@ function getStaminaPercentage(ns: NS): number {
 function switchCity(ns: NS) {
   const CityName = ns.enums.CityName;
   switch (ns.bladeburner.getCity()) {
-    case CityName.Sector12:
-      ns.bladeburner.switchCity(CityName.Aevum)
-      break;
-    case CityName.Aevum:
-      ns.bladeburner.switchCity(CityName.Volhaven)
-      break;
-    case CityName.Volhaven:
-      ns.bladeburner.switchCity(CityName.Chongqing)
-      break;
-    case CityName.Chongqing:
-      ns.bladeburner.switchCity(CityName.NewTokyo)
-      break;
-    case CityName.NewTokyo:
-      ns.bladeburner.switchCity(CityName.Ishima)
-      break;
-    case CityName.Ishima:
-      ns.bladeburner.switchCity(CityName.Sector12)
-      break;
+    case CityName.Sector12:   ns.bladeburner.switchCity(CityName.Aevum);    break;
+    case CityName.Aevum:      ns.bladeburner.switchCity(CityName.Volhaven); break;
+    case CityName.Volhaven:   ns.bladeburner.switchCity(CityName.Chongqing);break;
+    case CityName.Chongqing:  ns.bladeburner.switchCity(CityName.NewTokyo); break;
+    case CityName.NewTokyo:   ns.bladeburner.switchCity(CityName.Ishima);   break;
+    case CityName.Ishima:     ns.bladeburner.switchCity(CityName.Sector12); break;
   }
 }
 
-async function startAction(ns: NS, [type, action]: [Type, Action | Contract | Operation | BlackOp]): Promise<void> {
+async function startAction(ns: NS, [type, action]: [BladeburnerActionType, BladeburnerActionName]): Promise<void> {
   ns.print(`Starting ${type} ${action}`);
 
   let time = ns.bladeburner.getActionTime(type, action);
   if (ns.bladeburner.getBonusTime() > 5000) {
-    time = time * 0.2
+    time = time * 0.2;
   }
   ns.bladeburner.startAction(type, action);
   await ns.sleep(time);
 }
 
-function getNext<T extends Contract | Operation>(ns: NS, type: Type, list: string[]): [Type, T] | null {
+function getNext<T extends BladeburnerContractName | BladeburnerOperationName>(
+  ns: NS,
+  type: BladeburnerActionType,
+  list: T[],
+): [BladeburnerActionType, T] | null {
   const actions = list
     .map(c => {
-      const count = ns.bladeburner.getActionCountRemaining(type, c as BladeburnerActionName);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c as BladeburnerActionName);
+      const count = ns.bladeburner.getActionCountRemaining(type, c);
+      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c);
       ns.print(`${c.padEnd(29)} ${count} ${ns.format.percent(min)} ${ns.format.percent(max)}`);
       return { contract: c, count, min, max };
     })
@@ -161,23 +151,23 @@ function getNext<T extends Contract | Operation>(ns: NS, type: Type, list: strin
   if (actions.length === 0) {
     return null;
   }
-  return [type as Type, actions[0] as T];
+  return [type, actions[0]];
 }
 
-function getContract(ns: NS): [Type, Contract] | null {
-  return getNext(ns, "Contracts", contracts);
+function getContract(ns: NS): [BladeburnerActionType, BladeburnerContractName] | null {
+  return getNext(ns, ns.enums.BladeburnerActionType.Contract, ns.bladeburner.getContractNames());
 }
 
-function getOperation(ns: NS): [Type, Operation] | null {
-  return getNext(ns, "Operations", operations);
+function getOperation(ns: NS): [BladeburnerActionType, BladeburnerOperationName] | null {
+  return getNext(ns, ns.enums.BladeburnerActionType.Operation, ns.bladeburner.getOperationNames());
 }
 
-function getBlackOp(ns: NS): [Type, BlackOp] | null {
+function getBlackOp(ns: NS): [BladeburnerActionType, BladeburnerBlackOpName] | null {
   const next = ns.bladeburner.getNextBlackOp();
   const rank = ns.bladeburner.getRank();
 
   if (next == null || rank < next.rank) {
     return null;
   }
-  return ["Black Operations", next.name as BlackOp];
+  return [ns.enums.BladeburnerActionType.BlackOp, next.name];
 }
