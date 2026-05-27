@@ -22,6 +22,10 @@ const skillSteps = [0, 0, 0, 25, 25, 50, 50, 75, 75, 100, 100, 150, 500, 1000];
 // is effective at reducing wanted level.
 const MIN_CHARISMA = 50;
 
+// Power advantage multiplier before we stop using the Territory Warfare task
+// and let members earn money/respect while the clash toggle keeps fighting.
+const DOMINATE_THRESHOLD = 1.5;
+
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.ui.openTail();
@@ -49,7 +53,19 @@ export async function main(ns: NS): Promise<void> {
             members.push(name);
         }
 
-        const phase = members.length < MAX_MEMBERS ? `recruiting (${members.length}/${MAX_MEMBERS})` : "warfare";
+        // Compute strongest enemy once — shared by task selection and warfare toggle.
+        const strongest = getStrongestEnemy(ns, gang);
+
+        // Domination: full roster, territory not yet won, and our power is
+        // >50% greater than the strongest remaining enemy. Once dominant,
+        // members switch to money/respect; the clash toggle keeps fighting.
+        const dominates =
+            members.length >= MAX_MEMBERS &&
+            gang.territory < 1 &&
+            (strongest === null || gang.power > strongest.power * DOMINATE_THRESHOLD);
+
+        // ── Status ───────────────────────────────────────────────────────────
+        const phase = getPhaseLabel(members.length, gang, dominates);
         ns.print(`Phase: ${phase}   Skill goal: ${skillSteps[Math.min(members.length, skillSteps.length - 1)]}`);
         const ratio = gang.wantedLevel > 0 ? (gang.respect / gang.wantedLevel).toFixed(0) : "∞";
         ns.print(`Respect: ${ns.format.number(gang.respect)}   Wanted: ${ns.format.number(gang.wantedLevel)}   Ratio: ${ratio}x`);
@@ -66,7 +82,7 @@ export async function main(ns: NS): Promise<void> {
             }
 
             const idx = members.indexOf(name);
-            ns.gang.setMemberTask(name, chooseTask(ns, gang, info, members.length, idx));
+            ns.gang.setMemberTask(name, chooseTask(ns, gang, info, members.length, idx, dominates));
         }
 
         // ── Equipment ─────────────────────────────────────────────────────────
@@ -75,22 +91,40 @@ export async function main(ns: NS): Promise<void> {
         }
 
         // ── Territory warfare ─────────────────────────────────────────────────
-        updateTerritoryWarfare(ns, gang);
+        updateTerritoryWarfare(ns, gang, strongest);
 
-        // ── Status ───────────────────────────────────────────────────────────
+        // ── Footer ───────────────────────────────────────────────────────────
         ns.print(`Territory: ${(gang.territory * 100).toFixed(1)}%   Warfare: ${gang.territoryWarfareEngaged}`);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Phase label
+// ---------------------------------------------------------------------------
+
+function getPhaseLabel(memberCount: number, gang: GangGenInfo, dominates: boolean): string {
+    if (memberCount < MAX_MEMBERS)  return `recruiting (${memberCount}/${MAX_MEMBERS})`;
+    if (gang.territory >= 1)        return "territory won";
+    if (dominates)                  return "dominating — earning 💰";
+    return "building power ⚔️";
 }
 
 // ---------------------------------------------------------------------------
 // Task selection
 // ---------------------------------------------------------------------------
 
-function chooseTask(ns: NS, gang: GangGenInfo, info: GangMemberInfo, memberCount: number, idx = 0): string {
+function chooseTask(
+    ns: NS,
+    gang: GangGenInfo,
+    info: GangMemberInfo,
+    memberCount: number,
+    idx: number,
+    dominates: boolean,
+): string {
     const goal       = skillSteps[Math.min(memberCount, skillSteps.length - 1)];
     const recruiting = memberCount < MAX_MEMBERS;
 
-    // Combat training always
+    // Combat training always takes priority
     if (info.str < goal || info.def < goal || info.dex < goal || info.agi < goal)
         return "Train Combat";
 
@@ -98,7 +132,7 @@ function chooseTask(ns: NS, gang: GangGenInfo, info: GangMemberInfo, memberCount
     if (info.cha < MIN_CHARISMA)
         return "Train Charisma";
 
-    // Hacking and full charisma only after territory is fully won
+    // Hacking and full charisma training only after territory is fully won
     if (gang.territory >= 1) {
         if (info.hack < goal) return "Train Hacking";
         if (info.cha  < goal) return "Train Charisma";
@@ -112,13 +146,18 @@ function chooseTask(ns: NS, gang: GangGenInfo, info: GangMemberInfo, memberCount
     if (recruiting)
         return getBestTask(ns, info, reduceRespect);
 
-    // ── Warfare phase: always do Territory Warfare task to build power ────────
-    // The clash toggle (setTerritoryWarfare) is managed separately and only
-    // enables actual fights once we outpower the strongest enemy.
-    if (gang.territory < 1)
-        return "Territory Warfare";
+    // ── Warfare phase ─────────────────────────────────────────────────────────
+    if (gang.territory < 1) {
+        // Keep building power until we have a >50% advantage.
+        // The clash toggle (setTerritoryWarfare) is managed separately and only
+        // enables actual fights once we outpower the strongest enemy.
+        if (!dominates) return "Territory Warfare";
+        // Dominating: fall through to the money/respect split below so members
+        // generate income while the clan keeps fighting in the background.
+    }
 
-    // Territory won + skills maxed: 2/3 respect (cheaper equipment), 1/3 money
+    // Territory won, or dominating in warfare: 2/3 respect, 1/3 money
+    // (respect gives equipment discounts which compound over time)
     return getBestTask(ns, info, idx % 3 === 0 ? reduceMoney : reduceRespect);
 }
 
@@ -186,24 +225,31 @@ function buyNextEquipment(ns: NS, members: string[], equipmentNames: string[]): 
 // Territory warfare
 // ---------------------------------------------------------------------------
 
-function updateTerritoryWarfare(ns: NS, gang: GangGenInfo): void {
+/** Returns the strongest gang with remaining territory, or null if none. */
+function getStrongestEnemy(ns: NS, gang: GangGenInfo): { name: string; power: number } | null {
+    const otherInfo = ns.gang.getAllGangInformation();
+    const enemies   = ALL_GANG_NAMES
+        .filter(n => n !== gang.faction && (otherInfo[n]?.territory ?? 0) > 0)
+        .map(n => ({ name: n, power: otherInfo[n].power }));
+    return enemies.length > 0 ? maxBy(enemies, e => e.power) : null;
+}
+
+function updateTerritoryWarfare(
+    ns: NS,
+    gang: GangGenInfo,
+    strongest: { name: string; power: number } | null,
+): void {
     // Only engage territory warfare once we have a full roster
     if (gang.territory >= 1 || ns.gang.getMemberNames().length < MAX_MEMBERS) {
         if (gang.territoryWarfareEngaged) ns.gang.setTerritoryWarfare(false);
         return;
     }
 
-    const otherInfo = ns.gang.getAllGangInformation();
-    const enemies   = ALL_GANG_NAMES
-        .filter(n => n !== gang.faction && (otherInfo[n]?.territory ?? 0) > 0)
-        .map(n => ({ name: n, power: otherInfo[n].power }));
-
-    if (enemies.length === 0) {
+    if (strongest === null) {
         if (gang.territoryWarfareEngaged) ns.gang.setTerritoryWarfare(false);
         return;
     }
 
-    const strongest    = maxBy(enemies, e => e.power);
     const winChance    = gang.power / (gang.power + strongest.power);
     const shouldEngage = gang.power > strongest.power;
 
