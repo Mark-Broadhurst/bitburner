@@ -199,25 +199,33 @@ function reduceMoney(a: TaskData, b: TaskData): TaskData {
 // ---------------------------------------------------------------------------
 
 function buyNextEquipment(ns: NS, members: string[], equipmentNames: string[]): void {
-    // Find the member with the fewest total upgrades
-    const member = minBy(
-        members.map(m => ns.gang.getMemberInformation(m)),
-        m => m.upgrades.length + m.augmentations.length,
-    );
+    // For each member find their cheapest missing item (first in the startup-cost-sorted
+    // list that they don't own yet), then pick the globally cheapest across all members.
+    // This prevents getting stuck waiting for one member's expensive next item while
+    // other members still need cheap items.
+    interface Candidate { memberName: string; item: string; cost: number }
 
-    const next = equipmentNames.find(e => !member.upgrades.includes(e) && !member.augmentations.includes(e));
-    if (!next) return;
+    const candidates: Candidate[] = members.flatMap(memberName => {
+        const info = ns.gang.getMemberInformation(memberName);
+        const next = equipmentNames.find(
+            e => !info.upgrades.includes(e) && !info.augmentations.includes(e)
+        );
+        if (!next) return [];
+        return [{ memberName, item: next, cost: ns.gang.getEquipmentCost(next) }];
+    });
 
-    const cost      = ns.gang.getEquipmentCost(next);
+    if (candidates.length === 0) return;
+
+    const best      = minBy(candidates, c => c.cost);
     const homeMoney = ns.getServerMoneyAvailable("home");
-    const minBuffer = Math.max(50e6, cost * 2);
+    const minBuffer = Math.max(50e6, best.cost * 2);
 
     if (homeMoney >= minBuffer) {
-        if (ns.gang.purchaseEquipment(member.name, next)) {
-            ns.tprint(`Gang: purchased ${next} for ${member.name} ($${ns.format.number(cost)})`);
+        if (ns.gang.purchaseEquipment(best.memberName, best.item)) {
+            ns.tprint(`Gang: purchased ${best.item} for ${best.memberName} ($${ns.format.number(best.cost)})`);
         }
     } else {
-        ns.print(`Equipment: saving for ${next} ($${ns.format.number(cost)}) — have $${ns.format.number(homeMoney)} / need $${ns.format.number(minBuffer)}`);
+        ns.print(`Equipment: saving for ${best.item} ($${ns.format.number(best.cost)}) — have $${ns.format.number(homeMoney)} / need $${ns.format.number(minBuffer)}`);
     }
 }
 
