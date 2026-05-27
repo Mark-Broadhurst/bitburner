@@ -26,6 +26,10 @@ const MIN_CHARISMA = 50;
 // and let members earn money/respect while the clash toggle keeps fighting.
 const DOMINATE_THRESHOLD = 1.5;
 
+// Once respect hits this value the equipment discount is saturated enough
+// that further respect adds little value — switch everyone to money tasks.
+const RESPECT_CAP = 150_000_000;
+
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.ui.openTail();
@@ -103,9 +107,11 @@ export async function main(ns: NS): Promise<void> {
 // ---------------------------------------------------------------------------
 
 function getPhaseLabel(memberCount: number, gang: GangGenInfo, dominates: boolean): string {
-    if (memberCount < MAX_MEMBERS)  return `recruiting (${memberCount}/${MAX_MEMBERS})`;
-    if (gang.territory >= 1)        return "territory won";
-    if (dominates)                  return "dominating — earning 💰";
+    if (memberCount < MAX_MEMBERS)      return `recruiting (${memberCount}/${MAX_MEMBERS})`;
+    if (gang.territory >= 1) {
+        return gang.respect >= RESPECT_CAP ? "territory won — full money 💵" : "territory won";
+    }
+    if (dominates)                      return "dominating — earning 💰";
     return "building power ⚔️";
 }
 
@@ -156,9 +162,10 @@ function chooseTask(
         // generate income while the clan keeps fighting in the background.
     }
 
-    // Territory won, or dominating in warfare: 2/3 respect, 1/3 money
-    // (respect gives equipment discounts which compound over time)
-    return getBestTask(ns, info, idx % 3 === 0 ? reduceMoney : reduceRespect);
+    // Above the respect cap the equipment discount is saturated — pure money.
+    // Below it: 2/3 respect (cheaper equipment), 1/3 money.
+    const respectCapped = gang.respect >= RESPECT_CAP;
+    return getBestTask(ns, info, respectCapped || idx % 3 === 0 ? reduceMoney : reduceRespect);
 }
 
 class TaskData {
