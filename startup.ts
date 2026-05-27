@@ -13,8 +13,7 @@ export async function main(ns: NS) {
   //ns.run("Hacknet/buyCompanyFavour.js");
   //ns.run("hacking/targetStatus.js");
   if (ns.gang.inGang()) {
-    ns.run("Gang/equipment.js");
-    ns.run("Gang/tasks.js");
+    ns.run("Gang/manager.js");
   }
   if (ns.corporation.hasCorporation()) {
     ns.run("Corporation/products.js");

@@ -3,7 +3,7 @@ import { NS, FactionName, FactionWorkType } from '@ns';
 export type Factions = FactionName;
 
 
-export const FactionsList = [
+export const FactionsList: FactionName[] = [
     "CyberSec",
     "Netburners",
     "Tian Di Hui",
@@ -37,8 +37,8 @@ export const FactionsList = [
     "Silhouette",
     "Bladeburners",
     "Church of the Machine God",
-    "Shadows of Anarchy"
-] as FactionName[];
+    "Shadows of Anarchy",
+];
 
 export function FactionWork(ns: NS): { faction: Factions, work: FactionWorkType[] }[] {
     const FactionWorkType = ns.enums.FactionWorkType;

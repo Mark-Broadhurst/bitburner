@@ -31,7 +31,7 @@ export async function main(ns: NS): Promise<void> {
         const candidates = Object.keys(passwords)
             .flatMap(host => {
                 try {
-                    const auth = ns.dnet.getServerAuthDetails(host);
+                    const auth = (ns.dnet as any).getServerDetails(host);
                     const srv  = ns.getServer(host) as any;
                     return [{ host, ram: (srv.maxRam ?? 0) - (srv.blockedRam ?? 0), online: auth.isOnline }];
                 } catch {

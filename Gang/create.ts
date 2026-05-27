@@ -11,8 +11,6 @@ export async function main(ns: NS): Promise<void> {
     }
     ns.gang.createGang("Slum Snakes");
 
-    ns.run("Gang/equipment.js");
-    ns.run("Gang/territoryWarfare.js");
-    ns.run("Gang/tasks.js");
+    ns.run("Gang/manager.js");
   }
 }

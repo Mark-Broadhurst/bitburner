@@ -48,8 +48,8 @@ export async function main(ns: NS): Promise<void> {
         let seeded = 0;
         let evicted = 0;
         for (const [host, password] of Object.entries(passwords)) {
-            let auth: ReturnType<typeof ns.dnet.getServerAuthDetails>;
-            try { auth = ns.dnet.getServerAuthDetails(host); }
+            let auth: any;
+            try { auth = (ns.dnet as any).getServerDetails(host); }
             catch { evictPassword(ns, host); evicted++; continue; }
             if (!auth.isOnline) continue;
 

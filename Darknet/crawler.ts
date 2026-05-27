@@ -236,59 +236,63 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         try {
             const probeHosts = ns.dnet.probe();
+            const servers = probeHosts
+                .map(host => ({ host, auth: (ns.dnet as any).getServerDetails(host) }))
+                .filter(({ auth }) => auth.isOnline && auth.isConnectedToCurrentServer);
 
             if (onHome) {
                 ns.clearLog();
                 ns.print(`Visible: ${probeHosts.length}   Host: ${ns.getHostname()}`);
                 ns.print("─".repeat(64));
-            }
-
-            for (const host of probeHosts) {
-                try {
-                    const auth = (ns.dnet as any).getServerDetails(host);
-
-                    if (!auth.isOnline) {
-                        if (onHome) ns.print(`  ${host.padEnd(20)} offline`);
-                        continue;
-                    }
-                    if (!auth.isConnectedToCurrentServer) {
-                        if (onHome) ns.print(`  ${host.padEnd(20)} not connected`);
-                        continue;
-                    }
-
-                    if (auth.hasSession) {
-                        if (onHome) ns.print(`  ${host.padEnd(20)} ✅ session — spreading`);
-                        await spread(ns, host);
-                        continue;
-                    }
-
+                for (const { host, auth } of servers) {
                     const modelId = auth.modelId ?? "?";
-                    if (onHome) ns.print(`  ${host.padEnd(20)} 🔓 [${modelId}] ${auth.passwordFormat}[${auth.passwordLength}]  hint="${auth.passwordHint}"`);
-
-                    const pw = await crack(ns, host, auth);
-                    if (pw === null) {
-                        if (onHome) ns.print(`  ${host.padEnd(20)} ❌ crack failed`);
-                        else log(ns, `❌ crack failed: ${host}`);
-                        continue;
-                    }
-
-                    await spread(ns, host);
-                    if (onHome) ns.print(`  ${host.padEnd(20)} ✅ cracked! pw="${pw}"`);
-                } catch (e) {
-                    if (onHome) ns.print(`  ${host.padEnd(20)} ⚠ ${e}`);
-                    else log(ns, `⚠ ${host}: ${e}`);
+                    const status  = auth.hasSession ? "✅ session" : `🔓 [${modelId}] ${auth.passwordFormat}[${auth.passwordLength}]`;
+                    ns.print(`  ${host.padEnd(20)} ${status}`);
                 }
+                ns.print("─".repeat(64));
             }
 
+            // ── Spread to every server we already have a session on ──────────
+            for (const { host } of servers.filter(s => s.auth.hasSession)) {
+                await spread(ns, host);
+            }
+
+            // ── Crack the first uncracked server, then loop back to re-probe ─
+            const target = servers.find(s => !s.auth.hasSession);
+
+            if (target) {
+                const { host, auth } = target;
+                const modelId = auth.modelId ?? "?";
+                if (onHome) ns.print(`Working on: ${host} [${modelId}]  hint="${auth.passwordHint}"`);
+                else        log(ns, `Attempting: ${host} [${modelId}]`);
+
+                try {
+                    const pw = await crack(ns, host, auth);
+                    if (pw !== null) {
+                        await spread(ns, host);
+                        if (onHome) ns.print(`✅ cracked: ${host}  pw="${pw}"`);
+                        else        log(ns, `✅ cracked: ${host}`);
+                    } else {
+                        if (onHome) ns.print(`❌ failed: ${host}`);
+                        else        log(ns, `❌ failed: ${host}`);
+                    }
+                } catch (e) {
+                    if (onHome) ns.print(`⚠ ${host}: ${e}`);
+                    else        log(ns, `⚠ ${host}: ${e}`);
+                }
+                // Loop immediately — re-probe and pick the next uncracked server
+                continue;
+            }
+
+            // ── Nothing left to crack — wait for the next mutation ───────────
             if (onHome) {
                 const remoteEvents = readRemoteEvents(ns);
                 if (remoteEvents.length > 0) {
-                    ns.print("─".repeat(64));
                     ns.print("Remote crawler events:");
-                    for (const line of remoteEvents.slice(-15)) ns.print(`  ${line}`);
+                    for (const line of remoteEvents.slice(-10)) ns.print(`  ${line}`);
+                    ns.print("─".repeat(64));
                 }
-                ns.print("─".repeat(64));
-                ns.print("Waiting for next mutation...");
+                ns.print("All servers cracked — waiting for next mutation...");
             }
 
             await ns.dnet.nextMutation();
@@ -412,8 +416,27 @@ function releaseLock(ns: NS, host: string): void {
 async function spread(ns: NS, host: string): Promise<void> {
     const blocked = ns.dnet.getBlockedRam(host);
     if (blocked > 0) await ns.dnet.memoryReallocation(host);
+    await harvestFiles(ns, host);
     await ns.scp(SELF, host, "home");
     ns.exec(SELF, host, { preventDuplicates: true } as any);
+}
+
+/**
+ * Copy any executables and data files from a cracked darknet server back to home.
+ * Skips our own crawler files and lock files.
+ */
+async function harvestFiles(ns: NS, host: string): Promise<void> {
+    const ours = new Set([SELF, `Darknet/events_${host.replace(/\W/g, "_")}.txt`]);
+    const files = ns.ls(host).filter(f =>
+        !ours.has(f) &&
+        !f.startsWith("Darknet/lock_") &&
+        !f.startsWith("Darknet/events_")
+    );
+    for (const file of files) {
+        const ok = await ns.scp(file, "home", host);
+        if (ok) log(ns, `📦 harvested ${file} from ${host}`);
+        else    log(ns, `⚠ failed to harvest ${file} from ${host}`);
+    }
 }
 
 async function localMaintenance(ns: NS): Promise<void> {
@@ -647,7 +670,7 @@ async function accountsManagerSolve(ns: NS, host: string, length: number): Promi
         const r = await ns.dnet.authenticate(host, guess);
         if (r.success) return guess;
 
-        const fb = ((typeof r.data === "string" ? r.data : "") || (typeof r.message === "string" ? r.message : "")).toLowerCase();
+        const fb = `${r.data ?? ""} ${r.message ?? ""}`.toLowerCase();
         if (fb.includes("higher")) {
             log(ns, `[AccountsManager_4.2] ${host} — guess=${guess} → Higher (lo=${mid+1})`);
             lo = mid + 1;
@@ -655,7 +678,7 @@ async function accountsManagerSolve(ns: NS, host: string, length: number): Promi
             log(ns, `[AccountsManager_4.2] ${host} — guess=${guess} → Lower (hi=${mid-1})`);
             hi = mid - 1;
         } else {
-            log(ns, `[AccountsManager_4.2] ${host} — unexpected feedback: data=${JSON.stringify(r.data)} message=${JSON.stringify(r.message)}`);
+            log(ns, `[AccountsManager_4.2] ${host} — can't parse direction from: ${JSON.stringify(r)}`);
             return null;
         }
     }

@@ -1,176 +1,257 @@
-import { CityName, NS, BladeburnerActionName, BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName, BladeburnerBlackOpName } from "@ns";
+import { CityName, NS, BladeburnerActionName, BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName } from "@ns";
 import { BladeburnerAction } from "Bladeburner/enums";
 
-// All six playable cities — used for chaos/community queries throughout this file.
-// Defined once here to avoid repeating the array in every function.
 const CITIES = (ns: NS): CityName[] => {
     const C = ns.enums.CityName;
     return [C.Sector12, C.Aevum, C.Volhaven, C.Chongqing, C.NewTokyo, C.Ishima];
 };
 
+const LOW_STAMINA  = 0.45; // enter rest below this
+const HIGH_STAMINA = 0.55; // exit rest above this
+const CHAOS_THRESHOLD = 50;
+
+// An action is eligible only when BOTH bounds pass:
+//   min (low estimate)  >= MIN_LOW  — we expect at least 80 % success
+//   max (high estimate) >= MIN_HIGH — the upper bound has reached 100 %
+const MIN_LOW  = 0.80;
+const MIN_HIGH = 1.00;
+
+type ActionSpec = [BladeburnerActionType, BladeburnerActionName];
+
+let resting = false;
+
 export async function main(ns: NS): Promise<void> {
-  ns.clearLog();
-  ns.disableLog("ALL");
+    ns.disableLog("ALL");
+    ns.ui.openTail();
+    ns.ui.resizeTail(580, 560);
 
-  while (true) {
-    ns.clearLog();
-    const player = ns.getPlayer();
-    if (player.hp.current < player.hp.max) {
-      ns.print("Healing");
-      await startAction(ns, BladeburnerAction.HyperbolicRegenerationChamber);
-    } else if (getStaminaPercentage(ns) > 0.5) {
-      await startStaminaAction(ns);
-    } else {
-      await startFreeAction(ns);
+    while (true) {
+        const player  = ns.getPlayer();
+        const stamina = getStaminaPct(ns);
+
+        if (!resting && stamina < LOW_STAMINA)  resting = true;
+        if ( resting && stamina >= HIGH_STAMINA) resting = false;
+
+        const hpLow  = player.hp.current < player.hp.max;
+        const action = selectAction(ns, resting, hpLow);
+
+        ns.clearLog();
+        printStatus(ns, stamina, hpLow, action);
+
+        await startAction(ns, action);
     }
-    await ns.bladeburner.nextUpdate();
-  }
 }
 
-async function startStaminaAction(ns: NS) {
-  const blackOp = getBlackOp(ns);
-  const operation = getOperation(ns);
-  const contract = getContract(ns);
-  if (blackOp) {
-    await startAction(ns, blackOp);
-  } else if (operation) {
-    await startAction(ns, operation);
-  } else if (contract) {
-    await startAction(ns, contract);
-  } else {
-    await startFreeAction(ns);
-  }
+// ---------------------------------------------------------------------------
+// Action selection
+// Priority: HP recovery > Black Op > Operation > Contract > General
+// When stamina is low we skip combat actions and fall through to General.
+// ---------------------------------------------------------------------------
+
+function selectAction(ns: NS, rest: boolean, hpLow: boolean): ActionSpec {
+    // HP always wins — recover before anything else
+    if (hpLow) return BladeburnerAction.HyperbolicRegenerationChamber;
+
+    if (!rest) {
+        return getBlackOp(ns)   ??
+               getOperation(ns) ??
+               getContract(ns)  ??
+               selectFreeAction(ns);
+    }
+    // Stamina low — skip combat, do general tasks
+    return selectFreeAction(ns);
 }
 
-function travelToCityWithCommunities(ns: NS) {
-  const city = CITIES(ns)
-    .reduce((acc, city) => {
-      const aCommunities = ns.bladeburner.getCityCommunities(acc);
-      const bCommunities = ns.bladeburner.getCityCommunities(city);
-      return aCommunities < bCommunities ? acc : city;
-    });
-  ns.print(`Switching to ${city}`);
-  ns.bladeburner.switchCity(city);
+function selectFreeAction(ns: NS): ActionSpec {
+    const BB = ns.enums.BladeburnerActionType;
+    let actionsLeft = 0;
+    let eligibleLeft = 0;
+
+    for (const name of ns.bladeburner.getContractNames()) {
+        const count = ns.bladeburner.getActionCountRemaining(BB.Contract, name);
+        actionsLeft += count;
+        if (count > 0) {
+            const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.Contract, name);
+            if (min >= MIN_LOW && max >= MIN_HIGH) eligibleLeft += count;
+        }
+    }
+    for (const name of ns.bladeburner.getOperationNames()) {
+        const count = ns.bladeburner.getActionCountRemaining(BB.Operation, name);
+        actionsLeft += count;
+        if (count > 0) {
+            const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.Operation, name);
+            if (min >= MIN_LOW && max >= MIN_HIGH) eligibleLeft += count;
+        }
+    }
+
+    // No uses remaining at all — generate more
+    if (actionsLeft === 0) return BladeburnerAction.InciteViolence;
+
+    // Actions exist but none are eligible — chaos is suppressing success rates.
+    // Diplomacy lowers chaos which directly raises the low success estimate,
+    // so always prefer it over Field Analysis when we're waiting on thresholds.
+    const cities    = CITIES(ns);
+    const worstCity = [...cities].sort((a, b) =>
+        ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
+    const worstChaos = ns.bladeburner.getCityChaos(worstCity);
+
+    if (eligibleLeft === 0 && worstChaos > 0) return BladeburnerAction.Diplomacy;
+
+    // Eligible actions exist — still do Diplomacy if chaos is very high,
+    // otherwise Field Analysis to sharpen population estimates.
+    if (worstChaos > CHAOS_THRESHOLD) return BladeburnerAction.Diplomacy;
+
+    return BladeburnerAction.FieldAnalysis;
 }
 
-function lowChaosCity(ns: NS): CityName {
-  return CITIES(ns)
-    .reduce((acc, city) => {
-      const aChaos = ns.bladeburner.getCityChaos(acc);
-      const bChaos = ns.bladeburner.getCityChaos(city);
-      return aChaos < bChaos ? acc : city;
-    });
+// ---------------------------------------------------------------------------
+// Status display
+// ---------------------------------------------------------------------------
+
+function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSpec): void {
+    const player  = ns.getPlayer();
+    const rank    = ns.bladeburner.getRank();
+    const BB      = ns.enums.BladeburnerActionType;
+    const [selType, selName] = selected;
+
+    // Header
+    const stBar = `${ns.format.percent(stamina)} ${resting ? "💤" : "⚔️ "}`;
+    ns.print(`Stamina ${stBar}  HP ${player.hp.current}/${player.hp.max}${hpLow ? " 🩹" : ""}  Rank ${ns.format.number(rank)}`);
+    ns.print(`→ ${selName}`);
+    ns.print("─".repeat(60));
+
+    // Black Op
+    ns.print("BLACK OP");
+    const nextOp = ns.bladeburner.getNextBlackOp();
+    if (nextOp === null) {
+        ns.print("  All Black Ops complete 🏆");
+    } else {
+        const curRank = ns.bladeburner.getRank();
+        const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, nextOp.name);
+        const rankOk    = curRank >= nextOp.rank;
+        const eligible  = rankOk && min >= MIN_LOW && max >= MIN_HIGH;
+        const marker    = selType === BB.BlackOp && selName === nextOp.name ? "▶" : " ";
+        const rankStr   = rankOk ? "✅" : `⏳ need ${ns.format.number(nextOp.rank)}`;
+        const chanceStr = `${ns.format.percent(min)}–${ns.format.percent(max)}`;
+        const status    = eligible ? "✅" : "⏳";
+        ns.print(`${marker} ${nextOp.name.padEnd(34)} rank ${rankStr}  ${chanceStr} ${status}`);
+    }
+
+    // Operations
+    ns.print("OPERATIONS");
+    for (const name of ns.bladeburner.getOperationNames()) {
+        printAction(ns, BB.Operation, name, selType, selName);
+    }
+
+    // Contracts
+    ns.print("CONTRACTS");
+    for (const name of ns.bladeburner.getContractNames()) {
+        printAction(ns, BB.Contract, name, selType, selName);
+    }
+
+    // Footer
+    ns.print("─".repeat(60));
+    let actionsLeft = 0;
+    for (const c of ns.bladeburner.getContractNames())
+        actionsLeft += ns.bladeburner.getActionCountRemaining(BB.Contract, c);
+    for (const o of ns.bladeburner.getOperationNames())
+        actionsLeft += ns.bladeburner.getActionCountRemaining(BB.Operation, o);
+    const chaos = CITIES(ns).map(c => `${c.slice(0, 3)} ${ns.bladeburner.getCityChaos(c).toFixed(0)}`).join("  ");
+    ns.print(`Actions left: ${actionsLeft}   Chaos: ${chaos}`);
 }
 
-function highChaosCity(ns: NS): CityName {
-  return CITIES(ns)
-    .reduce((acc, city) => {
-      const aChaos = ns.bladeburner.getCityChaos(acc);
-      const bChaos = ns.bladeburner.getCityChaos(city);
-      return aChaos > bChaos ? acc : city;
-    });
+function printAction(
+    ns: NS,
+    type: BladeburnerActionType,
+    name: string,
+    selType: BladeburnerActionType,
+    selName: BladeburnerActionName,
+): void {
+    const count      = ns.bladeburner.getActionCountRemaining(type, name);
+    const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, name);
+    const selected   = type === selType && name === selName;
+    const eligible   = min >= MIN_LOW && max >= MIN_HIGH;
+    const marker     = selected ? "▶" : " ";
+    const countStr   = `×${count.toString().padStart(4)}`;
+    const chanceStr  = `${ns.format.percent(min).padStart(4)}–${ns.format.percent(max).padStart(4)}`;
+    const statusIcon = count === 0 ? "✖" : eligible ? "✅" : "⏳";
+    ns.print(`${marker} ${name.padEnd(34)} ${countStr}  ${chanceStr} ${statusIcon}`);
 }
 
-async function startFreeAction(ns: NS) {
-  const high = highChaosCity(ns);
-  const low = lowChaosCity(ns);
-  if (usedAllActions(ns)) {
-    await startAction(ns, BladeburnerAction.InciteViolence);
-  } else if (high === low) {
-    await startFieldAnalysis(ns);
-  } else {
-    await startAction(ns, BladeburnerAction.Diplomacy);
-  }
+// ---------------------------------------------------------------------------
+// Action runner
+// ---------------------------------------------------------------------------
+
+async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
+    // Switch city for city-sensitive actions
+    if (action === "Diplomacy") {
+        const worst = [...CITIES(ns)].sort((a, b) =>
+            ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
+        ns.bladeburner.switchCity(worst);
+    }
+    if (action === "Field Analysis") {
+        const best = [...CITIES(ns)].sort((a, b) =>
+            ns.bladeburner.getCityCommunities(b) - ns.bladeburner.getCityCommunities(a))[0];
+        ns.bladeburner.switchCity(best);
+    }
+    if (action === "Raid") {
+        // Switch to the city with the most Synthoid communities — more = more effective,
+        // but Raid still works (just less so) when communities are 0.
+        const best = [...CITIES(ns)].sort((a, b) =>
+            ns.bladeburner.getCityCommunities(b) - ns.bladeburner.getCityCommunities(a))[0];
+        ns.bladeburner.switchCity(best);
+    }
+
+    ns.bladeburner.startAction(type, action);
+    while (true) {
+        await ns.bladeburner.nextUpdate();
+        const cur = ns.bladeburner.getCurrentAction();
+        if (cur.type !== type || cur.name !== action) break;
+    }
 }
 
-function usedAllActions(ns: NS): boolean {
-  const BB = ns.enums.BladeburnerActionType;
-  const communities = CITIES(ns)
-    .reduce((acc, city) => {
-      acc += ns.bladeburner.getCityCommunities(city);
-      return acc;
-    }, 0);
+// ---------------------------------------------------------------------------
+// Candidate finders — require min >= MIN_LOW and max >= MIN_HIGH
+// Within a tier, pick the action with the highest min (most confident)
+// ---------------------------------------------------------------------------
 
-  let actionTotal = 0;
-  ns.bladeburner.getContractNames().forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining(BB.Contract, c));
-  ns.bladeburner.getOperationNames().forEach(c => actionTotal += ns.bladeburner.getActionCountRemaining(BB.Operation, c));
-
-  ns.print(`Actions remaining: ${actionTotal} / ${communities}`);
-  return (communities >= actionTotal);
+function getBlackOp(ns: NS): ActionSpec | null {
+    const BB   = ns.enums.BladeburnerActionType;
+    const next = ns.bladeburner.getNextBlackOp();
+    if (!next) return null;
+    // Each Black Op has exactly one use and must be done in order;
+    // getNextBlackOp() already skips completed ones.
+    if (ns.bladeburner.getRank() < next.rank) return null;
+    const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, next.name);
+    if (min < MIN_LOW || max < MIN_HIGH) return null;
+    return [BB.BlackOp, next.name];
 }
 
-async function startFieldAnalysis(ns: NS) {
-  switchCity(ns);
-  await startAction(ns, BladeburnerAction.FieldAnalysis);
+function getOperation(ns: NS): ActionSpec | null {
+    return getBestEligible(ns, ns.enums.BladeburnerActionType.Operation,
+        ns.bladeburner.getOperationNames());
 }
 
-function getStaminaPercentage(ns: NS): number {
-  const [current, max] = ns.bladeburner.getStamina();
-  ns.print(`Stamina: ${ns.format.percent(current / max)}`);
-  return current / max;
+function getContract(ns: NS): ActionSpec | null {
+    return getBestEligible(ns, ns.enums.BladeburnerActionType.Contract,
+        ns.bladeburner.getContractNames());
 }
 
-function switchCity(ns: NS) {
-  const CityName = ns.enums.CityName;
-  switch (ns.bladeburner.getCity()) {
-    case CityName.Sector12:   ns.bladeburner.switchCity(CityName.Aevum);    break;
-    case CityName.Aevum:      ns.bladeburner.switchCity(CityName.Volhaven); break;
-    case CityName.Volhaven:   ns.bladeburner.switchCity(CityName.Chongqing);break;
-    case CityName.Chongqing:  ns.bladeburner.switchCity(CityName.NewTokyo); break;
-    case CityName.NewTokyo:   ns.bladeburner.switchCity(CityName.Ishima);   break;
-    case CityName.Ishima:     ns.bladeburner.switchCity(CityName.Sector12); break;
-  }
-}
-
-async function startAction(ns: NS, [type, action]: [BladeburnerActionType, BladeburnerActionName]): Promise<void> {
-  ns.print(`Starting ${type} ${action}`);
-
-  let time = ns.bladeburner.getActionTime(type, action);
-  if (ns.bladeburner.getBonusTime() > 5000) {
-    time = time * 0.2;
-  }
-  ns.bladeburner.startAction(type, action);
-  await ns.sleep(time);
-}
-
-function getNext<T extends BladeburnerContractName | BladeburnerOperationName>(
-  ns: NS,
-  type: BladeburnerActionType,
-  list: T[],
+function getBestEligible<T extends BladeburnerContractName | BladeburnerOperationName>(
+    ns: NS, type: BladeburnerActionType, list: T[],
 ): [BladeburnerActionType, T] | null {
-  const actions = list
-    .map(c => {
-      const count = ns.bladeburner.getActionCountRemaining(type, c);
-      const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, c);
-      ns.print(`${c.padEnd(29)} ${count} ${ns.format.percent(min)} ${ns.format.percent(max)}`);
-      return { contract: c, count, min, max };
-    })
-    .filter(c => c.count !== 0)
-    .filter(c => c.min >= 0.8)
-    .filter(c => c.max >= 1)
-    .sort((a, b) => b.min - a.min)
-    .map(c => c.contract);
-  ns.print(actions);
-  if (actions.length === 0) {
-    return null;
-  }
-  return [type, actions[0]];
+    const candidates = list
+        .map(name => {
+            const count      = ns.bladeburner.getActionCountRemaining(type, name);
+            const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(type, name);
+            return { name, count, min, max };
+        })
+        .filter(c => c.count > 0 && c.min >= MIN_LOW && c.max >= MIN_HIGH)
+        .sort((a, b) => b.min - a.min);   // highest confidence first
+    return candidates.length > 0 ? [type, candidates[0].name] : null;
 }
 
-function getContract(ns: NS): [BladeburnerActionType, BladeburnerContractName] | null {
-  return getNext(ns, ns.enums.BladeburnerActionType.Contract, ns.bladeburner.getContractNames());
-}
-
-function getOperation(ns: NS): [BladeburnerActionType, BladeburnerOperationName] | null {
-  return getNext(ns, ns.enums.BladeburnerActionType.Operation, ns.bladeburner.getOperationNames());
-}
-
-function getBlackOp(ns: NS): [BladeburnerActionType, BladeburnerBlackOpName] | null {
-  const next = ns.bladeburner.getNextBlackOp();
-  const rank = ns.bladeburner.getRank();
-
-  if (next == null || rank < next.rank) {
-    return null;
-  }
-  return [ns.enums.BladeburnerActionType.BlackOp, next.name];
+function getStaminaPct(ns: NS): number {
+    const [cur, max] = ns.bladeburner.getStamina();
+    return cur / max;
 }

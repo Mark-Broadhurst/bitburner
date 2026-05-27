@@ -25,7 +25,8 @@ export async function main(ns: NS): Promise<void> {
                 ns.tprint(`✅ [${type}]  ${hostname}:${file}  — ${reward}`);
                 solved++;
             } else {
-                ns.tprint(`❌ [${type}]  ${hostname}:${file}  submitted: ${JSON.stringify(answer)}`);
+                const display = typeof answer === "bigint" ? answer.toString() : JSON.stringify(answer);
+                ns.tprint(`❌ [${type}]  ${hostname}:${file}  submitted: ${display}`);
                 failed++;
             }
         }
@@ -432,14 +433,14 @@ function vigenereCipher([text, key]: [string, string]): string {
     return out;
 }
 
-function squareRoot(n: bigint): string {
-    if (n <= 1n) return n.toString();
+function squareRoot(n: bigint): bigint {
+    if (n <= 1n) return n;
     let x = n;
     let y = (x + 1n) >> 1n;
     while (y < x) { x = y; y = (x + n / x) >> 1n; }
     // Newton's method converges from above; x may land one step high — correct it.
     while (x * x > n) x -= 1n;
-    return x.toString();
+    return x;
 }
 
 function totalPrimesInRange([a, b]: number[]): number {
@@ -464,11 +465,10 @@ function totalPrimesInRange([a, b]: number[]): number {
     return count;
 }
 
-function largestRectangle(grid: number[][]): [[number, number], [number, number]] {
+function largestRectangle(grid: number[][]): number {
     const rows = grid.length, cols = grid[0].length;
     const h = new Array(cols).fill(0);
     let bestArea = 0;
-    let r1 = 0, c1 = 0, r2 = 0, c2 = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) h[c] = grid[r][c] === 0 ? 0 : h[c] + 1;
         const stack: number[] = [];
@@ -479,13 +479,10 @@ function largestRectangle(grid: number[][]): [[number, number], [number, number]
                 const height = h[top];
                 const left = stack.length ? stack[stack.length - 1] + 1 : 0;
                 const area = height * (c - left);
-                if (area > bestArea) {
-                    bestArea = area;
-                    r1 = r - height + 1; c1 = left; r2 = r; c2 = c - 1;
-                }
+                if (area > bestArea) bestArea = area;
             }
             stack.push(c);
         }
     }
-    return [[r1, c1], [r2, c2]];
+    return bestArea;
 }
