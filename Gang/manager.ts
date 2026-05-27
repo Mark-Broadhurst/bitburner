@@ -107,11 +107,10 @@ export async function main(ns: NS): Promise<void> {
 // ---------------------------------------------------------------------------
 
 function getPhaseLabel(memberCount: number, gang: GangGenInfo, dominates: boolean): string {
-    if (memberCount < MAX_MEMBERS)      return `recruiting (${memberCount}/${MAX_MEMBERS})`;
-    if (gang.territory >= 1) {
-        return gang.respect >= RESPECT_CAP ? "territory won — full money 💵" : "territory won";
-    }
-    if (dominates)                      return "dominating — earning 💰";
+    if (memberCount < MAX_MEMBERS)  return `recruiting (${memberCount}/${MAX_MEMBERS})`;
+    if (gang.territory >= 1)        return "territory won" + (gang.respect >= RESPECT_CAP ? " — full money 💵" : "");
+    if (gang.respect >= RESPECT_CAP) return "respect capped — full money 💵";
+    if (dominates)                  return "dominating — earning 💰";
     return "building power ⚔️";
 }
 
@@ -152,6 +151,11 @@ function chooseTask(
     if (recruiting)
         return getBestTask(ns, info, reduceRespect);
 
+    // ── Respect cap: once saturated switch everyone to money regardless of phase.
+    // The clash toggle still handles actual territory fights independently.
+    if (gang.respect >= RESPECT_CAP)
+        return getBestTask(ns, info, reduceMoney);
+
     // ── Warfare phase ─────────────────────────────────────────────────────────
     if (gang.territory < 1) {
         // Keep building power until we have a >50% advantage.
@@ -162,10 +166,8 @@ function chooseTask(
         // generate income while the clan keeps fighting in the background.
     }
 
-    // Above the respect cap the equipment discount is saturated — pure money.
-    // Below it: 2/3 respect (cheaper equipment), 1/3 money.
-    const respectCapped = gang.respect >= RESPECT_CAP;
-    return getBestTask(ns, info, respectCapped || idx % 3 === 0 ? reduceMoney : reduceRespect);
+    // Dominating or territory won, respect not yet capped: 2/3 respect, 1/3 money.
+    return getBestTask(ns, info, idx % 3 === 0 ? reduceMoney : reduceRespect);
 }
 
 class TaskData {
