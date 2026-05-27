@@ -3,443 +3,526 @@ import { NS } from "@ns";
 /**
  * Self-replicating darknet crawler.
  *
- * Each instance runs on one server. It probes nearby servers, cracks them
- * in parallel, then copies itself there and execs with preventDuplicates
- * so the crack naturally spreads across the network.
- *
- * Passwords are saved to passwords.txt and scp'd back to home for persistence.
- * Topology reporting removed (scan.ts is gone); mutationWatch handles re-seeding
- * after mutations so we don't need to re-spread to already-running instances.
+ * Each instance runs on one server. It probes nearby servers, cracks them,
+ * then copies itself there and execs with preventDuplicates so the crawler
+ * spreads across the network. After each mutation everything re-cracks fresh.
  */
 
-const PASSWORDS_FILE = "Darknet/passwords.txt";
-const SELF           = "Darknet/crawler.js";
+const SELF       = "Darknet/crawler.js";
+const MAX_EVENTS = 30;
 
-// Models where heartbleed won't add useful clues — skip the async call
-const NO_HEARTBLEED_MODELS = new Set([
-    "DeskMemo_3.1",
-    "FreshInstall_1.0",
-    "ZeroLogon",
-    "Pr0verFl0",
-    "OctantVoxel",
-    "AccountsManager_4.2",
-    "DeepGreen",   // uses interactive solver
-    "NIL",         // uses interactive solver
-    "BellaCuore",  // Roman numeral — data field contains the numeral, convert to decimal
-]);
+// ---------------------------------------------------------------------------
+// Logging
+// ---------------------------------------------------------------------------
+
+const eventLog: string[] = [];
+
+function log(ns: NS, msg: string): void {
+    const host = ns.getHostname();
+    const line = `[${host}] ${msg}`;
+    eventLog.push(line);
+    if (eventLog.length > MAX_EVENTS) eventLog.shift();
+
+    if (host !== "home") {
+        const file = `Darknet/events_${host.replace(/\W/g, "_")}.txt`;
+        ns.write(file, eventLog.join("\n"), "w");
+        ns.scp(file, "home");
+    }
+}
+
+function readRemoteEvents(ns: NS): string[] {
+    return ns.ls("home", "Darknet/events_").flatMap(f =>
+        ns.read(f).split("\n").filter(Boolean)
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Crack context
+// ---------------------------------------------------------------------------
+
+interface CrackCtx {
+    ns:      NS;
+    host:    string;
+    modelId: string;
+    hint:    string;
+    data:    string;
+    format:  string;
+    length:  number;
+}
+
+type CrackerFn = (ctx: CrackCtx) => Promise<string[]>;
+
+// ---------------------------------------------------------------------------
+// Heartbleed helper
+// ---------------------------------------------------------------------------
+
+async function heartbleed(ctx: CrackCtx): Promise<string[]> {
+    if (ctx.ns.getPlayer().skills.charisma < ctx.ns.dnet.getServerRequiredCharismaLevel(ctx.host))
+        return [];
+    const hb = await ctx.ns.dnet.heartbleed(ctx.host, { peek: true, logsToCapture: 10 });
+    return hb.logs;
+}
+
+// ---------------------------------------------------------------------------
+// Model crackers — each is self-contained, calls heartbleed if it needs it
+// ---------------------------------------------------------------------------
+
+async function zeroLogon(ctx: CrackCtx): Promise<string[]> {
+    return ctx.length === 0 ? [""] : ["0".repeat(ctx.length)];
+}
+
+async function freshInstall(ctx: CrackCtx): Promise<string[]> {
+    return [
+        "12345", "1234", "123456", "0000", "00000", "000000",
+        "admin", "guest", "login", "user", "test",
+        "password", "sunshine", "princess", "iloveyou", "computer",
+        "security", "internet", "baseball", "football", "skeleton",
+        "welcome", "letmein", "default", "dragon", "monkey", "master",
+        "shadow", "michael", "superman", "batman",
+        "password1", "abc12345", "admin123",
+    ].filter(p => ctx.length === 0 || p.length === ctx.length);
+}
+
+async function deskMemo(ctx: CrackCtx): Promise<string[]> {
+    const lastWord = ctx.hint.trim().split(/\s+/).pop();
+    return lastWord ? [lastWord] : [];
+}
+
+async function cloudBlare(ctx: CrackCtx): Promise<string[]> {
+    const digits = (ctx.data.match(/\d/g) ?? []).join("");
+    if (digits.length === ctx.length) return [digits];
+    if (digits.length > ctx.length)   return [digits.slice(0, ctx.length)];
+    return [];
+}
+
+async function pr0verFl0(ctx: CrackCtx): Promise<string[]> {
+    return ["a".repeat(ctx.length * 2)];
+}
+
+async function bellaCuore(ctx: CrackCtx): Promise<string[]> {
+    const results: string[] = [];
+    const fromData = parseRomanNumeral(ctx.data);
+    if (fromData !== null) results.push(String(fromData).padStart(ctx.length, "0"));
+    const m = ctx.hint.match(/['"]([IVXLCDM]+)['"]/i);
+    if (m) {
+        const fromHint = parseRomanNumeral(m[1]);
+        if (fromHint !== null) results.push(String(fromHint).padStart(ctx.length, "0"));
+    }
+    return results;
+}
+
+async function laika4(ctx: CrackCtx): Promise<string[]> {
+    const logs = await heartbleed(ctx);
+    const names = [
+        "max", "rex",
+        "maxi", "roxy", "luna", "bear", "duke", "finn", "jake", "lola",
+        "coco", "zeus", "beau", "toby", "ruby", "jack", "nova", "koda",
+        "thor", "axel", "xena", "otto", "hugo", "odie", "toto", "fido",
+        "spot", "lady",
+        "maxie", "roxie", "laika", "belka", "buddy", "rocky", "bella",
+        "molly", "daisy", "rufus", "scout", "sadie", "lucky", "bingo",
+        "pluto", "astro", "tramp", "benji", "rover",
+        "baxter", "cooper", "tucker", "harley", "ginger", "shadow", "diesel",
+    ].filter(p => ctx.length === 0 || p.length === ctx.length);
+
+    const hinted = new Set<string>();
+    for (const line of logs)
+        for (const m of line.matchAll(/(?:theres?\s+a|maybe\s+a)\s+([a-z])/gi))
+            hinted.add(m[1].toLowerCase());
+    if (hinted.size > 0) {
+        const score = (p: string) => [...hinted].filter(l => p.includes(l)).length;
+        names.sort((a, b) => score(b) - score(a));
+    }
+    return names;
+}
+
+async function octantVoxel(ctx: CrackCtx): Promise<string[]> {
+    return baseConversionCandidates(ctx.hint, ctx.data, ctx.length);
+}
+
+async function factoriOs(ctx: CrackCtx): Promise<string[]> {
+    const m = ctx.hint.match(/divisible by (\d+)/i);
+    if (!m) return [];
+    const divisor = parseInt(m[1]);
+    if (divisor === 0) return [];
+    const results: string[] = [];
+    const max = Math.pow(10, ctx.length);
+    for (let i = 0; i < max; i++)
+        if (i % divisor === 0) results.push(String(i).padStart(ctx.length, "0"));
+    return results;
+}
+
+async function openWebAccessPoint(_ctx: CrackCtx): Promise<string[]> { return [""]; }
+
+async function accountsManager(_ctx: CrackCtx): Promise<string[]> { return []; }  // handled interactively
+
+async function kingOfTheHill(ctx: CrackCtx): Promise<string[]> {
+    const logs = await heartbleed(ctx);
+    if (logs.length === 0) {
+        const charisma = ctx.ns.getPlayer().skills.charisma;
+        const required = ctx.ns.dnet.getServerRequiredCharismaLevel(ctx.host);
+        log(ctx.ns, `[KingOfTheHill] ${ctx.host} — heartbleed empty (charisma ${charisma}/${required})`);
+        return [];
+    }
+    for (const line of logs) {
+        const m = line.match(/I think (\d+) with \1 is key/i);
+        if (m) return [m[1].padStart(ctx.length, "0")];
+    }
+    log(ctx.ns, `[KingOfTheHill] ${ctx.host} — no key phrase in logs: ${JSON.stringify(logs)}`);
+    return [];
+}
+
+async function rateMyPix(_ctx: CrackCtx): Promise<string[]> { return []; }  // handled interactively
+
+async function php54(ctx: CrackCtx): Promise<string[]> {
+    const match = ctx.hint.match(/shuffled\s+(\d+)/i);
+    const digits = match?.[1] ?? ctx.data;
+    if (!digits) return [];
+    return [...new Set(permutations(digits))].filter(p => ctx.length === 0 || p.length === ctx.length);
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch map
+// ---------------------------------------------------------------------------
+
+const MODELS: Record<string, CrackerFn> = {
+    "ZeroLogon":           zeroLogon,
+    "FreshInstall_1.0":    freshInstall,
+    "DeskMemo_3.1":        deskMemo,
+    "CloudBlare(tm)":      cloudBlare,
+    "Pr0verFl0":           pr0verFl0,
+    "BellaCuore":          bellaCuore,
+    "OctantVoxel":         octantVoxel,
+    "Factori-Os":          factoriOs,
+    "OpenWebAccessPoint":  openWebAccessPoint,
+    "Openwebaccesspoint":  openWebAccessPoint,
+    "AccountsManager_4.2": accountsManager,
+    "KingOfTheHill":       kingOfTheHill,
+    "RateMyPix.Auth":      rateMyPix,
+    "PHP 5.4":             php54,
+    "Laika4":              laika4,
+    "(The Labyrinth)":     async (_ctx) => [],  // interactive solver handles it
+};
+
+// ---------------------------------------------------------------------------
+// Candidate assembly
+// ---------------------------------------------------------------------------
+
+async function buildCandidates(ctx: CrackCtx): Promise<string[]> {
+    if (!(ctx.modelId in MODELS)) {
+        throw new Error(
+            `Unknown model "${ctx.modelId}" on ${ctx.host} — ` +
+            `format=${ctx.format}[${ctx.length}]  hint="${ctx.hint}"  data="${ctx.data}"`
+        );
+    }
+    return [...new Set(await MODELS[ctx.modelId](ctx))];
+}
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
 
-    // Open a tail window only on home — remote instances are silent helpers.
     const onHome = ns.getHostname() === "home";
     if (onHome) {
         ns.ui.openTail();
-        ns.ui.resizeTail(720, 480);
+        ns.ui.resizeTail(720, 600);
     }
 
     await localMaintenance(ns);
 
     while (true) {
-        const passwords  = loadPasswords(ns);
-        const probeHosts = ns.dnet.probe();
+        try {
+            const probeHosts = ns.dnet.probe();
 
-        if (onHome) {
-            ns.clearLog();
-            ns.print(`Passwords saved: ${Object.keys(passwords).length}   Visible from home: ${probeHosts.length}`);
-            ns.print("─".repeat(64));
-        }
-
-        // Process each visible server sequentially
-        for (const host of probeHosts) {
-            try {
-                const auth = ns.dnet.getServerAuthDetails(host);
-
-                if (!auth.isOnline) {
-                    if (onHome) ns.print(`  ${host.padEnd(20)} offline`);
-                    continue;
-                }
-                if (!auth.isConnectedToCurrentServer) {
-                    if (onHome) ns.print(`  ${host.padEnd(20)} not connected`);
-                    continue;
-                }
-
-                if (auth.hasSession) {
-                    if (onHome) ns.print(`  ${host.padEnd(20)} ✅ session — re-spreading crawler`);
-                    const pw = passwords[host];
-                    if (pw) {
-                        ns.dnet.connectToSession(host, pw);
-                        await spread(ns, host);
-                    }
-                    continue;
-                }
-
-                const modelId = (auth as any).modelId ?? "?";
-                if (onHome) ns.print(`  ${host.padEnd(20)} 🔓 [${modelId}] ${auth.passwordFormat}[${auth.passwordLength}]  hint="${auth.passwordHint}"`);
-
-                const pw = await crack(ns, host, auth, passwords);
-                if (pw === null) {
-                    if (onHome) ns.print(`  ${host.padEnd(20)} ❌ crack failed`);
-                    continue;
-                }
-
-                await savePassword(ns, host, pw);
-                await spread(ns, host);
-                if (onHome) ns.print(`  ${host.padEnd(20)} ✅ cracked! pw="${pw}"`);
-            } catch (e) {
-                ns.tprint(`WARN crawler: exception on ${host}: ${e}`);
-                if (onHome) ns.print(`  ${host.padEnd(20)} ⚠ ${e}`);
+            if (onHome) {
+                ns.clearLog();
+                ns.print(`Visible: ${probeHosts.length}   Host: ${ns.getHostname()}`);
+                ns.print("─".repeat(64));
             }
+
+            for (const host of probeHosts) {
+                try {
+                    const auth = (ns.dnet as any).getServerDetails(host);
+
+                    if (!auth.isOnline) {
+                        if (onHome) ns.print(`  ${host.padEnd(20)} offline`);
+                        continue;
+                    }
+                    if (!auth.isConnectedToCurrentServer) {
+                        if (onHome) ns.print(`  ${host.padEnd(20)} not connected`);
+                        continue;
+                    }
+
+                    if (auth.hasSession) {
+                        if (onHome) ns.print(`  ${host.padEnd(20)} ✅ session — spreading`);
+                        await spread(ns, host);
+                        continue;
+                    }
+
+                    const modelId = auth.modelId ?? "?";
+                    if (onHome) ns.print(`  ${host.padEnd(20)} 🔓 [${modelId}] ${auth.passwordFormat}[${auth.passwordLength}]  hint="${auth.passwordHint}"`);
+
+                    const pw = await crack(ns, host, auth);
+                    if (pw === null) {
+                        if (onHome) ns.print(`  ${host.padEnd(20)} ❌ crack failed`);
+                        else log(ns, `❌ crack failed: ${host}`);
+                        continue;
+                    }
+
+                    await spread(ns, host);
+                    if (onHome) ns.print(`  ${host.padEnd(20)} ✅ cracked! pw="${pw}"`);
+                } catch (e) {
+                    if (onHome) ns.print(`  ${host.padEnd(20)} ⚠ ${e}`);
+                    else log(ns, `⚠ ${host}: ${e}`);
+                }
+            }
+
+            if (onHome) {
+                const remoteEvents = readRemoteEvents(ns);
+                if (remoteEvents.length > 0) {
+                    ns.print("─".repeat(64));
+                    ns.print("Remote crawler events:");
+                    for (const line of remoteEvents.slice(-15)) ns.print(`  ${line}`);
+                }
+                ns.print("─".repeat(64));
+                ns.print("Waiting for next mutation...");
+            }
+
+            await ns.dnet.nextMutation();
+            await localMaintenance(ns);
+        } catch (e) {
+            if (onHome) {
+                ns.clearLog();
+                ns.print(`⚠️ LOOP ERROR: ${e}`);
+                ns.print("Retrying in 5s...");
+            } else {
+                log(ns, `⚠ LOOP ERROR: ${e}`);
+            }
+            await ns.sleep(5_000);
         }
-
-        if (onHome) {
-            ns.print("─".repeat(64));
-            ns.print("Waiting for next mutation...");
-        }
-
-        // Wait for topology to change, then do local maintenance
-        await ns.dnet.nextMutation();
-        await localMaintenance(ns);
     }
 }
 
-/**
- * Free blocked RAM and claim any cache files on the current server.
- * Called at startup and after each mutation.
- */
-async function localMaintenance(ns: NS): Promise<void> {
-    const hostname = ns.getHostname();
-    if (!ns.dnet.isDarknetServer()) return; // home is not a darknet server
+// ---------------------------------------------------------------------------
+// Crack a single server
+// ---------------------------------------------------------------------------
 
-    const blocked = ns.dnet.getBlockedRam();
-    if (blocked > 0) {
-        const mr = await ns.dnet.memoryReallocation();
-        if (mr.success) ns.tprint(`INFO crawler: ${hostname} freed ${blocked}GB blocked RAM`);
-        else            ns.tprint(`WARN crawler: ${hostname} RAM release failed: ${mr.message}`);
+async function crack(ns: NS, host: string, auth: any): Promise<string | null> {
+    const modelId = auth.modelId ?? "?";
+    const ctx: CrackCtx = {
+        ns,
+        host,
+        modelId,
+        hint:   auth.passwordHint  ?? "",
+        data:   auth.data           ?? "",
+        format: auth.passwordFormat ?? "",
+        length: auth.passwordLength ?? 0,
+    };
+
+    if (modelId === "(The Labyrinth)") {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [(The Labyrinth)] ${host} — another crawler is solving`); return null; }
+        try {
+            const solved = await labyrinthSolve(ns, host);
+            if (!solved) log(ns, `❌ [(The Labyrinth)] ${host} — maze unsolvable`);
+            return solved ? "__navigated__" : null;
+        } finally { releaseLock(ns, host); }
     }
 
-    for (const cacheFile of ns.ls(hostname, ".cache")) {
-        const result = ns.dnet.openCache(cacheFile);
-        if (result.success) ns.tprint(`INFO crawler: ${hostname} claimed cache ${cacheFile} (karma -${result.karmaLoss})`);
-        else                ns.tprint(`WARN crawler: ${hostname} cache ${cacheFile} failed: ${result.message}`);
-    }
-}
-
-/** Copy crawler to host and exec it (no-op if already running). */
-async function spread(ns: NS, host: string): Promise<void> {
-    const blocked = ns.dnet.getBlockedRam(host);
-    if (blocked > 0) await ns.dnet.memoryReallocation(host);
-
-    await ns.scp(SELF, host, "home");
-    ns.exec(SELF, host, { preventDuplicates: true } as any);
-}
-
-/** Attempt to crack a server. Returns password or null. */
-async function crack(
-    ns: NS,
-    host: string,
-    auth: ReturnType<typeof ns.dnet.getServerAuthDetails>,
-    passwords: Record<string, string>
-): Promise<string | null> {
-    const { passwordHint: hint, passwordFormat: format, passwordLength: length, data, modelId } = auth as any;
-
-    // DeepGreen: Mastermind / Bulls-and-Cows interactive solver
-    if (modelId === "DeepGreen" && format === "numeric" && length > 0) {
-        const pw = await mastermindSolve(ns, host, length);
-        if (pw !== null) ns.tprint(`SUCCESS crawler: ${host} [DeepGreen] password="${pw}"`);
-        else ns.tprint(`INFO crawler: ${host} [DeepGreen] — Mastermind solver exhausted`);
-        return pw;
+    if (modelId === "DeepGreen" && ctx.format === "numeric" && ctx.length > 0) {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [DeepGreen] ${host} — another crawler is solving`); return null; }
+        try {
+            const pw = await mastermindSolve(ns, host, ctx.length);
+            if (pw === null) log(ns, `❌ [DeepGreen] ${host} solver exhausted`);
+            return pw;
+        } finally { releaseLock(ns, host); }
     }
 
-    // NIL: exact-position "yes/yesn't" feedback solver
-    if (modelId === "NIL" && format === "numeric" && length > 0) {
-        const pw = await nilSolve(ns, host, length);
-        if (pw !== null) ns.tprint(`SUCCESS crawler: ${host} [NIL] password="${pw}"`);
-        else ns.tprint(`INFO crawler: ${host} [NIL] — NIL solver exhausted`);
-        return pw;
+    if (modelId === "NIL" && ctx.format === "numeric" && ctx.length > 0) {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [NIL] ${host} — another crawler is solving`); return null; }
+        try {
+            const pw = await nilSolve(ns, host, ctx.length);
+            if (pw === null) log(ns, `❌ [NIL] ${host} solver exhausted`);
+            return pw;
+        } finally { releaseLock(ns, host); }
     }
 
-    // Heartbleed for extra clues — skip for models that don't need it
-    let logs: string[] = [];
-    if (!NO_HEARTBLEED_MODELS.has(modelId ?? "") &&
-        ns.getPlayer().skills.charisma >= ns.dnet.getServerRequiredCharismaLevel(host)) {
-        const hb = await ns.dnet.heartbleed(host, { peek: true, logsToCapture: 10 });
-        logs = hb.logs;
+    if (modelId === "AccountsManager_4.2" && ctx.format === "numeric" && ctx.length > 0) {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [AccountsManager_4.2] ${host} — another crawler is solving`); return null; }
+        try {
+            const pw = await accountsManagerSolve(ns, host, ctx.length);
+            if (pw === null) log(ns, `❌ [AccountsManager_4.2] ${host} solver failed`);
+            return pw;
+        } finally { releaseLock(ns, host); }
     }
 
-    const candidates = buildCandidates(hint ?? "", data ?? "", format ?? "", length ?? 0, modelId ?? "", logs, passwords);
+    if (modelId === "Factori-Os" && ctx.format === "numeric" && ctx.length > 0) {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [Factori-Os] ${host} — another crawler is solving`); return null; }
+        try {
+            const pw = await factoriOsSolve(ns, host, ctx.length);
+            if (pw === null) log(ns, `❌ [Factori-Os] ${host} solver failed`);
+            return pw;
+        } finally { releaseLock(ns, host); }
+    }
+
+    if (modelId === "RateMyPix.Auth" && ctx.format === "numeric" && ctx.length > 0) {
+        if (!acquireLock(ns, host)) { log(ns, `⏭ [RateMyPix.Auth] ${host} — another crawler is solving`); return null; }
+        try {
+            const pw = await rateMyPixSolve(ns, host, ctx.length);
+            if (pw === null) log(ns, `❌ [RateMyPix.Auth] ${host} solver failed`);
+            return pw;
+        } finally { releaseLock(ns, host); }
+    }
+
+    const candidates = await buildCandidates(ctx);
 
     for (const candidate of candidates) {
         const r = await ns.dnet.authenticate(host, candidate);
-        if (r.data !== undefined) {
-            ns.tprint(`INFO crawler: ${host} auth data = ${JSON.stringify(r.data)}`);
-        }
-        if (r.success) {
-            ns.tprint(`SUCCESS crawler: ${host} [${modelId}] password="${candidate}"`);
-            return candidate;
-        }
+        if (r.success) return candidate;
     }
 
-    ns.tprint(`INFO crawler: ${host} [${modelId}] — no candidate matched. Hint: "${hint}"  Format: ${format}[${length}]`);
+    log(ns, `❌ [${modelId}] ${host} — no match. hint="${ctx.hint}" format=${ctx.format}[${ctx.length}] data="${ctx.data}"`);
     return null;
 }
 
 // ---------------------------------------------------------------------------
-// Candidate generation
+// Interactive solver lock — prevents multiple crawlers racing on same host
 // ---------------------------------------------------------------------------
 
-function buildCandidates(
-    hint: string, data: string, format: string, length: number, modelId: string,
-    logs: string[], passwords: Record<string, string>
-): string[] {
-    const c: string[] = [];
-
-    // 1. Model-specific candidates first (highest confidence)
-    c.push(...getModelCandidates(modelId, format, length));
-
-    // 2. Empty password
-    if (length === 0 || /there is no password|i didn't set a password|the pin is empty/i.test(hint)) {
-        c.push("");
-    }
-
-    // 3. Model-specific hint-based extractions
-    if (modelId === "DeskMemo_3.1") {
-        // Password is always the last word of the hint ("It's set to 950", etc.)
-        const lastWord = hint.trim().split(/\s+/).pop();
-        if (lastWord) c.push(lastWord);
-    }
-    if (modelId === "Pr0verFl0") {
-        // Any repeated character of the right length passes — classic overflow fill
-        c.push("A".repeat(length));
-    }
-    if (modelId === "BellaCuore") {
-        // Data field contains a Roman numeral; password is its decimal value
-        // Hint also has it: "The password is the value of the number 'XXXVII'"
-        const fromData = parseRomanNumeral(data);
-        if (fromData !== null) c.push(String(fromData).padStart(length, "0"));
-        const hintRoman = hint.match(/['"]([IVXLCDM]+)['"]/i);
-        if (hintRoman) {
-            const fromHint = parseRomanNumeral(hintRoman[1]);
-            if (fromHint !== null) c.push(String(fromHint).padStart(length, "0"));
-        }
-    }
-
-    // 4. "Remember to use 312" / "The password/key/secret/code/pin is X"
-    const rememberMatch = hint.match(/remember to use (\S+)/i);
-    if (rememberMatch) c.push(rememberMatch[1]);
-    const plainMatch = hint.match(/(?:the (?:password|key|secret|code|pin) is|(?:password|key|secret|code|pin):)\s*(\S+)/i);
-    if (plainMatch) {
-        const val = plainMatch[1];
-        const looksNumeric = /^\d+$/.test(val);
-        const looksAlpha   = /^[a-zA-Z]+$/.test(val);
-        if      (format === "numeric"      && looksNumeric) c.push(val.padStart(length, "0"));
-        else if (format === "alphabetic"   && looksAlpha  ) c.push(val);
-        else if (format === "alphanumeric" && /^[a-zA-Z0-9]+$/.test(val)) c.push(val);
-        else if (!format) c.push(val);
-    }
-
-    // 5. "a number between X and Y"
-    const rangeMatch = hint.match(/number between (\d+) and (\d+)/i);
-    if (rangeMatch) {
-        const lo = parseInt(rangeMatch[1]);
-        const hi = parseInt(rangeMatch[2]);
-        for (let i = lo; i <= hi; i++) {
-            const s = String(i).padStart(length, "0");
-            if (s.length === length) c.push(s);
-        }
-    }
-
-    // 6. "divisible by 1" — brute force all zero-padded numbers
-    if (/the password is divisible by 1/i.test(hint)) {
-        const total = Math.pow(10, length);
-        for (let i = 0; i < total; i++) c.push(String(i).padStart(length, "0"));
-    }
-
-    // 7. "the base N number M in base 10" — base conversion
-    const baseMatch = hint.match(/the base (\d+) number (\S+) in base 10/i);
-    if (baseMatch) {
-        const converted = parseInt(baseMatch[2], parseInt(baseMatch[1]));
-        if (!isNaN(converted)) c.push(String(converted).padStart(length, "0"));
-    }
-    if (!baseMatch && data) {
-        const parts = data.split(",");
-        if (parts.length === 2 && /^\d+$/.test(parts[0].trim()) && /^[0-9a-zA-Z]+$/.test(parts[1].trim())) {
-            const converted = parseInt(parts[1].trim(), parseInt(parts[0].trim()));
-            if (!isNaN(converted)) c.push(String(converted).padStart(length, "0"));
-        }
-    }
-
-    // 8. For numeric format: extract all N-digit sequences from data (password may be embedded)
-    if (format === "numeric" && length > 0 && data) {
-        const matches = data.match(new RegExp(`\\d{${length}}`, "g")) ?? [];
-        c.push(...matches);
-    }
-
-    // 9. Passwords seen in heartbleed logs
-    for (const log of logs) {
-        const m = log.match(/password[:\s=]+["']?(\S+?)["']?(\s|$)/i);
-        if (m) c.push(m[1]);
-    }
-
-    // 9b. For Laika4: reorder model candidates so those containing hinted letters come first
-    if (modelId === "Laika4" && logs.length > 0) {
-        const hinted = new Set<string>();
-        for (const log of logs) {
-            for (const m of log.matchAll(/(?:theres?\s+a|maybe\s+a)\s+([a-z])/gi))
-                hinted.add(m[1].toLowerCase());
-        }
-        if (hinted.size > 0) {
-            const score = (p: string) => [...hinted].filter(l => p.includes(l)).length;
-            c.sort((a, b) => score(b) - score(a));
-        }
-    }
-
-    // 10. Known passwords from other servers (sometimes reused)
-    c.push(...Object.values(passwords));
-
-    // 11. Raw data / hint as last resort — only if length matches (avoids passing long JSON blobs)
-    if (data && (length === 0 || data.length === length)) c.push(data);
-    if (hint && (length === 0 || hint.length === length)) c.push(hint);
-
-    return [...new Set(c)];
+function acquireLock(ns: NS, host: string): boolean {
+    const lockFile = `Darknet/lock_${host.replace(/\W/g, "_")}.txt`;
+    const me = ns.getHostname();
+    // If another crawler already holds the lock, back off
+    const held = ns.read(lockFile);
+    if (held && held !== me) return false;
+    ns.write(lockFile, me, "w");
+    return true;
 }
 
-/**
- * Model-specific candidate generation.
- * Add entries here as you discover each model's password pattern in-game.
- */
-function getModelCandidates(modelId: string, format: string, length: number): string[] {
-    switch (modelId) {
-        case "ZeroLogon":
-            return length === 0 ? [""] : ["0".repeat(length)];
-
-        case "Openwebaccesspoint":
-        case "OpenWebAccessPoint":
-            // Password leaked as N-digit number in data field — caught by numeric extraction above
-            return [""];
-
-        case "FreshInstall_1.0":
-            // Confirmed: numeric-5 = "12345"
-            return ["12345", "1234", "123456", ...defaultCandidates(format, length)]
-                .filter(p => length === 0 || p.length === length);
-
-        case "Factori-Os":
-            // Uses variable hint patterns — fall through to hint-based logic
-            return [];
-
-        case "Laika4":
-            // "It's my dog's name" — heartbleed leaks letter hints ("Theres a x, and maybe a m...")
-            return [
-                // 3-letter
-                "max", "rex",
-                // 4-letter
-                "maxi", "roxy", "luna", "bear", "duke", "finn", "jake", "lola",
-                "coco", "zeus", "beau", "toby", "ruby", "jack", "nova", "koda",
-                "thor", "axel", "xena", "otto", "hugo", "odie", "toto", "fido",
-                "spot", "lady",
-                // 5-letter
-                "maxie", "roxie", "laika", "belka", "buddy", "rocky", "bella",
-                "molly", "daisy", "rufus", "scout", "sadie", "lucky", "bingo",
-                "pluto", "astro", "tramp", "benji", "rover",
-                // 6-letter
-                "baxter", "cooper", "tucker", "harley", "ginger", "shadow", "diesel",
-            ].filter(p => length === 0 || p.length === length);
-
-        case "Pr0verFl0":
-            // Password = repeated char for length — handled in buildCandidates (needs hint)
-            return [];
-
-        case "DeepGreen":
-            // Mastermind — handled via interactive solver before candidate list
-            return [];
-
-        case "NIL":
-            // Exact-position yes/yesn't feedback — handled via interactive solver
-            return [];
-
-        case "OctantVoxel":
-            // Base-conversion — caught by baseMatch regex
-            return [];
-
-        case "BellaCuore":
-            // Roman numeral in data/hint — handled in buildCandidates
-            return [];
-
-        case "CloudBlare(tm)":
-        case "DeskMemo_3.1":
-            // DeskMemo: last word of hint — caught above
-            // CloudBlare: pattern not yet identified
-            return [];
-
-        default:
-            return [];
-    }
+function releaseLock(ns: NS, host: string): void {
+    ns.rm(`Darknet/lock_${host.replace(/\W/g, "_")}.txt`);
 }
 
-function parseRomanNumeral(s: string): number | null {
-    const vals: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
-    const str = s.trim().toUpperCase();
-    if (!str || !/^[IVXLCDM]+$/.test(str)) return null;
-    let result = 0;
-    for (let i = 0; i < str.length; i++) {
-        const cur  = vals[str[i]];
-        const next = vals[str[i + 1]] ?? 0;
-        if (cur < next) result -= cur;
-        else            result += cur;
-    }
-    return result > 0 ? result : null;
+// ---------------------------------------------------------------------------
+// Spread / maintenance
+// ---------------------------------------------------------------------------
+
+async function spread(ns: NS, host: string): Promise<void> {
+    const blocked = ns.dnet.getBlockedRam(host);
+    if (blocked > 0) await ns.dnet.memoryReallocation(host);
+    await ns.scp(SELF, host, "home");
+    ns.exec(SELF, host, { preventDuplicates: true } as any);
 }
 
-function defaultCandidates(format: string, length: number): string[] {
-    switch (format) {
-        case "numeric":
-            return ["0".repeat(length), "1".repeat(length), "1234".slice(0, length).padEnd(length, "0")];
-        case "alphabetic":
-            return ["password", "admin", "secret", "letmein", "qwerty", "default"].filter(p => p.length === length);
-        case "alphanumeric":
-            return ["password1", "admin123", "default1", "abc12345"].filter(p => p.length === length);
-        default:
-            return [];
+async function localMaintenance(ns: NS): Promise<void> {
+    if (!ns.dnet.isDarknetServer()) return;
+    const hostname = ns.getHostname();
+
+    const blocked = ns.dnet.getBlockedRam();
+    if (blocked > 0) {
+        const mr = await ns.dnet.memoryReallocation();
+        if (mr.success) log(ns, `freed ${blocked}GB blocked RAM on ${hostname}`);
+        else            log(ns, `RAM release failed on ${hostname}: ${mr.message}`);
+    }
+
+    for (const cacheFile of ns.ls(hostname, ".cache")) {
+        const result = ns.dnet.openCache(cacheFile);
+        if (result.success) log(ns, `claimed cache ${cacheFile} on ${hostname} (karma -${result.karmaLoss})`);
+        else                log(ns, `cache ${cacheFile} failed on ${hostname}: ${result.message}`);
     }
 }
 
 // ---------------------------------------------------------------------------
-// DeepGreen: Mastermind / Bulls-and-Cows solver
+// (The Labyrinth): DFS maze solver
 // ---------------------------------------------------------------------------
 
-/**
- * Mastermind solver for DeepGreen.
- *
- * Opening strategy: guess "000", "111", ... "999" first.
- * Each tells us exactly how many of that digit appear in the code.
- * Once we know the digit multiset, the remaining pool is tiny and
- * filters down to the answer in very few additional guesses.
- */
+async function labyrinthSolve(ns: NS, host: string): Promise<boolean> {
+    let state: any;
+    try {
+        state = await (ns.dnet as any).labreport(host);
+    } catch (e) {
+        log(ns, `[(The Labyrinth)] ${host} — labreport failed: ${e}`);
+        return false;
+    }
+
+    if (!state?.coords) {
+        log(ns, `[(The Labyrinth)] ${host} — unexpected labreport: ${JSON.stringify(state)}`);
+        return false;
+    }
+
+    const visited = new Set<string>();
+    const MOVES = [
+        { cmd: "go north", back: "go south", dx:  0, dy: -1, flag: "north" },
+        { cmd: "go east",  back: "go west",  dx:  1, dy:  0, flag: "east"  },
+        { cmd: "go south", back: "go north", dx:  0, dy:  1, flag: "south" },
+        { cmd: "go west",  back: "go east",  dx: -1, dy:  0, flag: "west"  },
+    ];
+
+    const dfs = async (coords: [number, number]): Promise<boolean> => {
+        const key = `${coords[0]},${coords[1]}`;
+        if (visited.has(key)) return false;
+        visited.add(key);
+
+        const report = await (ns.dnet as any).labreport(host);
+        if (!report?.success) return false;
+
+        for (const { cmd, back, dx, dy, flag } of MOVES) {
+            if (!report[flag]) continue;
+            const r = await ns.dnet.authenticate(host, cmd);
+            if (r.success) return true;
+            const next: [number, number] = [coords[0] + dx, coords[1] + dy];
+            if (await dfs(next)) return true;
+            await ns.dnet.authenticate(host, back);
+        }
+        return false;
+    };
+
+    return await dfs(state.coords as [number, number]);
+}
+
+// ---------------------------------------------------------------------------
+// DeepGreen: Mastermind solver
+// ---------------------------------------------------------------------------
+
 async function mastermindSolve(ns: NS, host: string, length: number): Promise<string | null> {
-    const total = Math.pow(10, length);
-    let pool: string[] = [];
-    for (let i = 0; i < total; i++) pool.push(String(i).padStart(length, "0"));
+    // Phase 1: probe "dddd" for each digit — bulls == exact count of d in the password
+    // (every guess position is d, so any d in the secret at any position is a bull)
+    log(ns, `[DeepGreen] ${host} — phase 1: probing digit counts`);
+    const digitCounts = new Array(10).fill(0);
+    let knownTotal = 0;
 
-    const digitQueue = ["0","1","2","3","4","5","6","7","8","9"];
-
-    while (pool.length > 0) {
-        const guess = digitQueue.length > 0
-            ? digitQueue.shift()!.repeat(length)
-            : pool[0];
-
+    for (let d = 0; d <= 9 && knownTotal < length; d++) {
+        const guess = String(d).repeat(length);
         const r = await ns.dnet.authenticate(host, guess);
         if (r.success) return guess;
 
         const fb = parseMastermindFeedback(r.data, r.message);
         if (fb === null) {
-            ns.tprint(`WARN crawler: ${host} [DeepGreen] no feedback — data=${JSON.stringify(r.data)}  msg="${r.message}"`);
+            log(ns, `[DeepGreen] ${host} — no feedback. data(${typeof r.data})=${JSON.stringify(r.data)} msg=${JSON.stringify(r.message)}`);
             return null;
         }
+        digitCounts[d] = fb.bulls;
+        knownTotal += fb.bulls;
+        log(ns, `[DeepGreen] ${host} — probe "${guess}" → ${fb.bulls} '${d}'s (${knownTotal}/${length} known)`);
+    }
 
-        pool = pool.filter(code => {
-            const [bulls, cows] = scoreMastermind(guess, code);
-            return bulls === fb.bulls && cows === fb.cows;
-        });
+    // Build the digit multiset from the counts
+    const digitList: string[] = [];
+    for (let d = 0; d <= 9; d++)
+        for (let i = 0; i < digitCounts[d]; i++)
+            digitList.push(String(d));
+
+    log(ns, `[DeepGreen] ${host} — phase 2: permutations of [${digitList.join("")}]`);
+
+    // Phase 2: try every unique permutation of those digits
+    const seen = new Set<string>();
+    for (const perm of permutations(digitList.join(""))) {
+        if (seen.has(perm)) continue;
+        seen.add(perm);
+        const r = await ns.dnet.authenticate(host, perm);
+        if (r.success) return perm;
     }
     return null;
 }
@@ -448,54 +531,35 @@ function parseMastermindFeedback(data: unknown, message?: string): { bulls: numb
     if (typeof data === "string") {
         const parts = data.split(",");
         if (parts.length === 2) {
-            const bulls = parseInt(parts[0].trim());
-            const cows  = parseInt(parts[1].trim());
+            const bulls = parseInt(parts[0].trim()), cows = parseInt(parts[1].trim());
             if (!isNaN(bulls) && !isNaN(cows)) return { bulls, cows };
         }
     }
-
     if (data && typeof data === "object") {
         const d = data as Record<string, unknown>;
         const bulls = firstNumber(d, "bulls", "correct", "exact", "rightPosition", "hits");
         const cows  = firstNumber(d, "cows", "misplaced", "partial", "present", "blows");
         if (bulls !== null && cows !== null) return { bulls, cows };
     }
-
     if (message) {
         const m = message.match(/(\d+)\s+symbols?\s+(?:are\s+)?match\s+exactly.*?(\d+)\s+symbols?\s+match\s+but\s+are\s+in\s+the\s+wrong\s+place/i);
         if (m) return { bulls: parseInt(m[1]), cows: parseInt(m[2]) };
-
         const m2 = message.match(/(\d+)[^,\d]*exact[^,\d]*,?[^,\d]*(\d+)[^,\d]*wrong\s+place/i);
         if (m2) return { bulls: parseInt(m2[1]), cows: parseInt(m2[2]) };
     }
-
     return null;
 }
 
-function scoreMastermind(guess: string, secret: string): [number, number] {
-    let bulls = 0;
-    const gRem: Record<string, number> = {};
-    const sRem: Record<string, number> = {};
-    for (let i = 0; i < guess.length; i++) {
-        if (guess[i] === secret[i]) { bulls++; }
-        else {
-            gRem[guess[i]] = (gRem[guess[i]] ?? 0) + 1;
-            sRem[secret[i]] = (sRem[secret[i]] ?? 0) + 1;
-        }
-    }
-    let cows = 0;
-    for (const d in gRem) cows += Math.min(gRem[d], sRem[d] ?? 0);
-    return [bulls, cows];
-}
 
 // ---------------------------------------------------------------------------
-// NIL: exact-position "yes" / "yesn't" feedback solver
+// NIL: yes/yesn't solver
 // ---------------------------------------------------------------------------
 
 async function nilSolve(ns: NS, host: string, length: number): Promise<string | null> {
-    const total = Math.pow(10, length);
     let pool: string[] = [];
-    for (let i = 0; i < total; i++) pool.push(String(i).padStart(length, "0"));
+    for (let i = 0; i < Math.pow(10, length); i++) pool.push(String(i).padStart(length, "0"));
+
+    log(ns, `[NIL] ${host} — starting, pool=${pool.length}`);
 
     while (pool.length > 0) {
         const guess = pool[0];
@@ -504,30 +568,169 @@ async function nilSolve(ns: NS, host: string, length: number): Promise<string | 
 
         const feedback = parseNilFeedback(r.data);
         if (feedback === null) {
-            ns.tprint(`WARN crawler: ${host} [NIL] no yes/yesn't feedback in r.data=${JSON.stringify(r.data)}`);
+            const raw = JSON.stringify(r.data);
+            const codes = raw.split("").map(c => c.charCodeAt(0).toString(16)).join(" ");
+            log(ns, `[NIL] ${host} — can't parse feedback, raw: ${raw}`);
+            log(ns, `[NIL] ${host} — char codes: ${codes}`);
             return null;
         }
 
+        const before = pool.length;
         pool = pool.filter(code => {
-            for (let i = 0; i < Math.min(feedback.length, code.length); i++) {
+            for (let i = 0; i < Math.min(feedback.length, code.length); i++)
                 if ((code[i] === guess[i]) !== feedback[i]) return false;
-            }
             return true;
         });
+        log(ns, `[NIL] ${host} — guess="${guess}" fb=[${feedback.map(b => b ? "y" : "n").join(",")}] pool:${before}→${pool.length}`);
     }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// Factori-Os: divisibility constraint solver
+// ---------------------------------------------------------------------------
+
+async function factoriOsSolve(ns: NS, host: string, length: number): Promise<string | null> {
+    // Build pool of all length-digit numbers
+    let pool: number[] = [];
+    for (let i = 0; i < Math.pow(10, length); i++) pool.push(i);
+
+    // Small primes to use as probes — each splits the pool by divisibility
+    const probes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47];
+    log(ns, `[Factori-Os] ${host} — starting, pool=${pool.length}`);
+
+    while (pool.length > 1) {
+        // Pick the probe that most evenly splits the remaining pool, else fall back to pool[0]
+        let guess: number;
+        const bestProbe = probes.find(p => {
+            const divCount = pool.filter(n => n % p === 0).length;
+            return divCount > 0 && divCount < pool.length;
+        });
+        if (bestProbe !== undefined) {
+            probes.splice(probes.indexOf(bestProbe), 1);
+            guess = bestProbe;
+        } else {
+            guess = pool[0];
+        }
+
+        const guessStr = String(guess).padStart(length, "0");
+        const r = await ns.dnet.authenticate(host, guessStr);
+        if (r.success) return guessStr;
+
+        // r.data = true means password IS divisible by guess
+        const divisible = r.data === true;
+        const before = pool.length;
+        pool = pool.filter(n => n !== guess && (n % guess === 0) === divisible);
+        log(ns, `[Factori-Os] ${host} — probe=${guessStr} divisible=${divisible} pool:${before}→${pool.length}`);
+    }
+
+    if (pool.length === 1) {
+        const final = String(pool[0]).padStart(length, "0");
+        const r = await ns.dnet.authenticate(host, final);
+        if (r.success) return final;
+    }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// AccountsManager_4.2: Higher / Lower binary search
+// ---------------------------------------------------------------------------
+
+async function accountsManagerSolve(ns: NS, host: string, length: number): Promise<string | null> {
+    const max = Math.pow(10, length) - 1;
+    let lo = 0, hi = max;
+    log(ns, `[AccountsManager_4.2] ${host} — binary search 0..${max}`);
+
+    while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const guess = String(mid).padStart(length, "0");
+        const r = await ns.dnet.authenticate(host, guess);
+        if (r.success) return guess;
+
+        const fb = ((typeof r.data === "string" ? r.data : "") || (typeof r.message === "string" ? r.message : "")).toLowerCase();
+        if (fb.includes("higher")) {
+            log(ns, `[AccountsManager_4.2] ${host} — guess=${guess} → Higher (lo=${mid+1})`);
+            lo = mid + 1;
+        } else if (fb.includes("lower")) {
+            log(ns, `[AccountsManager_4.2] ${host} — guess=${guess} → Lower (hi=${mid-1})`);
+            hi = mid - 1;
+        } else {
+            log(ns, `[AccountsManager_4.2] ${host} — unexpected feedback: data=${JSON.stringify(r.data)} message=${JSON.stringify(r.message)}`);
+            return null;
+        }
+    }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// RateMyPix.Auth: chilli-count solver
+// ---------------------------------------------------------------------------
+// Each authentication response contains 🌶️ × score where score is the number
+// of digits in the guess that are at the correct position.  Pool-filtering
+// works the same way as the NIL solver but uses a count instead of per-digit
+// booleans.
+
+async function rateMyPixSolve(ns: NS, host: string, length: number): Promise<string | null> {
+    let pool: string[] = [];
+    for (let i = 0; i < Math.pow(10, length); i++)
+        pool.push(String(i).padStart(length, "0"));
+
+    log(ns, `[RateMyPix.Auth] ${host} — starting, pool=${pool.length}`);
+
+    while (pool.length > 1) {
+        const guess = pool[0];
+        const r     = await ns.dnet.authenticate(host, guess);
+        if (r.success) return guess;
+
+        const score = parseChilliScore(r.data, r.message);
+        if (score === null) {
+            log(ns, `[RateMyPix.Auth] ${host} — can't parse feedback: data=${JSON.stringify(r.data)} msg=${JSON.stringify(r.message)}`);
+            return null;
+        }
+
+        const before = pool.length;
+        pool = pool.filter(candidate => {
+            let matches = 0;
+            for (let i = 0; i < length; i++)
+                if (candidate[i] === guess[i]) matches++;
+            return matches === score;
+        });
+        log(ns, `[RateMyPix.Auth] ${host} — guess="${guess}" 🌶️×${score} pool:${before}→${pool.length}`);
+    }
+
+    if (pool.length === 1) {
+        const r = await ns.dnet.authenticate(host, pool[0]);
+        if (r.success) return pool[0];
+        log(ns, `[RateMyPix.Auth] ${host} — final guess ${pool[0]} rejected`);
+    }
+    return null;
+}
+
+/** Count the number of 🌶️ chilli emojis (or parse a numeric X/N pattern) in the feedback. */
+function parseChilliScore(data: unknown, message?: string): number | null {
+    const text = (typeof data === "string" ? data : "")
+              || (typeof message === "string" ? message : "");
+    if (!text) return null;
+
+    // Primary: count chilli emoji occurrences
+    const chillis = text.match(/🌶/g);
+    if (chillis !== null) return chillis.length;
+
+    // Fallback: numeric "X/N" pattern
+    const m = text.match(/(\d+)\s*\/\s*\d+/);
+    if (m) return parseInt(m[1]);
+
     return null;
 }
 
 function parseNilFeedback(data: unknown): boolean[] | null {
     let parts: string[];
-    if (typeof data === "string") {
-        parts = data.split(",").map(s => s.trim());
-    } else if (Array.isArray(data)) {
-        parts = (data as unknown[]).map(String);
-    } else {
-        return null;
-    }
+    if (typeof data === "string")  parts = data.split(",").map(s => s.trim());
+    else if (Array.isArray(data))  parts = (data as unknown[]).map(String);
+    else                           return null;
     if (parts.length === 0) return null;
+    // Normalize curly/smart apostrophes (U+2018–U+201B) to straight ASCII
+    parts = parts.map(p => p.replace(/[‘’‚‛]/g, "'").trim());
     if (!parts.every(p => p === "yes" || p === "yesn't")) return null;
     return parts.map(p => p === "yes");
 }
@@ -536,19 +739,46 @@ function parseNilFeedback(data: unknown): boolean[] | null {
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+function parseRomanNumeral(s: string): number | null {
+    const vals: Record<string, number> = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 };
+    const str = s.trim().toUpperCase();
+    if (!str || !/^[IVXLCDM]+$/.test(str)) return null;
+    let result = 0;
+    for (let i = 0; i < str.length; i++) {
+        const cur = vals[str[i]], next = vals[str[i+1]] ?? 0;
+        result += cur < next ? -cur : cur;
+    }
+    return result > 0 ? result : null;
+}
+
+function baseConversionCandidates(hint: string, data: string, length: number): string[] {
+    const results: string[] = [];
+    const hintMatch = hint.match(/the base (\d+) number (\S+) in base 10/i);
+    if (hintMatch) {
+        const v = parseInt(hintMatch[2], parseInt(hintMatch[1]));
+        if (!isNaN(v)) results.push(String(v).padStart(length, "0"));
+    }
+    if (!hintMatch && data) {
+        const parts = data.split(",");
+        if (parts.length === 2 && /^\d+$/.test(parts[0].trim()) && /^[0-9a-zA-Z]+$/.test(parts[1].trim())) {
+            const v = parseInt(parts[1].trim(), parseInt(parts[0].trim()));
+            if (!isNaN(v)) results.push(String(v).padStart(length, "0"));
+        }
+    }
+    return results;
+}
+
+function permutations(s: string): string[] {
+    if (s.length <= 1) return [s];
+    const result: string[] = [];
+    for (let i = 0; i < s.length; i++) {
+        const rest = s.slice(0, i) + s.slice(i + 1);
+        for (const p of permutations(rest)) result.push(s[i] + p);
+    }
+    return result;
+}
+
 function firstNumber(obj: Record<string, unknown>, ...keys: string[]): number | null {
     for (const k of keys) if (typeof obj[k] === "number") return obj[k] as number;
     return null;
-}
-
-function loadPasswords(ns: NS): Record<string, string> {
-    if (!ns.fileExists(PASSWORDS_FILE, "home")) return {};
-    try { return JSON.parse(ns.read(PASSWORDS_FILE)); } catch { return {}; }
-}
-
-async function savePassword(ns: NS, host: string, password: string): Promise<void> {
-    const stored = loadPasswords(ns);
-    stored[host] = password;
-    ns.write(PASSWORDS_FILE, JSON.stringify(stored, null, 2), "w");
-    if (ns.getHostname() !== "home") await ns.scp(PASSWORDS_FILE, "home");
 }
