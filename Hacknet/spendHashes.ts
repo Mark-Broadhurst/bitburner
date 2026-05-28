@@ -2,20 +2,16 @@ import { NS, HacknetServerHashUpgrade, CompanyName } from "@ns";
 import { minBy } from "Utils/array";
 import { getTargetServers } from "Utils/network";
 
-const MONEY_THRESHOLD  = 5_000_000; // $5m — sell hashes for cash below this
-const OVERFLOW_BUFFER  = 40;        // sell if within this many hashes of capacity
-const MAX_SERVER_MONEY = 1e13;      // don't waste hashes on already-massive servers
-const FAVOR_CAP = 150; // top up company favour to this level
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+const MONEY_THRESHOLD  = 5_000_000;
+const OVERFLOW_BUFFER  = 40;
+const MAX_SERVER_MONEY = 1e13;
+const FAVOR_CAP = 150;
 
 type HashAction = {
     name:    HacknetServerHashUpgrade;
-    target?: string;             // hostname for server-targeted upgrades
-    cost:    number;             // current hash cost for one purchase
+    target?: string;
+    cost:    number;
 };
-
-// ── Entry point ───────────────────────────────────────────────────────────────
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -25,13 +21,11 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         ns.clearLog();
 
-        // Always prevent hash overflow regardless of phase
         handleOverflow(ns);
 
         const homeMoney = ns.getServerMoneyAvailable("home");
 
         if (homeMoney < MONEY_THRESHOLD) {
-            // ── Phase 1: sell hashes for cash until $5m ───────────────────
             const cost = ns.hacknet.hashCost("Sell for Money");
             ns.print(`💰 Bootstrap — $${ns.format.number(homeMoney)} / $${ns.format.number(MONEY_THRESHOLD)}`);
             ns.print(`   Hashes: ${Math.floor(ns.hacknet.numHashes())} / ${getTotalHashCapacity(ns)}`);
@@ -39,7 +33,6 @@ export async function main(ns: NS): Promise<void> {
                 ns.hacknet.spendHashes("Sell for Money");
             }
         } else {
-            // ── Phase 2: spend on improvements as hashes accumulate ───────
             const actions = buildActions(ns);
             if (actions.length === 0) {
                 ns.print("⚠ No hash actions available.");
@@ -51,11 +44,10 @@ export async function main(ns: NS): Promise<void> {
                 if (ns.hacknet.numHashes() >= best.cost) {
                     ns.hacknet.spendHashes(best.name, best.target ?? "home");
                     if (best.name === "Generate Coding Contract") {
-                        await ns.sleep(500); // let the contract appear on the network
+                        await ns.sleep(500);
                         ns.run("CodingContract/solve.js");
                     }
                 } else if (capacity > 0 && best.cost > capacity) {
-                    // Cheapest action costs more than we can ever store — sell for money
                     ns.hacknet.spendHashes("Sell for Money");
                 }
             }
@@ -65,22 +57,13 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Build the list of available spend actions based on current game state.
- * The cheapest action will be executed each cycle — ordering within equal cost
- * doesn't matter since they'll each get their turn naturally.
- */
 function buildActions(ns: NS): HashAction[] {
     const actions: HashAction[] = [];
 
-    // 1. Always-available upgrades
     actions.push({ name: "Improve Studying",        cost: ns.hacknet.hashCost("Improve Studying") });
     actions.push({ name: "Improve Gym Training",    cost: ns.hacknet.hashCost("Improve Gym Training") });
     actions.push({ name: "Generate Coding Contract", cost: ns.hacknet.hashCost("Generate Coding Contract") });
 
-    // Company Favor — top up all companies to 150, largest first (closest to cap)
     const companyTarget = (Object.values(ns.enums.CompanyName) as CompanyName[])
         .map(c => ({ name: c, favor: ns.singularity.getCompanyFavor(c) }))
         .filter(c => c.favor > 0 && c.favor < FAVOR_CAP)
@@ -88,13 +71,11 @@ function buildActions(ns: NS): HashAction[] {
     if (companyTarget)
         actions.push({ name: "Company Favor", target: companyTarget.name, cost: ns.hacknet.hashCost("Company Favor") });
 
-    // 2. Server improvements — boost best hacking targets
     const servers = getTargetServers(ns)
         .filter(s => s.moneyMax!       <= MAX_SERVER_MONEY)
         .filter(s => s.minDifficulty!  >= 1);
 
     if (servers.length > 0) {
-        // Reduce security on the server with the highest minimum difficulty
         const secTarget = [...servers]
             .sort((a, b) => b.minDifficulty! - a.minDifficulty!)[0];
         actions.push({
@@ -103,7 +84,6 @@ function buildActions(ns: NS): HashAction[] {
             cost:   ns.hacknet.hashCost("Reduce Minimum Security"),
         });
 
-        // Raise max money on the highest-value target
         const moneyTarget = [...servers]
             .sort((a, b) => b.moneyMax! - a.moneyMax!)[0];
         actions.push({
@@ -113,13 +93,11 @@ function buildActions(ns: NS): HashAction[] {
         });
     }
 
-    // 3. Bladeburners — rank and skill points
     if (ns.getPlayer().factions.includes("Bladeburners")) {
         actions.push({ name: "Exchange for Bladeburner Rank", cost: ns.hacknet.hashCost("Exchange for Bladeburner Rank") });
         actions.push({ name: "Exchange for Bladeburner SP",   cost: ns.hacknet.hashCost("Exchange for Bladeburner SP") });
     }
 
-    // 4. Corporation — funds and research
     if (ns.corporation.hasCorporation()) {
         actions.push({ name: "Sell for Corporation Funds",        cost: ns.hacknet.hashCost("Sell for Corporation Funds") });
         actions.push({ name: "Exchange for Corporation Research",  cost: ns.hacknet.hashCost("Exchange for Corporation Research") });
@@ -128,11 +106,6 @@ function buildActions(ns: NS): HashAction[] {
     return actions;
 }
 
-/**
- * Sell hashes when we're close to capacity so nothing is wasted.
- * Sells enough to absorb at least one full tick of production.
- * No-op for hacknet nodes (they produce money, not hashes).
- */
 function handleOverflow(ns: NS): void {
     const capacity = getTotalHashCapacity(ns);
     if (capacity === 0) return;
@@ -143,7 +116,6 @@ function handleOverflow(ns: NS): void {
     }
 }
 
-/** Sum of hashCapacity across all hacknet servers (0 for hacknet nodes). */
 function getTotalHashCapacity(ns: NS): number {
     let total = 0;
     for (let i = 0; i < ns.hacknet.numNodes(); i++) {
@@ -152,7 +124,6 @@ function getTotalHashCapacity(ns: NS): number {
     return total;
 }
 
-/** Sum of hash production per second across all hacknet servers. */
 function getTotalHashProduction(ns: NS): number {
     let total = 0;
     for (let i = 0; i < ns.hacknet.numNodes(); i++) {
@@ -161,7 +132,6 @@ function getTotalHashProduction(ns: NS): number {
     return total;
 }
 
-/** Print status table: current hashes, all actions and their costs. */
 function printStatus(ns: NS, actions: HashAction[], next: HashAction): void {
     const hashes   = Math.floor(ns.hacknet.numHashes());
     const capacity = getTotalHashCapacity(ns);

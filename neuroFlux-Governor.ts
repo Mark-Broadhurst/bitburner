@@ -7,7 +7,6 @@ export async function main(ns: NS) {
     const augName      = "NeuroFlux Governor";
     const requiredRep  = ns.singularity.getAugmentationRepReq(augName);
 
-    // Find the faction with the highest rep that has NeuroFlux and meets the requirement
     const factions = ns.getPlayer().factions
         .filter(f => ns.singularity.getAugmentationsFromFaction(f).includes(augName))
         .filter(f => ns.singularity.getFactionRep(f) >= requiredRep);
@@ -23,7 +22,6 @@ export async function main(ns: NS) {
 
     ns.print(`Buying NeuroFlux Governor from ${faction}`);
 
-    // Re-check actual balance each iteration — price increases with every purchase
     while (ns.getServerMoneyAvailable("home") >= ns.singularity.getAugmentationPrice(augName)) {
         const cost = ns.singularity.getAugmentationPrice(augName);
         ns.singularity.purchaseAugmentation(faction, augName);

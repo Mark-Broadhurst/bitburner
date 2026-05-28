@@ -14,13 +14,11 @@ export async function main(ns: NS): Promise<void> {
             continue;
         }
 
-        // Apply to every available field to land the highest starting position
         const fields = getCompanyFields(ns, company);
         for (const field of fields) {
             ns.singularity.applyToCompany(company, field);
         }
 
-        // Work in the best field for reputation gain
         let bestField = pickBestField(ns, company, fields);
         ns.singularity.workForCompany(company, false);
 
@@ -33,7 +31,6 @@ export async function main(ns: NS): Promise<void> {
             const jobName = ns.getPlayer().jobs[company];
 
             if (!jobName) {
-                // Not employed — try applying again
                 for (const field of fields) ns.singularity.applyToCompany(company, field);
                 bestField = pickBestField(ns, company, fields);
                 ns.singularity.workForCompany(company, false);
@@ -43,10 +40,8 @@ export async function main(ns: NS): Promise<void> {
 
             const info = ns.singularity.getCompanyPositionInfo(company, jobName);
 
-            // Promote when ready
             if (rep >= info.requiredReputation && info.nextPosition) {
                 ns.singularity.applyToCompany(company, bestField);
-                // Re-evaluate best field after promotion (stats may have changed)
                 bestField = pickBestField(ns, company, fields);
                 ns.singularity.workForCompany(company, false);
                 const newJob = ns.getPlayer().jobs[company] ?? jobName;
@@ -71,17 +66,10 @@ export async function main(ns: NS): Promise<void> {
     ns.ui.closeTail();
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Return the job fields available for a company. */
 function getCompanyFields(ns: NS, company: CompanyName): JobField[] {
     return CompaniesJobs(ns).find(x => x.company === company)?.jobField ?? [];
 }
 
-/**
- * Pick the best field for reputation gain.
- * Uses Formulas.exe when available; otherwise falls back to FIELD_PRIORITY order.
- */
 function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobField {
     if (fields.length === 0) return ns.enums.JobField.software;
 
@@ -94,9 +82,6 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
             let best = fields[0];
             let bestGain = -1;
             for (const field of fields) {
-                // Note: companyGains uses the current jobName regardless of field;
-                // we iterate fields to find which one produces the best rep gain
-                // given the player's current stats and favour.
                 const gain = ns.formulas.work.companyGains(player, company, jobName, favour);
                 if (gain.reputation > bestGain) {
                     bestGain = gain.reputation;
@@ -107,7 +92,6 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
         }
     }
 
-    // Fallback: use priority order (most desirable field first)
     const JF = ns.enums.JobField;
     for (const preferred of [JF.software, JF.it, JF.security, JF.business, JF.agent, JF.softwareConsultant, JF.employee, JF.waiter]) {
         if (fields.includes(preferred)) return preferred;
@@ -115,18 +99,12 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
     return fields[0];
 }
 
-/**
- * Returns true if the player is already in the faction or has a pending invite.
- * Handles the Fulcrum Technologies → "Fulcrum Secret Technologies" mapping.
- */
 function hasFactionAccess(ns: NS, company: string): boolean {
     const factions = ns.getPlayer().factions
         .concat(ns.singularity.checkFactionInvitations());
 
-    // Direct name match (most companies share name with their faction)
     if (factions.some(f => f === company)) return true;
 
-    // Fulcrum Technologies → Fulcrum Secret Technologies
     if (company === ns.enums.CompanyName.FulcrumTechnologies) {
         return factions.includes("Fulcrum Secret Technologies");
     }

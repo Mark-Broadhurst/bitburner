@@ -4,7 +4,6 @@ export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
 
-    // Wait until we can afford the TOR router
     while (ns.getServerMoneyAvailable("home") < 200_000) {
         await ns.sleep(1000);
     }

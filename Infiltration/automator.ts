@@ -1,19 +1,5 @@
 import { NS } from "@ns";
 
-/**
- * Infiltration mini-game automator.
- *
- * Run this BEFORE entering an infiltration.  It hooks document.addEventListener
- * to intercept Bitburner's keydown handler and proxy the event with isTrusted=true
- * so the game accepts synthetic key dispatches from this script.
- *
- * Supports all 8 mini-games:
- *   Slash · Close the Brackets · Type it Backward · Say Something Nice
- *   Enter the Code · Match the Symbols · Minesweeper · Cut the Wires
- */
-
-// ── Positive words for the "Say Something Nice" game ─────────────────────────
-
 const NICE: Set<string> = new Set([
     "affectionate","agreeable","amusing","brave","bright","charming",
     "communicative","confident","considerate","courageous","creative",
@@ -38,23 +24,16 @@ const ARROW_KEY: Record<string, string> = {
     '↑': 'ArrowUp', '↓': 'ArrowDown', '←': 'ArrowLeft', '→': 'ArrowRight',
 };
 
-// ── Per-game mutable state ────────────────────────────────────────────────────
-
 interface State {
     lastGame:    string;
-    // bracket
     bracketSeq:  string;
     bracketIdx:  number;
-    // backward
     wordTarget:  string;
     wordIdx:     number;
-    // cheat code
     lastArrow:   string;
-    // minesweeper
     mines:       [number, number][];
     minePos:     [number, number];
     mineTodo:    [number, number][];
-    // wires
     wiresDone:   Set<number>;
 }
 
@@ -66,8 +45,6 @@ function freshState(): State {
         wiresDone: new Set(),
     };
 }
-
-// ── Entry point ───────────────────────────────────────────────────────────────
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -119,12 +96,6 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-// ── isTrusted hook ────────────────────────────────────────────────────────────
-// Wraps document.addEventListener so every keydown listener receives a Proxy
-// of the real event with isTrusted overridden to true.  This bypasses the
-// anti-automation check in InfiltrationRoot.tsx.  Must run before the game
-// mounts its listener — i.e. before the player starts the infiltration.
-
 function installHook(doc: Document): void {
     const win = doc.defaultView as Window & { _infHooked?: boolean };
     if (win._infHooked) return;
@@ -148,8 +119,6 @@ function installHook(doc: Document): void {
     };
 }
 
-// ── Key dispatch ──────────────────────────────────────────────────────────────
-
 function makePress(doc: Document): (key: string) => void {
     return (key: string) => {
         const code =
@@ -162,8 +131,6 @@ function makePress(doc: Document): (key: string) => void {
         doc.dispatchEvent(new KeyboardEvent("keyup",   init));
     };
 }
-
-// ── Detection ─────────────────────────────────────────────────────────────────
 
 const SLASH_STATES = ["guarding", "distracted", "alerted"];
 
@@ -182,9 +149,6 @@ function detectGame(doc: Document): { name: string; container: Element; isSlash:
     return null;
 }
 
-// ── Solvers ───────────────────────────────────────────────────────────────────
-
-/** Slash: watch h4 text; attack only during the "Distracted!" window. */
 function solveSlash(container: Element, press: (k: string) => void): void {
     for (const h4 of container.querySelectorAll("h4")) {
         if (h4.textContent?.toLowerCase().includes("distracted")) {
@@ -194,7 +158,6 @@ function solveSlash(container: Element, press: (k: string) => void): void {
     }
 }
 
-/** Close the Brackets: read opening sequence, send reverse-matching closers. */
 function solveBracket(container: Element, press: (k: string) => void, s: State): void {
     if (!s.bracketSeq) {
         for (const el of container.querySelectorAll("p, span, h5")) {
@@ -209,7 +172,6 @@ function solveBracket(container: Element, press: (k: string) => void, s: State):
     if (close) { press(close); s.bracketIdx++; }
 }
 
-/** Type it Backward: find displayed word, type it reversed. */
 function solveBackward(container: Element, press: (k: string) => void, s: State): void {
     if (!s.wordTarget) {
         for (const el of container.querySelectorAll("p, span, h5")) {
@@ -225,10 +187,7 @@ function solveBackward(container: Element, press: (k: string) => void, s: State)
     press(s.wordTarget[s.wordIdx++]);
 }
 
-/** Say Something Nice: navigate the word list until a positive word is highlighted. */
 function solveBribe(container: Element, press: (k: string) => void): void {
-    // The currently highlighted item typically has distinct styling.
-    // Try common MUI "selected" or colour-highlighted elements first.
     const candidate =
         container.querySelector('[class*="highlighted"]')
         ?? container.querySelector('[class*="selected"]')
@@ -243,7 +202,6 @@ function solveBribe(container: Element, press: (k: string) => void): void {
     }
 }
 
-/** Enter the Code: detect the current arrow symbol, press matching key once. */
 function solveCheatCode(container: Element, press: (k: string) => void, s: State): void {
     const text = container.textContent ?? "";
     for (const [sym, key] of Object.entries(ARROW_KEY)) {
@@ -253,24 +211,18 @@ function solveCheatCode(container: Element, press: (k: string) => void, s: State
             return;
         }
     }
-    // Reset tracker when symbols change
     if (!Object.keys(ARROW_KEY).some(sym => text.includes(sym))) s.lastArrow = "";
 }
 
-/** Match the Symbols (Cyberpunk): find the target value in the grid, navigate to it. */
 function solveCyberpunk(container: Element, press: (k: string) => void): void {
-    // Target is usually highlighted or listed separately from the grid
     const targetEl = container.querySelector('[class*="target"], [class*="answer"]');
     const target   = targetEl?.textContent?.trim();
     if (!target) return;
 
-    // Grid cells: iterate looking for matching text, then navigate by position
     const cells = Array.from(container.querySelectorAll("td, [class*=\"cell\"], [class*=\"symbol\"]"));
     const idx   = cells.findIndex(c => c.textContent?.trim() === target);
     if (idx < 0) return;
 
-    // Best-effort: send ArrowRight/Down until we land on the target, then Space
-    // The game tracks cursor position internally — just keep pressing toward target
     const cols  = Math.round(Math.sqrt(cells.length)) || 4;
     const tRow  = Math.floor(idx / cols);
     const tCol  = idx % cols;
@@ -286,7 +238,6 @@ function solveCyberpunk(container: Element, press: (k: string) => void): void {
     else                   press(" ");
 }
 
-/** Remember All the Mines (phase 1): record mine positions from displayed grid. */
 function solveMineP1(container: Element, s: State): void {
     s.mines = [];
     const rows = container.querySelectorAll("tr, [class*=\"row\"]");
@@ -301,7 +252,6 @@ function solveMineP1(container: Element, s: State): void {
     });
 }
 
-/** Mark All the Mines (phase 2): navigate to each mine and mark it with Space. */
 function solveMineP2(container: Element, press: (k: string) => void, s: State): void {
     if (s.mineTodo.length === 0 && s.mines.length > 0) {
         s.mineTodo  = [...s.mines];
@@ -319,12 +269,10 @@ function solveMineP2(container: Element, press: (k: string) => void, s: State): 
     else              { press(" "); s.mineTodo.shift(); }
 }
 
-/** Cut the Wires: parse the instruction text and press the correct digit key(s). */
 function solveWires(container: Element, press: (k: string) => void, s: State): void {
     for (const el of container.querySelectorAll("p, span, h5")) {
         const text = el.textContent ?? "";
 
-        // "Cut wire number N"
         const numMatch = text.match(/wire(?:\s+number)?\s+(\d)/i);
         if (numMatch) {
             const n = parseInt(numMatch[1]);
@@ -332,7 +280,6 @@ function solveWires(container: Element, press: (k: string) => void, s: State): v
             return;
         }
 
-        // "Cut all wires colored X"
         const colorMatch = text.match(/colou?red\s+(\w+)/i);
         if (colorMatch) {
             const color = colorMatch[1].toLowerCase();
@@ -347,7 +294,6 @@ function solveWires(container: Element, press: (k: string) => void, s: State): v
             return;
         }
 
-        // "Cut all wires with X connections"
         const connMatch = text.match(/(\d+)\s+connections?/i);
         if (connMatch) {
             const target = parseInt(connMatch[1]);

@@ -71,8 +71,6 @@ function solve(type: CodingContractName, data: any): any {
     }
 }
 
-// ── Solvers ───────────────────────────────────────────────────────────────────
-
 function largestPrimeFactor(n: number): number {
     let largest = 1, d = 2;
     while (n > 1) {
@@ -374,9 +372,6 @@ function lzCompress(plain: string): string {
     const dp: (string | null)[][] = Array.from({ length: n + 1 }, () => [null, null, null]);
     dp[0][1] = "";
     for (let i = 0; i <= n; i++) {
-        // Resolve same-position 0-skips before advancing transitions.
-        // Type-1 L=0 → Type-2 (same pos), then Type-2 L=0 → Type-1 (same pos).
-        // Each skip adds 1 char, so at most one productive pass each direction.
         if (dp[i][1] !== null) {
             const s = dp[i][1] + "0";
             if (dp[i][2] === null || s.length < dp[i][2]!.length) dp[i][2] = s;
@@ -385,7 +380,6 @@ function lzCompress(plain: string): string {
             const s = dp[i][2] + "0";
             if (dp[i][1] === null || s.length < dp[i][1]!.length) dp[i][1] = s;
         }
-        // Type-1: literal chunk (L ≥ 1) → advances to type-2
         if (dp[i][1] !== null) {
             const cur = dp[i][1]!;
             for (let L = 1; L <= 9 && i + L <= n; L++) {
@@ -394,7 +388,6 @@ function lzCompress(plain: string): string {
                     dp[i + L][2] = cand;
             }
         }
-        // Type-2: backreference (L ≥ 1) → advances to type-1
         if (dp[i][2] !== null) {
             const cur = dp[i][2]!;
             for (let L = 1; L <= 9 && i + L <= n; L++) {
@@ -438,7 +431,6 @@ function squareRoot(n: bigint): bigint {
     let x = n;
     let y = (x + 1n) >> 1n;
     while (y < x) { x = y; y = (x + n / x) >> 1n; }
-    // Newton's method converges from above; x may land one step high — correct it.
     while (x * x > n) x -= 1n;
     return x;
 }
@@ -466,7 +458,6 @@ function totalPrimesInRange([a, b]: number[]): number {
 }
 
 function largestRectangle(grid: number[][]): [[number, number], [number, number]] {
-    // Returns [top-left [row,col], bottom-right [row,col]] of the largest rectangle of 1s.
     const rows = grid.length, cols = grid[0].length;
     const h = new Array<number>(cols).fill(0);
     let bestArea = 0;

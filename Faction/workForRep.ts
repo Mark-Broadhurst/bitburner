@@ -5,14 +5,7 @@ export async function main(ns: NS) {
     ns.disableLog("ALL");
     ns.clearLog();
     const factions = PlayerRegularFactions(ns)
-        .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150)
-        /*
-        .filter(x => {
-            const augs = ns.singularity.getAugmentationsFromFaction(x);
-            const owned = ns.singularity.getOwnedAugmentations(true);
-            return augs.filter(a => !owned.includes(a)).length > 0;
-        })
-        */;
+        .filter(x => (ns.singularity.getFactionFavor(x) + ns.singularity.getFactionFavorGain(x)) <= 150);
     ns.print(factions);
     for (const faction of factions) {
         ns.singularity.workForFaction(faction, "hacking", false);

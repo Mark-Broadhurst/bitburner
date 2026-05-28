@@ -1,7 +1,6 @@
 import { NS, Server } from "@ns";
 import { getServers } from "Utils/network";
 
-// Worker scripts to copy onto every newly-rooted server
 const WORKER_FILES = ["grow.js", "weaken.js", "hack.js", "share.js", "charge.js"];
 
 export async function main(ns: NS): Promise<void> {
@@ -31,20 +30,15 @@ export async function main(ns: NS): Promise<void> {
     ns.tprint(`Done — rooted ${rooted}, skipped ${skipped}`);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** True if we have enough port-opening tools to root this server. */
 function canRoot(ns: NS, server: Server): boolean {
     return countTools(ns) >= server.numOpenPortsRequired!;
 }
 
-/** Count how many port-cracking programs currently exist on home. */
 function countTools(ns: NS): number {
     const tools = ["BruteSSH.exe", "FTPCrack.exe", "relaySMTP.exe", "HTTPWorm.exe", "SQLInject.exe"];
     return tools.filter(t => ns.fileExists(t, "home")).length;
 }
 
-/** Open all available ports on a server. */
 function openPorts(ns: NS, server: Server): void {
     if (ns.fileExists("BruteSSH.exe", "home")) ns.brutessh(server.hostname);
     if (ns.fileExists("FTPCrack.exe",  "home")) ns.ftpcrack(server.hostname);

@@ -13,7 +13,6 @@ export async function main(ns: NS): Promise<void> {
             ns.print(`Already employed at ${company}`);
             continue;
         }
-        // Try every field — each successful application upgrades the position
         for (const field of jobField) {
             if (ns.singularity.applyToCompany(company, field)) {
                 ns.print(`✅ ${company} — ${field}`);

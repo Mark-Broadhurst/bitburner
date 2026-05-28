@@ -26,16 +26,13 @@ export async function main(ns: NS): Promise<void> {
         const current = ns.singularity.getCurrentWork();
         const activeProgram = current?.type === "CREATE_PROGRAM" ? current.programName : null;
 
-        // Find the next program to create (first unlocked, not owned, not already active)
         const next = programs
             .filter(p => p.req <= skill && !ns.fileExists(p.name, "home") && p.name !== activeProgram)[0];
 
-        // Start creating if nothing is active
         if (!activeProgram && next !== undefined) {
             ns.singularity.createProgram(next.name);
         }
 
-        // Print status table
         ns.print(`Hack: ${skill}  (hacking ${player.skills.hacking} + int ${player.skills.intelligence})`);
         ns.print("─".repeat(42));
         ns.print("Program              Req    Status");
@@ -67,17 +64,14 @@ export async function main(ns: NS): Promise<void> {
 
         ns.print("─".repeat(42));
 
-        // Exit when everything is done
         if (programs.every(p => ns.fileExists(p.name, "home"))) {
             ns.print("✅ All programs created.");
             ns.tprint("✅ All programs created.");
             break;
         }
 
-        // Poll every second while a program is being created; longer when waiting on skill
         await ns.sleep(1000);
 
-        // After sleep, check if active program finished and trigger nuke-all
         const workNow = ns.singularity.getCurrentWork();
         const stillActive = workNow?.type === "CREATE_PROGRAM" ? workNow.programName : null;
         if (activeProgram && !stillActive && ns.fileExists(activeProgram as string, "home")) {

@@ -11,7 +11,6 @@ export async function main(ns: NS): Promise<void> {
     const allCompanies = CompaniesJobs(ns).map(x => x.company);
 
     for (const company of allCompanies) {
-        // Skip if already at max position
         const currentJob = ns.getPlayer().jobs[company] as JobName | undefined;
         if (currentJob) {
             const info = ns.singularity.getCompanyPositionInfo(company, currentJob);
@@ -21,7 +20,6 @@ export async function main(ns: NS): Promise<void> {
             }
         }
 
-        // Apply to every field to land the highest available starting position
         const fields = getCompanyFields(ns, company);
         for (const field of fields) {
             ns.singularity.applyToCompany(company, field);
@@ -37,7 +35,6 @@ export async function main(ns: NS): Promise<void> {
 
             const jobName = ns.getPlayer().jobs[company] as JobName | undefined;
             if (!jobName) {
-                // Not employed — reapply
                 for (const field of fields) ns.singularity.applyToCompany(company, field);
                 bestField = pickBestField(ns, company, fields);
                 ns.singularity.workForCompany(company, false);
@@ -49,13 +46,11 @@ export async function main(ns: NS): Promise<void> {
             const rep  = ns.singularity.getCompanyRep(company);
 
             if (!info.nextPosition) {
-                // Reached the top of this field
                 ns.print(`✅ ${company} — max position: ${jobName}`);
                 break;
             }
 
             if (rep >= info.requiredReputation) {
-                // Apply for promotion in the best field
                 ns.singularity.applyToCompany(company, bestField);
                 bestField = pickBestField(ns, company, fields);
                 ns.singularity.workForCompany(company, false);
@@ -77,16 +72,10 @@ export async function main(ns: NS): Promise<void> {
     ns.ui.closeTail();
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function getCompanyFields(ns: NS, company: CompanyName): JobField[] {
     return CompaniesJobs(ns).find(x => x.company === company)?.jobField ?? [];
 }
 
-/**
- * Pick the best field for reputation gain.
- * Uses Formulas.exe when available; otherwise falls back to FIELD_PRIORITY order.
- */
 function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobField {
     if (fields.length === 0) return ns.enums.JobField.software;
 
@@ -109,7 +98,6 @@ function pickBestField(ns: NS, company: CompanyName, fields: JobField[]): JobFie
         }
     }
 
-    // Fallback: prefer by priority (most desirable first)
     const JF = ns.enums.JobField;
     const FIELD_PRIORITY: JobField[] = [
         JF.software, JF.it, JF.security, JF.business,

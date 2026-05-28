@@ -2,11 +2,6 @@ import { NS } from "@ns";
 
 const COMMISSION = 100_000;
 
-/**
- * Read-only stock market display.
- * Shows all symbols sorted by forecast extremity so the best
- * long/short opportunities are always at the top.
- */
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
@@ -34,7 +29,6 @@ export async function main(ns: NS): Promise<void> {
             return { sym, ask, bid, spread, forecast, volatility, maxShares,
                      longShares, longPrice, shortShares, shortPrice, longPnL, shortPnL };
         }).sort((a, b) => {
-            // Held positions first, then by forecast extremity
             const aHeld = (a.longShares > 0 || a.shortShares > 0) ? 1 : 0;
             const bHeld = (b.longShares > 0 || b.shortShares > 0) ? 1 : 0;
             if (aHeld !== bHeld) return bHeld - aHeld;
@@ -42,8 +36,6 @@ export async function main(ns: NS): Promise<void> {
             const bExt = isNaN(b.forecast) ? 0 : Math.abs(b.forecast - 0.5);
             return bExt - aExt;
         });
-
-        // ── Header ─────────────────────────────────────────────────────────
 
         const held       = stocks.filter(s => s.longShares > 0 || s.shortShares > 0);
         const totalValue = held.reduce((sum, s) => sum + s.longShares * s.bid + s.shortShares * s.ask, 0);
@@ -54,8 +46,6 @@ export async function main(ns: NS): Promise<void> {
         ns.print("─".repeat(74));
         ns.print("Sym   " + "Bid".padEnd(10) + "Fcst".padEnd(8) + "Volt".padEnd(8) + "Long".padEnd(14) + "Short".padEnd(14) + "P&L");
         ns.print("─".repeat(74));
-
-        // ── Rows ────────────────────────────────────────────────────────────
 
         for (const s of stocks) {
             const fcst  = isNaN(s.forecast)   ? "N/A   " : `${(s.forecast   * 100).toFixed(1)}%`;

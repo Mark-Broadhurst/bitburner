@@ -62,26 +62,6 @@ export async function main(ns: NS): Promise<void> {
                 ns.print(`Synth ${i} set to Idle`);
                 ns.sleeve.setToIdle(i);
             }
-
-            /*
-            const invites = ns.singularity.checkFactionInvitations();
-
-            let company = CompaniesWithFactions
-              .filter(x=> !player.factions.includes(x) && !invites.includes(x))
-              .reduce((a, b) => {
-              const aRep = ns.singularity.getCompanyRep(a);
-              const bRep = ns.singularity.getCompanyRep(b);
-              if (aRep > bRep) {
-                return a;
-              }
-              return b;
-            });
-
-            ns.singularity.applyToCompany(company, "software");
-            ns.print(`Synth ${i} working for ${company}`);
-            ns.sleeve.setToCompanyWork(i, company);
-            ns.sleeve.setToFactionWork(i, , "hacking");
-            */
         }
         await ns.sleep(100);
     }
@@ -117,4 +97,3 @@ function getGym(ns: NS, city: CityName): GymLocationName | null {
             return null;
     }
 }
-

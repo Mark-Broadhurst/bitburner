@@ -1,18 +1,10 @@
 import { NS, Server } from "@ns";
 import { minBy } from "Utils/array";
 
-/**
- * Unified upgrade daemon — home cores/RAM, cloud server RAM, and hacknet nodes/servers.
- *
- * Runs a single greedy loop: every iteration finds the cheapest available upgrade
- * across all three domains and buys it. Home and cloud candidates drop out naturally
- * once they hit their respective limits; hacknet keeps going indefinitely.
- */
-
-const POLL_MS        = 100;   // how often to check if we can afford the next upgrade
-const DISPLAY_MS     = 1_000; // how often to redraw the tail window (avoids flicker)
+const POLL_MS        = 100;
+const DISPLAY_MS     = 1_000;
 const MAX_HOME_CORES = 8;
-const MAX_HOME_RAM   = 536_870_912; // 512 TB in GB
+const MAX_HOME_RAM   = 536_870_912;
 
 type UpgradeDomain = "home-cores" | "home-ram" | "cloud" | "hn-level" | "hn-ram" | "hn-cores" | "hn-cache" | "hn-node"
                   | "stock-wse" | "stock-tix" | "stock-4s" | "stock-4s-tix";
@@ -21,12 +13,10 @@ interface Upgrade {
     domain: UpgradeDomain;
     label:  string;
     cost:   number;
-    node?:  number;  // hacknet node index
-    host?:  string;  // cloud server hostname
-    ram?:   number;  // target RAM for cloud upgrade
+    node?:  number;
+    host?:  string;
+    ram?:   number;
 }
-
-// ── Entry point ───────────────────────────────────────────────────────────────
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
@@ -34,8 +24,6 @@ export async function main(ns: NS): Promise<void> {
     ns.ui.resizeTail(640, 520);
 
     while (true) {
-        // Buy first hacknet node before the main loop so findBestUpgrade never
-        // reduces over an empty array.
         if (ns.hacknet.numNodes() === 0) {
             const cost = ns.hacknet.getPurchaseNodeCost();
             ns.clearLog();
@@ -75,13 +63,10 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-// ── Candidate collection ──────────────────────────────────────────────────────
-
 function buildCandidates(ns: NS): Upgrade[] {
     const upgrades: Upgrade[] = [];
     const home = ns.getServer("home") as Server;
 
-    // Home server cores and RAM
     if (home.cpuCores < MAX_HOME_CORES) {
         upgrades.push({
             domain: "home-cores",
@@ -97,7 +82,6 @@ function buildCandidates(ns: NS): Upgrade[] {
         });
     }
 
-    // Cloud servers — always upgrade the cheapest (lowest current RAM) first
     const ramLimit = ns.cloud.getRamLimit();
     for (const host of ns.cloud.getServerNames()) {
         const srv    = ns.getServer(host) as Server;
@@ -112,7 +96,6 @@ function buildCandidates(ns: NS): Upgrade[] {
         });
     }
 
-    // Hacknet nodes / servers
     const isServer = isHacknetServer(ns);
     for (let i = 0; i < ns.hacknet.numNodes(); i++) {
         const stats     = ns.hacknet.getNodeStats(i) as any;
@@ -132,8 +115,6 @@ function buildCandidates(ns: NS): Upgrade[] {
     const nodeCost = ns.hacknet.getPurchaseNodeCost();
     if (isFinite(nodeCost)) upgrades.push({ domain: "hn-node", label: "new hacknet node", cost: nodeCost });
 
-    // Stock market access — sequential dependency chain.
-    // Each upgrade unlocks the next; only offer the next unowned one.
     if (!ns.stock.hasWseAccount())
         upgrades.push({ domain: "stock-wse",    label: "WSE Account",        cost:   200_000_000 });
     else if (!ns.stock.hasTixApiAccess())
@@ -143,15 +124,12 @@ function buildCandidates(ns: NS): Upgrade[] {
     else if (!ns.stock.has4SDataTixApi())
         upgrades.push({ domain: "stock-4s-tix", label: "4S Market Data TIX", cost: 25_000_000_000 });
 
-    // Don't touch hacknet until every cloud server is at the RAM cap.
     if (upgrades.some(u => u.domain === "cloud")) {
         return upgrades.filter(u => !u.domain.startsWith("hn-"));
     }
 
     return upgrades;
 }
-
-// ── Execution ─────────────────────────────────────────────────────────────────
 
 function perform(ns: NS, u: Upgrade): void {
     switch (u.domain) {
@@ -170,18 +148,14 @@ function perform(ns: NS, u: Upgrade): void {
     }
 }
 
-// ── Display ───────────────────────────────────────────────────────────────────
-
 function printStatus(ns: NS, next: Upgrade): void {
     const home     = ns.getServer("home") as Server;
     const money    = ns.getServerMoneyAvailable("home");
     const isServer = isHacknetServer(ns);
 
-    // Home
     ns.print("── Home ──────────────────────────────────────────────────────");
     ns.print(`  Cores: ${home.cpuCores}/8   RAM: ${ns.format.ram(home.maxRam)}/512TB`);
 
-    // Cloud servers
     const cloudHosts = ns.cloud.getServerNames();
     if (cloudHosts.length > 0) {
         ns.print("── Cloud Servers ─────────────────────────────────────────────");
@@ -192,7 +166,6 @@ function printStatus(ns: NS, next: Upgrade): void {
         }
     }
 
-    // Hacknet
     const count = ns.hacknet.numNodes();
     ns.print(`── Hacknet ${isServer ? "Servers" : "Nodes"} (${count}) ──────────────────────────────────`);
     let totalProd = 0;
@@ -210,7 +183,6 @@ function printStatus(ns: NS, next: Upgrade): void {
         ns.print(`  Total: $${ns.format.number(totalProd, 3)}/s`);
     }
 
-    // Stock market access
     const wse  = ns.stock.hasWseAccount()    ? "✅" : "⬜";
     const tix  = ns.stock.hasTixApiAccess()  ? "✅" : "⬜";
     const s4s  = ns.stock.has4SData()        ? "✅" : "⬜";
@@ -218,7 +190,6 @@ function printStatus(ns: NS, next: Upgrade): void {
     ns.print("── Stock Market ──────────────────────────────────────────────");
     ns.print(`  WSE ${wse}  TIX API ${tix}  4S Data ${s4s}  4S TIX API ${s4st}`);
 
-    // Next upgrade
     ns.print("─────────────────────────────────────────────────────────────");
     const afford = money >= next.cost ? "✅" : "⏳";
     ns.print(`${afford} Next: ${next.label}`);

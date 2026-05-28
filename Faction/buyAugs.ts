@@ -1,26 +1,5 @@
 import { NS, FactionName } from "@ns";
 
-/**
- * Buys augmentations from one or more factions.
- *
- * Usage:  run Faction/buyAugs.js [--no-install] <faction> [faction2 ...]
- *
- * Algorithm:
- *  1. Collect every unowned aug from the given factions where the player has
- *     sufficient rep.  If multiple factions offer the same aug the first one
- *     with enough rep is used.
- *  2. Drop augs whose prerequisite chain cannot be fully satisfied (prereq
- *     neither already owned nor also in the buy list).  Runs to fixpoint so
- *     multi-level chains are handled correctly.
- *  3. Sort by current price, most expensive first — buying expensive augs
- *     before cheap ones minimises the compounding price-scaling penalty.
- *  4. Topological sort (DFS in price-descending order) so every prerequisite
- *     is always purchased before the aug that depends on it.
- *  5. Buy in order, re-reading price each iteration (it scales after each
- *     purchase).  Waits up to 60 s per aug for funds; skips if still
- *     unaffordable.
- */
-
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
@@ -81,8 +60,6 @@ export async function main(ns: NS): Promise<void> {
     if (!noInstall) ns.singularity.installAugmentations("init.js");
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface AugEntry {
     name:    string;
     price:   number;
@@ -90,29 +67,22 @@ interface AugEntry {
     prereqs: string[];
 }
 
-// ── Build the ordered buy list ────────────────────────────────────────────────
-
 function buildBuyList(ns: NS, factions: FactionName[]): AugEntry[] {
     const owned = new Set(ns.singularity.getOwnedAugmentations(true));
 
-    // ── Step 1: assign each buyable aug to the first faction with enough rep ──
     const augToFaction = new Map<string, FactionName>();
     for (const faction of factions) {
         const rep = ns.singularity.getFactionRep(faction);
         for (const aug of ns.singularity.getAugmentationsFromFaction(faction)) {
-            if (aug === "NeuroFlux Governor") continue; // stacks infinitely, skip
+            if (aug === "NeuroFlux Governor") continue;
             if (owned.has(aug))           continue;
-            if (augToFaction.has(aug))    continue; // already assigned
+            if (augToFaction.has(aug))    continue;
             if (rep >= ns.singularity.getAugmentationRepReq(aug)) {
                 augToFaction.set(aug, faction);
             }
         }
     }
 
-    // ── Step 2: fixpoint prereq validation ───────────────────────────────────
-    // Drop any aug whose prerequisites are neither already owned nor in our
-    // buy list.  Repeat until no more removals occur (handles chains of any
-    // depth, e.g. A→B→C where C also needs to be dropped).
     let changed = true;
     while (changed) {
         changed = false;
@@ -125,7 +95,6 @@ function buildBuyList(ns: NS, factions: FactionName[]): AugEntry[] {
         }
     }
 
-    // ── Step 3: sort by current price descending ──────────────────────────────
     const entries: AugEntry[] = [...augToFaction.entries()]
         .map(([name, faction]) => ({
             name,
@@ -135,10 +104,6 @@ function buildBuyList(ns: NS, factions: FactionName[]): AugEntry[] {
         }))
         .sort((a, b) => b.price - a.price);
 
-    // ── Step 4: topological sort (DFS, visiting in price-descending order) ────
-    // When we encounter an aug whose prereq hasn't been emitted yet, we emit
-    // the prereq first.  Within groups with no ordering constraint the most
-    // expensive aug still appears first in the result.
     const entryMap = new Map(entries.map(e => [e.name, e]));
     const result:   AugEntry[] = [];
     const visited = new Set<string>();

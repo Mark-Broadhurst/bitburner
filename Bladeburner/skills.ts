@@ -1,31 +1,18 @@
 import { NS, BladeburnerSkillName } from "@ns";
 
-/**
- * Two-phase Bladeburner skill loop:
- *
- * Phase 1 — Overclock is not maxed (cap 90):
- *   Buy Overclock whenever we can afford it.
- *   While saving for Overclock, spend spare SP on Blade's Intuition
- *   to keep success chances healthy.
- *
- * Phase 2 — Overclock maxed:
- *   Equal allocation — always buy the skill with the lowest current level
- *   that we can afford, so all skills rise together.
- */
-
 const SKILLS: BladeburnerSkillName[] = [
-    "Blade's Intuition",  // success chance on all actions
-    "Overclock",          // -2% action time per level, max 90
-    "Cloak",              // stamina cost reduction
-    "Short-Circuit",      // contract success
-    "Digital Observer",   // operation success
-    "Evasive System",     // chaos gain rate reduction
-    "Tracer",             // tracking bonus
-    "Reaper",             // combat stat multiplier
-    "Datamancer",         // population estimate accuracy
-    "Cyber's Edge",       // HP and stat boosts
-    "Hands of Midas",     // money gain
-    "Hyperdrive",         // all-around multiplier
+    "Blade's Intuition",
+    "Overclock",
+    "Cloak",
+    "Short-Circuit",
+    "Digital Observer",
+    "Evasive System",
+    "Tracer",
+    "Reaper",
+    "Datamancer",
+    "Cyber's Edge",
+    "Hands of Midas",
+    "Hyperdrive",
 ];
 
 const OVERCLOCK_MAX = 90;
@@ -56,38 +43,27 @@ export async function main(ns: NS): Promise<void> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Skill selection
-// ---------------------------------------------------------------------------
-
 function selectSkill(ns: NS, sp: number, overclockMaxed: boolean): BladeburnerSkillName | null {
     if (!overclockMaxed) {
-        // Phase 1: Overclock is the priority
         const ocCost = ns.bladeburner.getSkillUpgradeCost("Overclock");
         if (sp >= ocCost) return "Overclock";
-        // Can't afford Overclock — top up Blade's Intuition in the meantime
         const biCost = ns.bladeburner.getSkillUpgradeCost("Blade's Intuition");
         if (sp >= biCost) return "Blade's Intuition";
         return null;
     }
 
-    // Phase 2: equal allocation — lowest-level affordable skill wins
     const candidates = SKILLS
-        .filter(s => s !== "Overclock")          // already capped
+        .filter(s => s !== "Overclock")
         .map(s => ({
             s,
             level: ns.bladeburner.getSkillLevel(s),
             cost:  ns.bladeburner.getSkillUpgradeCost(s),
         }))
         .filter(c => sp >= c.cost)
-        .sort((a, b) => a.level - b.level);      // lowest level first
+        .sort((a, b) => a.level - b.level);
 
     return candidates[0]?.s ?? null;
 }
-
-// ---------------------------------------------------------------------------
-// Status display
-// ---------------------------------------------------------------------------
 
 function printStatus(
     ns: NS,
@@ -108,16 +84,14 @@ function printStatus(
 
         let marker: string;
         if (skill === target) {
-            marker = "▶";                          // buying this tick
+            marker = "▶";
         } else if (capped) {
-            marker = "✔";                          // done
+            marker = "✔";
         } else if (!overclockMaxed) {
-            // Phase 1: highlight what we're saving for
-            if (skill === "Overclock") marker = "⏳";           // primary goal
-            else if (skill === "Blade's Intuition") marker = "•"; // secondary
+            if (skill === "Overclock") marker = "⏳";
+            else if (skill === "Blade's Intuition") marker = "•";
             else marker = " ";
         } else {
-            // Phase 2: all active skills show equal priority
             marker = " ";
         }
 

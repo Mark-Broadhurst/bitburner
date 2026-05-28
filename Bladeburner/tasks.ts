@@ -6,13 +6,10 @@ const CITIES = (ns: NS): CityName[] => {
     return [C.Sector12, C.Aevum, C.Volhaven, C.Chongqing, C.NewTokyo, C.Ishima];
 };
 
-const LOW_STAMINA  = 0.45; // enter rest below this
-const HIGH_STAMINA = 0.55; // exit rest above this
+const LOW_STAMINA  = 0.45;
+const HIGH_STAMINA = 0.55;
 const CHAOS_THRESHOLD = 50;
 
-// An action is eligible only when BOTH bounds pass:
-//   min (low estimate)  >= MIN_LOW  — we expect at least 80 % success
-//   max (high estimate) >= MIN_HIGH — the upper bound has reached 100 %
 const MIN_LOW  = 0.80;
 const MIN_HIGH = 1.00;
 
@@ -39,18 +36,11 @@ export async function main(ns: NS): Promise<void> {
         printStatus(ns, stamina, hpLow, action);
 
         await startAction(ns, action);
-        await ns.sleep(100); // safety floor — prevents spinning if startAction returns early
+        await ns.sleep(100);
     }
 }
 
-// ---------------------------------------------------------------------------
-// Action selection
-// Priority: HP recovery > Black Op > Operation > Contract > General
-// When stamina is low we skip combat actions and fall through to General.
-// ---------------------------------------------------------------------------
-
 function selectAction(ns: NS, rest: boolean, hpLow: boolean): ActionSpec {
-    // HP always wins — recover before anything else
     if (hpLow) return BladeburnerAction.HyperbolicRegenerationChamber;
 
     if (!rest) {
@@ -59,7 +49,6 @@ function selectAction(ns: NS, rest: boolean, hpLow: boolean): ActionSpec {
                getContract(ns)  ??
                selectFreeAction(ns);
     }
-    // Stamina low — skip combat, do general tasks
     return selectFreeAction(ns);
 }
 
@@ -85,12 +74,8 @@ function selectFreeAction(ns: NS): ActionSpec {
         }
     }
 
-    // No uses remaining at all — generate more
     if (actionsLeft === 0) return BladeburnerAction.InciteViolence;
 
-    // Actions exist but none are eligible — chaos is suppressing success rates.
-    // Diplomacy lowers chaos which directly raises the low success estimate,
-    // so always prefer it over Field Analysis when we're waiting on thresholds.
     const cities    = CITIES(ns);
     const worstCity = [...cities].sort((a, b) =>
         ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
@@ -98,16 +83,10 @@ function selectFreeAction(ns: NS): ActionSpec {
 
     if (eligibleLeft === 0 && worstChaos > 0) return BladeburnerAction.Diplomacy;
 
-    // Eligible actions exist — still do Diplomacy if chaos is very high,
-    // otherwise Field Analysis to sharpen population estimates.
     if (worstChaos > CHAOS_THRESHOLD) return BladeburnerAction.Diplomacy;
 
     return BladeburnerAction.FieldAnalysis;
 }
-
-// ---------------------------------------------------------------------------
-// Status display
-// ---------------------------------------------------------------------------
 
 function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSpec): void {
     const player  = ns.getPlayer();
@@ -115,13 +94,11 @@ function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSp
     const BB      = ns.enums.BladeburnerActionType;
     const [selType, selName] = selected;
 
-    // Header
     const stBar = `${ns.format.percent(stamina)} ${resting ? "💤" : "⚔️ "}`;
     ns.print(`Stamina ${stBar}  HP ${player.hp.current}/${player.hp.max}${hpLow ? " 🩹" : ""}  Rank ${ns.format.number(rank)}`);
     ns.print(`→ ${selName}`);
     ns.print("─".repeat(60));
 
-    // Black Op
     ns.print("BLACK OP");
     const nextOp = ns.bladeburner.getNextBlackOp();
     if (nextOp === null) {
@@ -139,19 +116,16 @@ function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSp
         ns.print(`${marker} ${nextOp.name.padEnd(34)} rank ${rankStr}  ${chanceStr}${blocker}`);
     }
 
-    // Operations
     ns.print("OPERATIONS");
     for (const name of ns.bladeburner.getOperationNames()) {
         printAction(ns, BB.Operation, name, selType, selName);
     }
 
-    // Contracts
     ns.print("CONTRACTS");
     for (const name of ns.bladeburner.getContractNames()) {
         printAction(ns, BB.Contract, name, selType, selName);
     }
 
-    // Footer
     ns.print("─".repeat(60));
     let actionsLeft = 0;
     for (const c of ns.bladeburner.getContractNames())
@@ -180,12 +154,7 @@ function printAction(
     ns.print(`${marker} ${name.padEnd(34)} ${countStr}  ${chanceStr} ${statusIcon}`);
 }
 
-// ---------------------------------------------------------------------------
-// Action runner
-// ---------------------------------------------------------------------------
-
 async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
-    // Switch city for city-sensitive actions
     if (action === "Diplomacy") {
         const worst = [...CITIES(ns)].sort((a, b) =>
             ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
@@ -197,8 +166,6 @@ async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
         ns.bladeburner.switchCity(best);
     }
     if (action === "Raid") {
-        // Switch to the city with the most Synthoid communities — more = more effective,
-        // but Raid still works (just less so) when communities are 0.
         const best = [...CITIES(ns)].sort((a, b) =>
             ns.bladeburner.getCityCommunities(b) - ns.bladeburner.getCityCommunities(a))[0];
         ns.bladeburner.switchCity(best);
@@ -206,13 +173,9 @@ async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
 
     const started = ns.bladeburner.startAction(type, action);
     if (!started) {
-        // Action failed to start (count ran out, rank insufficient, etc.)
         await ns.sleep(1000);
         return;
     }
-    // Poll until the action is no longer current. Using sleep-based polling
-    // rather than nextUpdate() avoids any edge case where nextUpdate resolves
-    // immediately (e.g. idle state, race condition) which would spin the loop.
     while (true) {
         await ns.sleep(250);
         const cur = ns.bladeburner.getCurrentAction();
@@ -220,21 +183,11 @@ async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Candidate finders — require min >= MIN_LOW and max >= MIN_HIGH
-// Within a tier, pick the action with the highest min (most confident)
-// ---------------------------------------------------------------------------
-
 function getBlackOp(ns: NS): ActionSpec | null {
     const BB   = ns.enums.BladeburnerActionType;
     const next = ns.bladeburner.getNextBlackOp();
     if (!next) return null;
-    // Each Black Op has exactly one use and must be done in order;
-    // getNextBlackOp() already skips completed ones.
     if (ns.bladeburner.getRank() < next.rank) return null;
-    // Black Ops are one-shot milestones — only require min >= MIN_LOW.
-    // We do NOT require max >= MIN_HIGH because Black Op estimates rarely reach
-    // 100%; using that check would silently suppress them even when rank is met.
     const [min] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, next.name);
     if (min < MIN_LOW) return null;
     return [BB.BlackOp, next.name];
@@ -260,7 +213,7 @@ function getBestEligible<T extends BladeburnerContractName | BladeburnerOperatio
             return { name, count, min, max };
         })
         .filter(c => c.count > 0 && c.min >= MIN_LOW && c.max >= MIN_HIGH)
-        .sort((a, b) => a.min - b.min);   // lowest min first = hardest eligible action (more rank)
+        .sort((a, b) => a.min - b.min);
     return candidates.length > 0 ? [type, candidates[0].name] : null;
 }
 

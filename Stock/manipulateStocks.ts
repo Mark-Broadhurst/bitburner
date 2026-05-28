@@ -1,12 +1,5 @@
 import { NS } from "@ns";
 
-/**
- * Writes Stock/positions.txt each tick so hackCommander can pass stock:true
- * to its hack/grow dispatches for servers linked to held positions.
- * This script does no exec'ing — hackCommander owns all dispatch.
- */
-
-// Symbol → server hostname mapping (null = no linked server)
 const SYMBOL_SERVER: Record<string, string | null> = {
     ECP:   "ecorp",
     MCP:   "megacorp",

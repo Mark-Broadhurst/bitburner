@@ -2,35 +2,16 @@ import { NS, Server } from "@ns";
 import { getWorkerServers, getPlayerServers } from "Utils/network";
 import { WorkerServer } from "Utils/hacking";
 
-/**
- * BN8 stock manipulation engine.
- *
- * Dedicates all RAM to W → G/H → W batches on stock-linked servers:
- *   - weaken1  lands first, bringing security to minimum so ops run at full speed
- *   - grow/hack lands next with stock:true, moving the stock price
- *   - weaken2  lands last, counteracting the security raised by the grow/hack
- *
- * Direction per server:
- *   forecast >= 0.5 → grow  (price goes up  → trade.ts buys long)
- *   forecast <  0.5 → hack  (price goes down → trade.ts buys short)
- *
- * Targets are prioritised by distance from 0.5 — most exploitable gets RAM first.
- * MAX_TARGETS caps how many stocks we spread across; with limited threads it is
- * better to fully commit to the highest-edge stocks than to dilute across many.
- */
-
 const HOME_RESERVED_RAM      = 128;
 const HISTORY_LEN            = 32;
-const SPACING                = 200;  // ms between landing times
-const MIN_THREADS_PER_TARGET = 100;  // minimum threads a target must receive to be worth taking on
-const MIN_EDGE               = 0.06; // skip stocks within 6% of 0.5 — signal too weak
+const SPACING                = 200;
+const MIN_THREADS_PER_TARGET = 100;
+const MIN_EDGE               = 0.06;
 
-// Security raised per thread: grow = 0.004, hack = 0.002; weaken lowers by 0.05
 const SEC_PER_GROW   = 0.004;
 const SEC_PER_HACK   = 0.002;
 const SEC_PER_WEAKEN = 0.05;
 
-// Symbol → server hostname (null = no linked server)
 const SYMBOL_SERVER: Record<string, string | null> = {
     ECP:   "ecorp",
     MCP:   "megacorp",
@@ -87,7 +68,6 @@ export async function main(ns: NS): Promise<void> {
         const has4S   = ns.stock.has4SDataTixApi();
         const symbols = ns.stock.getSymbols();
 
-        // Update price history for pre-4S estimation
         for (const sym of symbols) {
             const price = ns.stock.getAskPrice(sym);
             const h     = priceHistory.get(sym) ?? [];
@@ -96,7 +76,6 @@ export async function main(ns: NS): Promise<void> {
             priceHistory.set(sym, h);
         }
 
-        // Build worker pool
         const pool = [
             ...getPlayerServers(ns),
             ...getWorkerServers(ns),
@@ -111,19 +90,12 @@ export async function main(ns: NS): Promise<void> {
 
         const totalFreeThreads = pool.reduce((s, w) => s + w.freeThreads, 0);
 
-        // Capacity = max threads across all workers regardless of what's currently running.
-        // Previous-tick scripts are still in flight so freeThreads can be near zero — using
-        // capacity here keeps numTargets stable as RAM grows rather than bouncing each tick.
         const homeCapacity  = Math.floor(Math.max(0, home.maxRam - HOME_RESERVED_RAM) / 1.75);
         const otherCapacity = pool
             .filter(w => w.hostname !== "home")
             .reduce((s, w) => s + w.maxThreads, 0);
         const totalCapacity = homeCapacity + otherCapacity;
 
-        // Determine targets — only servers we have root access on.
-        // Pre-4S: only grow.  trade.ts only buys longs before 4S data is available,
-        // so hacking stocks (pushing prices down) would work against our positions.
-        // With 4S data both directions are used to match trade.ts's long/short posture.
         const targets = symbols
             .map(sym => {
                 const server = SYMBOL_SERVER[sym];
@@ -131,23 +103,17 @@ export async function main(ns: NS): Promise<void> {
                 const forecast = has4S
                     ? ns.stock.getForecast(sym)
                     : estimateForecast(priceHistory.get(sym) ?? [], HISTORY_LEN);
-                // Pre-4S: always grow (trade.ts is longs-only until 4S)
                 const command: "grow" | "hack" = (!has4S || forecast >= 0.5) ? "grow" : "hack";
                 return { sym, server, forecast, command };
             })
             .filter((t): t is NonNullable<typeof t> => t !== null)
-            // Pre-4S: skip stocks trending downward — growing a bearish stock wastes
-            // threads on a server trade.ts isn't long on.
             .filter(t => has4S ? Math.abs(t.forecast - 0.5) >= MIN_EDGE : t.forecast - 0.5 >= MIN_EDGE)
             .sort((a, b) => Math.abs(b.forecast - 0.5) - Math.abs(a.forecast - 0.5));
 
-        // How many targets can we fund meaningfully? Use capacity so the count is
-        // stable even when current free RAM is low due to in-flight scripts.
         const numTargets      = Math.max(1, Math.floor(totalCapacity / MIN_THREADS_PER_TARGET));
         const focusedTargets  = targets.slice(0, numTargets);
         const budgetPerTarget = Math.floor(totalCapacity / Math.max(focusedTargets.length, 1));
 
-        // Dispatch W → G/H → W batches — each target gets an equal thread budget
         for (const target of focusedTargets) {
             const srv        = ns.getServer(target.server) as Server;
             const weakenTime = ns.getWeakenTime(target.server);
@@ -155,24 +121,20 @@ export async function main(ns: NS): Promise<void> {
                 ? ns.getGrowTime(target.server)
                 : ns.getHackTime(target.server);
 
-            // Threads needed to bring security back to min right now
             const secOver        = Math.max(0, srv.hackDifficulty! - srv.minDifficulty!);
             const weaken1Threads = Math.ceil(secOver / SEC_PER_WEAKEN);
 
-            // Each op thread raises security; weaken2 counters it
-            // opThreads + weaken2Threads = remaining, weaken2 = opThreads * ratio
             const secPerOp  = target.command === "grow" ? SEC_PER_GROW : SEC_PER_HACK;
-            const w2PerOp   = secPerOp / SEC_PER_WEAKEN;  // grow: 0.08, hack: 0.04
+            const w2PerOp   = secPerOp / SEC_PER_WEAKEN;
 
             const poolFree  = pool.reduce((s, w) => s + w.freeThreads, 0);
-            const capped    = Math.min(poolFree, budgetPerTarget);  // fair share
+            const capped    = Math.min(poolFree, budgetPerTarget);
             const available = Math.max(0, capped - weaken1Threads);
             const opThreads      = Math.floor(available / (1 + w2PerOp));
             const weaken2Threads = available - opThreads;
 
             if (opThreads <= 0) continue;
 
-            // Timing: all dispatched at t=0, land in order weaken1 → op → weaken2
             const weaken1Delay = 0;
             const opDelay      = Math.ceil(weakenTime - opTime + SPACING);
             const weaken2Delay = 2 * SPACING;
@@ -182,7 +144,6 @@ export async function main(ns: NS): Promise<void> {
             allocate(ns, pool, "weaken",         target.server, weaken2Threads, weaken2Delay, false);
         }
 
-        // Status
         ns.print(`Capacity: ${totalCapacity}  Free: ${totalFreeThreads}  Targets: ${focusedTargets.length} (~${budgetPerTarget}/each)  ${has4S ? "✅ 4S" : "📈 Pre-4S"}`);
         ns.print("─".repeat(52));
         ns.print("Sym    Forecast  Action  Server");

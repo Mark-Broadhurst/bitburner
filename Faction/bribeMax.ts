@@ -37,5 +37,4 @@ export async function main(ns: NS): Promise<void> {
             ns.singularity.softReset("startup.js");
         }
     }
-    //ns.singularity.softReset("startup.js");
 }

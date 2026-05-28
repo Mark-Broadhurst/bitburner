@@ -1,9 +1,7 @@
 import { BladeburnerActionType, BladeburnerActionName, BladeburnerGeneralActionName, BladeburnerContractName, BladeburnerOperationName, BladeburnerBlackOpName, BladeburnerSkillName } from "@ns";
 
-// Re-export the @ns types so callers can import from one place
 export type { BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName, BladeburnerBlackOpName };
 
-// General action names — not exposed via ns.enums, so kept here as a convenience
 export type Action = BladeburnerGeneralActionName;
 
 export const actions: Action[] = [
@@ -31,7 +29,6 @@ export const skills: Skill[] = [
     "Cyber's Edge", "Hands of Midas", "Hyperdrive",
 ];
 
-/** Typed convenience constants for the most common bladeburner actions. */
 export class BladeburnerAction {
     static Training                  = ["General",           "Training"                       ] as [BladeburnerActionType, BladeburnerActionName];
     static FieldAnalysis             = ["General",           "Field Analysis"                 ] as [BladeburnerActionType, BladeburnerActionName];

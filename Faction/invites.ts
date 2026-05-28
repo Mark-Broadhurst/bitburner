@@ -1,8 +1,6 @@
 import { NS, PlayerRequirement, Server } from "@ns";
 import { RegularFactions, FactionsList } from "Utils/factions";
 
-// ── Entry point ───────────────────────────────────────────────────────────────
-
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.clearLog();
@@ -18,7 +16,6 @@ export async function main(ns: NS): Promise<void> {
         const hasAugs = (f: string) =>
             ns.singularity.getAugmentationsFromFaction(f as any).some(a => !owned.includes(a));
 
-        // Accept any pending invites that still have unowned augments
         for (const faction of invited.filter(hasAugs)) {
             ns.singularity.joinFaction(faction);
             ns.print(`📬 Joined ${faction}`);
@@ -48,8 +45,6 @@ export async function main(ns: NS): Promise<void> {
         await ns.sleep(2000);
     }
 }
-
-// ── Requirement checking ──────────────────────────────────────────────────────
 
 type ReqResult = { text: string; met: boolean; req: PlayerRequirement };
 
@@ -165,8 +160,6 @@ function checkReq(ns: NS, req: PlayerRequirement): ReqResult {
     return { text, met, req };
 }
 
-// ── Automated actions ─────────────────────────────────────────────────────────
-
 async function meetReq(ns: NS, req: PlayerRequirement): Promise<void> {
     switch (req.type) {
         case "backdoorInstalled":
@@ -188,7 +181,6 @@ async function meetReq(ns: NS, req: PlayerRequirement): Promise<void> {
             ns.singularity.workForCompany(req.company, false);
             break;
         case "someCondition":
-            // Try to meet the first unmet sub-condition
             for (const sub of req.conditions) {
                 const result = checkReq(ns, sub);
                 if (!result.met) { await meetReq(ns, sub); break; }
@@ -200,13 +192,11 @@ async function meetReq(ns: NS, req: PlayerRequirement): Promise<void> {
                 if (!result.met) await meetReq(ns, sub);
             }
             break;
-        // Not automatable — displayed as progress only
         default:
             break;
     }
 }
 
-/** Install a backdoor by navigating to the server via BFS path. */
 async function installBackdoor(ns: NS, target: string): Promise<void> {
     const server = ns.getServer(target) as Server;
     if (!server.hasAdminRights)                              return;
@@ -222,7 +212,6 @@ async function installBackdoor(ns: NS, target: string): Promise<void> {
     ns.print(`✅ Backdoor installed: ${target}`);
 }
 
-/** BFS from home to find the shortest path to a hostname. */
 function findPath(ns: NS, target: string): string[] {
     const visited = new Set<string>(["home"]);
     const queue: { host: string; path: string[] }[] = [{ host: "home", path: ["home"] }];
@@ -239,7 +228,6 @@ function findPath(ns: NS, target: string): string[] {
     return [];
 }
 
-/** Sum a stat across all hacknet nodes. */
 function totalHacknetStat(ns: NS, stat: "level" | "ram" | "cores"): number {
     let total = 0;
     for (let i = 0; i < ns.hacknet.numNodes(); i++) total += ns.hacknet.getNodeStats(i)[stat];

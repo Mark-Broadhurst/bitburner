@@ -30,11 +30,6 @@ export async function main(ns: NS): Promise<void> {
   }
 }
 
-/**
- * Build the universe of sleeve-eligible augment names dynamically:
- * union of what each sleeve already has installed and what each sleeve
- * can still purchase.  Sorted alphabetically for a stable display order.
- */
 function getAllSleeveAugNames(ns: NS): string[] {
   const all = new Set<string>();
   for (let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
