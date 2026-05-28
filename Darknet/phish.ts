@@ -1,10 +1,5 @@
 import { NS } from "@ns";
 
-/**
- * Pure phishing loop — runs ON a darknet server.
- * Stasis linking, RAM freeing, and cache claiming are all handled by
- * stasis.ts and crawler.ts; this script does only one thing.
- */
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
 

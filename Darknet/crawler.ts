@@ -1,19 +1,7 @@
 import { NS } from "@ns";
 
-/**
- * Self-replicating darknet crawler.
- *
- * Each instance runs on one server. It probes nearby servers, cracks them,
- * then copies itself there and execs with preventDuplicates so the crawler
- * spreads across the network. After each mutation everything re-cracks fresh.
- */
-
 const SELF       = "Darknet/crawler.js";
 const MAX_EVENTS = 30;
-
-// ---------------------------------------------------------------------------
-// Logging
-// ---------------------------------------------------------------------------
 
 const eventLog: string[] = [];
 
@@ -36,10 +24,6 @@ function readRemoteEvents(ns: NS): string[] {
     );
 }
 
-// ---------------------------------------------------------------------------
-// Crack context
-// ---------------------------------------------------------------------------
-
 interface CrackCtx {
     ns:      NS;
     host:    string;
@@ -52,20 +36,12 @@ interface CrackCtx {
 
 type CrackerFn = (ctx: CrackCtx) => Promise<string[]>;
 
-// ---------------------------------------------------------------------------
-// Heartbleed helper
-// ---------------------------------------------------------------------------
-
 async function heartbleed(ctx: CrackCtx): Promise<string[]> {
     if (ctx.ns.getPlayer().skills.charisma < ctx.ns.dnet.getServerRequiredCharismaLevel(ctx.host))
         return [];
     const hb = await ctx.ns.dnet.heartbleed(ctx.host, { peek: true, logsToCapture: 10 });
     return hb.logs;
 }
-
-// ---------------------------------------------------------------------------
-// Model crackers — each is self-contained, calls heartbleed if it needs it
-// ---------------------------------------------------------------------------
 
 async function zeroLogon(ctx: CrackCtx): Promise<string[]> {
     return ctx.length === 0 ? [""] : ["0".repeat(ctx.length)];
@@ -154,7 +130,7 @@ async function factoriOs(ctx: CrackCtx): Promise<string[]> {
 
 async function openWebAccessPoint(_ctx: CrackCtx): Promise<string[]> { return [""]; }
 
-async function accountsManager(_ctx: CrackCtx): Promise<string[]> { return []; }  // handled interactively
+async function accountsManager(_ctx: CrackCtx): Promise<string[]> { return []; }
 
 async function kingOfTheHill(ctx: CrackCtx): Promise<string[]> {
     const logs = await heartbleed(ctx);
@@ -172,7 +148,7 @@ async function kingOfTheHill(ctx: CrackCtx): Promise<string[]> {
     return [];
 }
 
-async function rateMyPix(_ctx: CrackCtx): Promise<string[]> { return []; }  // handled interactively
+async function rateMyPix(_ctx: CrackCtx): Promise<string[]> { return []; }
 
 async function php54(ctx: CrackCtx): Promise<string[]> {
     const match = ctx.hint.match(/shuffled\s+(\d+)/i);
@@ -180,10 +156,6 @@ async function php54(ctx: CrackCtx): Promise<string[]> {
     if (!digits) return [];
     return [...new Set(permutations(digits))].filter(p => ctx.length === 0 || p.length === ctx.length);
 }
-
-// ---------------------------------------------------------------------------
-// Dispatch map
-// ---------------------------------------------------------------------------
 
 const MODELS: Record<string, CrackerFn> = {
     "ZeroLogon":           zeroLogon,
@@ -201,12 +173,8 @@ const MODELS: Record<string, CrackerFn> = {
     "RateMyPix.Auth":      rateMyPix,
     "PHP 5.4":             php54,
     "Laika4":              laika4,
-    "(The Labyrinth)":     async (_ctx) => [],  // interactive solver handles it
+    "(The Labyrinth)":     async (_ctx) => [],
 };
-
-// ---------------------------------------------------------------------------
-// Candidate assembly
-// ---------------------------------------------------------------------------
 
 async function buildCandidates(ctx: CrackCtx): Promise<string[]> {
     if (!(ctx.modelId in MODELS)) {
@@ -218,10 +186,6 @@ async function buildCandidates(ctx: CrackCtx): Promise<string[]> {
     return [...new Set(await MODELS[ctx.modelId](ctx))];
 }
 
-// ---------------------------------------------------------------------------
-// Main loop
-// ---------------------------------------------------------------------------
-
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
 
@@ -231,10 +195,10 @@ export async function main(ns: NS): Promise<void> {
         ns.ui.resizeTail(720, 600);
     }
 
-    await localMaintenance(ns);
-
     while (true) {
         try {
+            await localMaintenance(ns);
+
             const probeHosts = ns.dnet.probe();
             const servers = probeHosts
                 .map(host => ({ host, auth: (ns.dnet as any).getServerDetails(host) }))
@@ -252,12 +216,10 @@ export async function main(ns: NS): Promise<void> {
                 ns.print("─".repeat(64));
             }
 
-            // ── Spread to every server we already have a session on ──────────
             for (const { host } of servers.filter(s => s.auth.hasSession)) {
                 await spread(ns, host);
             }
 
-            // ── Crack the first uncracked server, then loop back to re-probe ─
             const target = servers.find(s => !s.auth.hasSession);
 
             if (target) {
@@ -280,11 +242,9 @@ export async function main(ns: NS): Promise<void> {
                     if (onHome) ns.print(`⚠ ${host}: ${e}`);
                     else        log(ns, `⚠ ${host}: ${e}`);
                 }
-                // Loop immediately — re-probe and pick the next uncracked server
                 continue;
             }
 
-            // ── Nothing left to crack — wait for the next mutation ───────────
             if (onHome) {
                 const remoteEvents = readRemoteEvents(ns);
                 if (remoteEvents.length > 0) {
@@ -296,7 +256,6 @@ export async function main(ns: NS): Promise<void> {
             }
 
             await ns.dnet.nextMutation();
-            await localMaintenance(ns);
         } catch (e) {
             if (onHome) {
                 ns.clearLog();
@@ -309,10 +268,6 @@ export async function main(ns: NS): Promise<void> {
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Crack a single server
-// ---------------------------------------------------------------------------
 
 async function crack(ns: NS, host: string, auth: any): Promise<string | null> {
     const modelId = auth.modelId ?? "?";
@@ -391,14 +346,9 @@ async function crack(ns: NS, host: string, auth: any): Promise<string | null> {
     return null;
 }
 
-// ---------------------------------------------------------------------------
-// Interactive solver lock — prevents multiple crawlers racing on same host
-// ---------------------------------------------------------------------------
-
 function acquireLock(ns: NS, host: string): boolean {
     const lockFile = `Darknet/lock_${host.replace(/\W/g, "_")}.txt`;
     const me = ns.getHostname();
-    // If another crawler already holds the lock, back off
     const held = ns.read(lockFile);
     if (held && held !== me) return false;
     ns.write(lockFile, me, "w");
@@ -409,33 +359,42 @@ function releaseLock(ns: NS, host: string): void {
     ns.rm(`Darknet/lock_${host.replace(/\W/g, "_")}.txt`);
 }
 
-// ---------------------------------------------------------------------------
-// Spread / maintenance
-// ---------------------------------------------------------------------------
-
 async function spread(ns: NS, host: string): Promise<void> {
+    for (const cacheFile of ns.ls(host, ".cache")) {
+        const result = ns.dnet.openCache(cacheFile);
+        if (result.success) log(ns, `💰 cache ${cacheFile} on ${host} (karma -${result.karmaLoss})`);
+        else                log(ns, `⚠ cache ${cacheFile} on ${host}: ${result.message}`);
+    }
+
     const blocked = ns.dnet.getBlockedRam(host);
-    if (blocked > 0) await ns.dnet.memoryReallocation(host);
+    if (blocked > 0) {
+        const mr = await ns.dnet.memoryReallocation(host);
+        if (mr.success) log(ns, `🔓 freed ${blocked}GB blocked RAM on ${host}`);
+        else            log(ns, `⚠ RAM release failed on ${host}: ${mr.message}`);
+    }
+
+    for (const file of ns.ls(host).filter(f => f.endsWith(".exe"))) {
+        const pid = ns.exec(file, host, 1);
+        if (pid > 0) log(ns, `🚀 exec ${file} on ${host} (pid ${pid})`);
+        else         log(ns, `⚠ failed to exec ${file} on ${host}`);
+    }
+
     await harvestFiles(ns, host);
+
     await ns.scp(SELF, host, "home");
     ns.exec(SELF, host, { preventDuplicates: true } as any);
 }
 
-/**
- * Copy any executables and data files from a cracked darknet server back to home.
- * Skips our own crawler files and lock files.
- */
 async function harvestFiles(ns: NS, host: string): Promise<void> {
-    const ours = new Set([SELF, `Darknet/events_${host.replace(/\W/g, "_")}.txt`]);
+    const skip = new Set([SELF, `Darknet/events_${host.replace(/\W/g, "_")}.txt`]);
     const files = ns.ls(host).filter(f =>
-        !ours.has(f) &&
+        !skip.has(f) &&
         !f.startsWith("Darknet/lock_") &&
         !f.startsWith("Darknet/events_")
     );
     for (const file of files) {
         const ok = await ns.scp(file, "home", host);
         if (ok) log(ns, `📦 harvested ${file} from ${host}`);
-        else    log(ns, `⚠ failed to harvest ${file} from ${host}`);
     }
 }
 
@@ -456,10 +415,6 @@ async function localMaintenance(ns: NS): Promise<void> {
         else                log(ns, `cache ${cacheFile} failed on ${hostname}: ${result.message}`);
     }
 }
-
-// ---------------------------------------------------------------------------
-// (The Labyrinth): DFS maze solver
-// ---------------------------------------------------------------------------
 
 async function labyrinthSolve(ns: NS, host: string): Promise<boolean> {
     let state: any;
@@ -505,13 +460,7 @@ async function labyrinthSolve(ns: NS, host: string): Promise<boolean> {
     return await dfs(state.coords as [number, number]);
 }
 
-// ---------------------------------------------------------------------------
-// DeepGreen: Mastermind solver
-// ---------------------------------------------------------------------------
-
 async function mastermindSolve(ns: NS, host: string, length: number): Promise<string | null> {
-    // Phase 1: probe "dddd" for each digit — bulls == exact count of d in the password
-    // (every guess position is d, so any d in the secret at any position is a bull)
     log(ns, `[DeepGreen] ${host} — phase 1: probing digit counts`);
     const digitCounts = new Array(10).fill(0);
     let knownTotal = 0;
@@ -531,7 +480,6 @@ async function mastermindSolve(ns: NS, host: string, length: number): Promise<st
         log(ns, `[DeepGreen] ${host} — probe "${guess}" → ${fb.bulls} '${d}'s (${knownTotal}/${length} known)`);
     }
 
-    // Build the digit multiset from the counts
     const digitList: string[] = [];
     for (let d = 0; d <= 9; d++)
         for (let i = 0; i < digitCounts[d]; i++)
@@ -539,7 +487,6 @@ async function mastermindSolve(ns: NS, host: string, length: number): Promise<st
 
     log(ns, `[DeepGreen] ${host} — phase 2: permutations of [${digitList.join("")}]`);
 
-    // Phase 2: try every unique permutation of those digits
     const seen = new Set<string>();
     for (const perm of permutations(digitList.join(""))) {
         if (seen.has(perm)) continue;
@@ -573,11 +520,6 @@ function parseMastermindFeedback(data: unknown, message?: string): { bulls: numb
     return null;
 }
 
-
-// ---------------------------------------------------------------------------
-// NIL: yes/yesn't solver
-// ---------------------------------------------------------------------------
-
 async function nilSolve(ns: NS, host: string, length: number): Promise<string | null> {
     let pool: string[] = [];
     for (let i = 0; i < Math.pow(10, length); i++) pool.push(String(i).padStart(length, "0"));
@@ -609,21 +551,14 @@ async function nilSolve(ns: NS, host: string, length: number): Promise<string | 
     return null;
 }
 
-// ---------------------------------------------------------------------------
-// Factori-Os: divisibility constraint solver
-// ---------------------------------------------------------------------------
-
 async function factoriOsSolve(ns: NS, host: string, length: number): Promise<string | null> {
-    // Build pool of all length-digit numbers
     let pool: number[] = [];
     for (let i = 0; i < Math.pow(10, length); i++) pool.push(i);
 
-    // Small primes to use as probes — each splits the pool by divisibility
     const probes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47];
     log(ns, `[Factori-Os] ${host} — starting, pool=${pool.length}`);
 
     while (pool.length > 1) {
-        // Pick the probe that most evenly splits the remaining pool, else fall back to pool[0]
         let guess: number;
         const bestProbe = probes.find(p => {
             const divCount = pool.filter(n => n % p === 0).length;
@@ -640,7 +575,6 @@ async function factoriOsSolve(ns: NS, host: string, length: number): Promise<str
         const r = await ns.dnet.authenticate(host, guessStr);
         if (r.success) return guessStr;
 
-        // r.data = true means password IS divisible by guess
         const divisible = r.data === true;
         const before = pool.length;
         pool = pool.filter(n => n !== guess && (n % guess === 0) === divisible);
@@ -654,10 +588,6 @@ async function factoriOsSolve(ns: NS, host: string, length: number): Promise<str
     }
     return null;
 }
-
-// ---------------------------------------------------------------------------
-// AccountsManager_4.2: Higher / Lower binary search
-// ---------------------------------------------------------------------------
 
 async function accountsManagerSolve(ns: NS, host: string, length: number): Promise<string | null> {
     const max = Math.pow(10, length) - 1;
@@ -684,14 +614,6 @@ async function accountsManagerSolve(ns: NS, host: string, length: number): Promi
     }
     return null;
 }
-
-// ---------------------------------------------------------------------------
-// RateMyPix.Auth: chilli-count solver
-// ---------------------------------------------------------------------------
-// Each authentication response contains 🌶️ × score where score is the number
-// of digits in the guess that are at the correct position.  Pool-filtering
-// works the same way as the NIL solver but uses a count instead of per-digit
-// booleans.
 
 async function rateMyPixSolve(ns: NS, host: string, length: number): Promise<string | null> {
     let pool: string[] = [];
@@ -729,17 +651,14 @@ async function rateMyPixSolve(ns: NS, host: string, length: number): Promise<str
     return null;
 }
 
-/** Count the number of 🌶️ chilli emojis (or parse a numeric X/N pattern) in the feedback. */
 function parseChilliScore(data: unknown, message?: string): number | null {
     const text = (typeof data === "string" ? data : "")
               || (typeof message === "string" ? message : "");
     if (!text) return null;
 
-    // Primary: count chilli emoji occurrences
     const chillis = text.match(/🌶/g);
     if (chillis !== null) return chillis.length;
 
-    // Fallback: numeric "X/N" pattern
     const m = text.match(/(\d+)\s*\/\s*\d+/);
     if (m) return parseInt(m[1]);
 
@@ -752,15 +671,10 @@ function parseNilFeedback(data: unknown): boolean[] | null {
     else if (Array.isArray(data))  parts = (data as unknown[]).map(String);
     else                           return null;
     if (parts.length === 0) return null;
-    // Normalize curly/smart apostrophes (U+2018–U+201B) to straight ASCII
-    parts = parts.map(p => p.replace(/[‘’‚‛]/g, "'").trim());
+    parts = parts.map(p => p.replace(/[''‚‛]/g, "'").trim());
     if (!parts.every(p => p === "yes" || p === "yesn't")) return null;
     return parts.map(p => p === "yes");
 }
-
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
 
 function parseRomanNumeral(s: string): number | null {
     const vals: Record<string, number> = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 };

@@ -1,13 +1,13 @@
 import { NS } from "@ns";
 
-// The crawler self-replicates — we only need to launch it on home.
-// autocrack.js is superseded; kill it if still running from an old session.
-const LEGACY = ["Darknet/autocrack.js", "Darknet/deploy.js", "Darknet/hopDeploy.js", "Darknet/pin.js", "Darknet/scan.js"];
+const LEGACY = [
+    "Darknet/autocrack.js", "Darknet/deploy.js", "Darknet/hopDeploy.js",
+    "Darknet/probe.js",     "Darknet/scan.js",   "Darknet/mutationWatch.js",
+];
 
 const DAEMONS: string[] = [
-    "Darknet/crawler.js",
-    "Darknet/mutationWatch.js",
-    "Darknet/stasis.js",
+    "Darknet/crawler.js",  // self-replicating crawler — cracks servers, harvests files
+    "Darknet/stasis.js",   // mutation watch + stasis links + phishing
 ];
 
 export async function main(ns: NS): Promise<void> {

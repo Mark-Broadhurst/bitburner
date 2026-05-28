@@ -465,24 +465,33 @@ function totalPrimesInRange([a, b]: number[]): number {
     return count;
 }
 
-function largestRectangle(grid: number[][]): number {
+function largestRectangle(grid: number[][]): [[number, number], [number, number]] {
+    // Returns [top-left [row,col], bottom-right [row,col]] of the largest rectangle of 1s.
     const rows = grid.length, cols = grid[0].length;
-    const h = new Array(cols).fill(0);
+    const h = new Array<number>(cols).fill(0);
     let bestArea = 0;
+    let best: [[number, number], [number, number]] = [[0, 0], [0, 0]];
+
     for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) h[c] = grid[r][c] === 0 ? 0 : h[c] + 1;
+        for (let c = 0; c < cols; c++)
+            h[c] = grid[r][c] === 0 ? 0 : h[c] + 1;
+
         const stack: number[] = [];
         for (let c = 0; c <= cols; c++) {
             const cur = c < cols ? h[c] : 0;
             while (stack.length && h[stack[stack.length - 1]] > cur) {
-                const top = stack.pop()!;
+                const top    = stack.pop()!;
                 const height = h[top];
-                const left = stack.length ? stack[stack.length - 1] + 1 : 0;
-                const area = height * (c - left);
-                if (area > bestArea) bestArea = area;
+                const left   = stack.length ? stack[stack.length - 1] + 1 : 0;
+                const right  = c - 1;
+                const area   = height * (right - left + 1);
+                if (area > bestArea) {
+                    bestArea = area;
+                    best = [[r - height + 1, left], [r, right]];
+                }
             }
             stack.push(c);
         }
     }
-    return bestArea;
+    return best;
 }

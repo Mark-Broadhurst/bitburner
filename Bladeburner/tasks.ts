@@ -39,6 +39,7 @@ export async function main(ns: NS): Promise<void> {
         printStatus(ns, stamina, hpLow, action);
 
         await startAction(ns, action);
+        await ns.sleep(100); // safety floor — prevents spinning if startAction returns early
     }
 }
 
@@ -129,12 +130,13 @@ function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSp
         const curRank = ns.bladeburner.getRank();
         const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, nextOp.name);
         const rankOk    = curRank >= nextOp.rank;
-        const eligible  = rankOk && min >= MIN_LOW && max >= MIN_HIGH;
+        const chanceOk  = min >= MIN_LOW;
+        const eligible  = rankOk && chanceOk;
         const marker    = selType === BB.BlackOp && selName === nextOp.name ? "▶" : " ";
         const rankStr   = rankOk ? "✅" : `⏳ need ${ns.format.number(nextOp.rank)}`;
-        const chanceStr = `${ns.format.percent(min)}–${ns.format.percent(max)}`;
-        const status    = eligible ? "✅" : "⏳";
-        ns.print(`${marker} ${nextOp.name.padEnd(34)} rank ${rankStr}  ${chanceStr} ${status}`);
+        const chanceStr = `${ns.format.percent(min)}–${ns.format.percent(max)} ${chanceOk ? "✅" : "⏳"}`;
+        const blocker   = eligible ? "" : !rankOk ? " (rank)" : " (chance)";
+        ns.print(`${marker} ${nextOp.name.padEnd(34)} rank ${rankStr}  ${chanceStr}${blocker}`);
     }
 
     // Operations
@@ -163,7 +165,7 @@ function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSp
 function printAction(
     ns: NS,
     type: BladeburnerActionType,
-    name: string,
+    name: BladeburnerActionName,
     selType: BladeburnerActionType,
     selName: BladeburnerActionName,
 ): void {
@@ -202,11 +204,19 @@ async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
         ns.bladeburner.switchCity(best);
     }
 
-    ns.bladeburner.startAction(type, action);
+    const started = ns.bladeburner.startAction(type, action);
+    if (!started) {
+        // Action failed to start (count ran out, rank insufficient, etc.)
+        await ns.sleep(1000);
+        return;
+    }
+    // Poll until the action is no longer current. Using sleep-based polling
+    // rather than nextUpdate() avoids any edge case where nextUpdate resolves
+    // immediately (e.g. idle state, race condition) which would spin the loop.
     while (true) {
-        await ns.bladeburner.nextUpdate();
+        await ns.sleep(250);
         const cur = ns.bladeburner.getCurrentAction();
-        if (cur.type !== type || cur.name !== action) break;
+        if (!cur || cur.type !== type || cur.name !== action) break;
     }
 }
 
@@ -222,8 +232,11 @@ function getBlackOp(ns: NS): ActionSpec | null {
     // Each Black Op has exactly one use and must be done in order;
     // getNextBlackOp() already skips completed ones.
     if (ns.bladeburner.getRank() < next.rank) return null;
-    const [min, max] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, next.name);
-    if (min < MIN_LOW || max < MIN_HIGH) return null;
+    // Black Ops are one-shot milestones — only require min >= MIN_LOW.
+    // We do NOT require max >= MIN_HIGH because Black Op estimates rarely reach
+    // 100%; using that check would silently suppress them even when rank is met.
+    const [min] = ns.bladeburner.getActionEstimatedSuccessChance(BB.BlackOp, next.name);
+    if (min < MIN_LOW) return null;
     return [BB.BlackOp, next.name];
 }
 
@@ -247,7 +260,7 @@ function getBestEligible<T extends BladeburnerContractName | BladeburnerOperatio
             return { name, count, min, max };
         })
         .filter(c => c.count > 0 && c.min >= MIN_LOW && c.max >= MIN_HIGH)
-        .sort((a, b) => b.min - a.min);   // highest confidence first
+        .sort((a, b) => a.min - b.min);   // lowest min first = hardest eligible action (more rank)
     return candidates.length > 0 ? [type, candidates[0].name] : null;
 }
 

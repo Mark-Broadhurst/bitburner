@@ -4,142 +4,187 @@
 
 | File | Purpose |
 |------|---------|
-| `startup.ts` | Entry point — kills legacy scripts, launches the three daemon scripts |
+| `startup.ts` | Entry point — kills legacy scripts, launches daemons; waits for `DarkscapeNavigator.exe` |
 | `crawler.ts` | Self-replicating cracker — probes, cracks, spreads, maintains passwords |
+| `stasis.ts` | Mutation watch + stasis links + phishing on pinned servers |
 | `crack.ts` | Interactive manual crack tool with tail window output |
-| `phish.ts` | Phishing loop — runs ON a darknet server, calls `phishingAttack` continuously |
-| `stasis.ts` | Maintains stasis links on highest-RAM cracked servers; deploys phishing |
-| `mutationWatch.ts` | Re-seeds crawler to all cracked servers after each topology mutation |
-| `deploy.ts` | Redeploys `phish.js` to all cracked servers (uses `hopDeploy` for deep nodes) |
-| `hopDeploy.ts` | Relay helper — exec'd on a parent node to deploy to an adjacent target |
-| `pin.ts` | Runs on a darknet server to establish / remove its stasis link |
-| `probe.ts` | One-shot topology probe and display |
-| `autocrack.ts` | Legacy — superseded by `crawler.ts` |
-| `cleanup.ts` | Maintenance utility |
-
-Requires `DarkscapeNavigator.exe` — `startup.ts` waits until it exists before launching.
+| `phish.ts` | Phishing loop — runs **on** a darknet server, calls `phishingAttack` continuously |
+| `pin.ts` | Runs on a darknet server to establish or remove its stasis link (kept separate from `phish.ts` to avoid paying the 12 GB RAM cost for `setStasisLink` on servers that don't need pinning) |
+| `cleanup.ts` | Deletes all `Darknet/*.txt` files on home (event logs, probe results) |
 
 ---
 
 ## Daemon Architecture
 
-Three long-running daemons started by `startup.ts`:
+Two long-running daemons started by `startup.ts`:
 
 ```
-crawler.ts      — self-replicating; cracks and spreads across the network
-mutationWatch.ts — re-seeds crawler after topology mutations
-stasis.ts       — maintains stasis links + phishing on top-RAM servers
+crawler.ts  — self-replicating; cracks and spreads across the network
+stasis.ts   — mutation watch + stasis links + phishing on top-RAM servers
 ```
+
+`startup.ts` also kills any stale scripts from old sessions before launching.
 
 ---
 
 ## Crawler (`crawler.ts`)
 
-Runs on every server it has cracked.  Each instance:
+Runs on every server it has cracked. Each instance:
 
-1. Calls `ns.dnet.probe()` to see adjacent servers
-2. For each adjacent server:
-   - If already has a session → re-spread crawler (keeps it alive)
-   - If no session → attempt to crack
-3. On success → save password to `Darknet/passwords.txt`, scp back to home, spread
-4. Waits for `nextMutation()`, runs `localMaintenance`, repeats
+1. Runs `localMaintenance` (cache claiming + RAM freeing on the local server)
+2. Calls `ns.dnet.probe()` to see adjacent servers
+3. For each server with an active session → calls `spread()` to keep it seeded
+4. For the first server without a session → attempts to crack it, then loops immediately to re-probe
+5. When all adjacent servers are cracked → waits for `nextMutation()` and repeats
 
-**Local maintenance** (on startup and after each mutation):
-- Frees any blocked RAM via `memoryReallocation`
-- Claims any `.cache` files present on the current server
+### Post-crack sequence (`spread()`)
 
-**Spreading**: copies `crawler.js` to the target and `exec`s with `preventDuplicates: true`
-so it's a no-op if already running there.
+Executed every time we have an active session on a server (fresh crack or re-visit after mutation):
+
+1. **Open caches** — calls `openCache()` on every `.cache` file found on the server
+2. **Free blocked RAM** — calls `memoryReallocation()` if any RAM is blocked
+3. **Run exe files** — `exec()`s every `.exe` file found on the server (1 thread each)
+4. **Harvest files** — SCPs non-crawler files back to home for inspection
+5. **Deploy crawler** — SCPs and `exec`s `crawler.js` with `preventDuplicates: true` (no-op if already running)
+
+### Local maintenance (`localMaintenance()`)
+
+Runs at the top of every loop iteration on the server the crawler is currently on:
+
+- Only runs if `isDarknetServer()` is true
+- Frees any blocked RAM via `memoryReallocation()`
+- Claims any `.cache` files via `openCache()` (logs karma cost on success)
+
+### Interactive solver lock
+
+Multiple crawlers on different servers can see the same target. For interactive
+solvers (AccountsManager, DeepGreen, NIL, RateMyPix, The Labyrinth, Factori-Os)
+a lock file is written to `Darknet/lock_<host>.txt` before solving. If another
+crawler already holds the lock it backs off immediately. The lock is released
+in a `finally` block so crashes don't leave stale locks.
 
 ---
 
-## Cracking Strategy (candidate generation)
+## Cracking Strategy
 
-Both `crawler.ts` and `crack.ts` use the same multi-stage candidate pipeline:
+Each server has a `modelId`. `buildCandidates()` dispatches to a model-specific
+function and deduplicates the result. Unknown models throw — add them to the
+`MODELS` dispatch map in `crawler.ts`.
 
-| Priority | Strategy |
-|----------|---------|
-| 1 | Model-specific candidates (hardcoded patterns per `modelId`) |
-| 2 | Empty password (if hint says "no password" or length = 0) |
-| 3 | Model-specific hint extractions (DeskMemo last word, Pr0verFl0 overflow, BellaCuore Roman numeral) |
-| 4 | Hint phrase matching ("remember to use X", "the password is X") |
-| 5 | Range brute-force ("a number between X and Y") |
-| 6 | Full numeric brute-force ("divisible by 1") |
-| 7 | Base conversion (hint or data field contains "base N number M") |
-| 8 | N-digit number extraction from data field |
-| 9 | Heartbleed log parsing (crawler only, requires sufficient charisma) |
-| 10 | Known passwords from other servers (reuse check) |
-| 11 | Raw data / hint as last resort |
+### Candidate generators per model
+
+| Model | Strategy |
+|-------|---------|
+| `ZeroLogon` | All-zeros or empty string |
+| `FreshInstall_1.0` | Common default passwords (`admin`, `12345`, etc.) filtered by length |
+| `DeskMemo_3.1` | Last word of the hint field |
+| `CloudBlare(tm)` | Digits extracted from `data` field, trimmed to correct length |
+| `Pr0verFl0` | Repeated `"a"` characters (buffer overflow — any repeated char works) |
+| `BellaCuore` | Roman numeral in `data` or quoted in hint → decimal value, zero-padded |
+| `OctantVoxel` | Base-conversion: hint `"the base N number X in base 10"` or `data` as `"base,value"` |
+| `Factori-Os` | Divisibility: hint gives divisor; static candidates; also has interactive solver |
+| `OpenWebAccessPoint` / `Openwebaccesspoint` | Empty password |
+| `AccountsManager_4.2` | Interactive binary search — response is `"Higher"` / `"Lower"` |
+| `KingOfTheHill` | Heartbleed log parsing — looks for `"I think N with N is key"` |
+| `RateMyPix.Auth` | Interactive pool filter — response is 🌶️ × (count of correct-position digits) |
+| `PHP 5.4` | Permutations of digits from hint or data |
+| `Laika4` | Dog names; heartbleed hints bias ordering via letter frequency scoring |
+| `(The Labyrinth)` | DFS maze solver using `labreport` + direction commands |
+| `DeepGreen` | Mastermind solver (see below) |
+| `NIL` | Yes/yesn't position feedback solver (see below) |
 
 ---
 
 ## Interactive Solvers
 
-Two server models require interactive feedback loops rather than static candidates:
+### AccountsManager_4.2 — Binary Search
+
+Standard binary search over the numeric range. Feedback is parsed from
+`r.data` and `r.message` concatenated: if it contains `"higher"` → `lo = mid + 1`;
+`"lower"` → `hi = mid - 1`.
 
 ### DeepGreen — Mastermind / Bulls-and-Cows
 
-Opening strategy: guess `"000...0"`, `"111...1"`, ... `"999...9"` first.
-Each repeated-digit guess reveals exactly how many of that digit are in the code.
-Once the digit multiset is known, the candidate pool is tiny.
-Remaining guesses use pool[0] and filter by `(bulls, cows)` match.
+**Phase 1** — probe each repeated-digit guess `"000…"` through `"999…"`.
+The number of bulls from each tells you exactly how many of that digit appear
+in the password. This builds the full digit multiset in ≤10 guesses.
 
-Feedback parsing handles: `"bulls,cows"` string, structured object, and message regex.
+**Phase 2** — try every unique permutation of that multiset. Pool is small
+because the digit counts are fully known.
 
-### NIL — Exact-position yes / yesn't
+Feedback parsing handles: `"bulls,cows"` string, structured object with
+various key names, and message regex patterns.
 
-Each guess receives per-position feedback: `"yes"` (digit matches) or `"yesn't"` (doesn't).
-Filters the candidate pool on exact position matches after each guess.
+### NIL — Yes / Yesn't
+
+Each guess receives per-position boolean feedback (`"yes"` = correct position,
+`"yesn't"` = wrong). Pool is filtered after each guess to only candidates
+that would produce the same per-position match pattern. Smart quotes are
+normalised before parsing.
+
+### RateMyPix.Auth — Chilli Count
+
+Each guess receives a score: number of 🌶️ emojis = digits in the correct position.
+Same pool-filter approach as NIL but using a count instead of per-digit booleans.
+Falls back to `"X/N"` numeric pattern if emoji counting fails.
+
+### Factori-Os — Divisibility Constraints
+
+Uses small prime probes to split the pool by divisibility. The probe that
+most evenly splits the remaining pool is chosen each round. Falls back to
+`pool[0]` when no useful prime remains.
+
+### (The Labyrinth) — DFS Maze
+
+Calls `labreport()` for current position and available exits.
+DFS explores all reachable cells; `authenticate(host, "go <direction>")` moves
+and returns success if the exit is found. Backtracks with the reverse command.
 
 ---
 
-## Known Server Models
+## Stasis + Mutation Watch (`stasis.ts`)
 
-| Model | Pattern |
-|-------|---------|
-| `ZeroLogon` | Password is all zeros (or empty) |
-| `FreshInstall_1.0` | "12345" or similar default |
-| `DeskMemo_3.1` | Password is last word of hint |
-| `Pr0verFl0` | Any repeated character of correct length passes |
-| `BellaCuore` | Data/hint contains a Roman numeral; password is its decimal value |
-| `OctantVoxel` | Base-conversion (caught by base-match regex) |
-| `Laika4` | Dog name; heartbleed leaks letter hints used to reorder candidates |
-| `DeepGreen` | Mastermind interactive solver |
-| `NIL` | Yes/yesn't position feedback solver |
-| `Factori-Os` | Variable hint patterns — falls through to hint-based logic |
-| `CloudBlare(tm)` | Pattern not yet identified |
-| `OpenWebAccessPoint` | Password leaked as N-digit number in data field |
+Runs from home. Re-evaluates on startup and after every `nextMutation()`:
 
----
+### Crawler re-seed
 
-## Stasis Links (`stasis.ts`)
+1. Restarts `crawler.js` on home if it died
+2. For every server in `passwords.txt`: reconnects and re-execs `crawler.js`
+   with `preventDuplicates: true` (no-op if already running)
+3. Evicts stale passwords when `connectToSession` fails with a non-"Service Unavailable" error
+
+### Stasis links
 
 - Picks the top-N cracked online servers by usable RAM (`maxRam − blockedRam`)
   where N = `getStasisLinkLimit()`
-- Pins those servers (runs `pin.js` on them to establish the stasis link)
+- Pins those servers (SCPs and execs `pin.js` to establish the stasis link; frees
+  blocked RAM first so `pin.js` has room to run)
 - Unpins any that fell out of the top-N
-- Deploys `phish.js` to all currently pinned servers
-- Re-evaluates after every `nextMutation()`
 
 Stasis links keep servers reachable through topology mutations so phishing
 doesn't need to re-authenticate constantly.
 
----
+### Phishing
 
-## Mutation Watch (`mutationWatch.ts`)
-
-After each `nextMutation()`:
-1. Restarts `crawler.js` on home if it died
-2. For every server in `passwords.txt`:
-   - Reconnects (evicts stale passwords if connection fails with non-"Service Unavailable" error)
-   - Re-execs `crawler.js` with `preventDuplicates: true`
+Deploys `phish.js` to all currently pinned servers. `phish.js` runs a continuous
+`phishingAttack()` loop on each server.
 
 ---
 
 ## Password Persistence
 
 `Darknet/passwords.txt` is a JSON map of `{ hostname: password }`.
-Every crawler instance scps it back to home after writing, so the file stays
-authoritative on home regardless of which server discovered the password.
-Invalid entries (non-darknet hosts, gone servers) are evicted by `stasis.ts`
-and `mutationWatch.ts`.
+Written by `crawler.ts` after each successful crack; SCPd back to home so the
+file is authoritative on home regardless of which server discovered the password.
+
+Invalid entries are evicted in two places:
+- `stasis.ts` — evicts hosts that throw when `getServerDetails` is called
+- `stasis.ts` crawler re-seed — evicts when `connectToSession` fails (non-unavailable error)
+
+---
+
+## Heartbleed
+
+Used by `KingOfTheHill` and `Laika4`. Requires player charisma ≥ the server's
+`getServerRequiredCharismaLevel()`. Called with `{ peek: true, logsToCapture: 10 }`.
+Returns early with an empty array if charisma is insufficient.

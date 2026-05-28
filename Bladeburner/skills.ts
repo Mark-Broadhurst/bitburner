@@ -1,55 +1,49 @@
-import { NS } from "@ns";
+import { NS, BladeburnerSkillName } from "@ns";
 
 /**
- * Priority-ordered Bladeburner skill loop.
+ * Two-phase Bladeburner skill loop:
  *
- * Always buys one level of the highest-priority skill we can currently afford.
- * Priority ordering is chosen for early-game efficiency:
- *   - Blade's Intuition raises success chance on everything
- *   - Overclock cuts action time (max level 90)
- *   - Combat/operation skills before money/utility skills
+ * Phase 1 — Overclock is not maxed (cap 90):
+ *   Buy Overclock whenever we can afford it.
+ *   While saving for Overclock, spend spare SP on Blade's Intuition
+ *   to keep success chances healthy.
+ *
+ * Phase 2 — Overclock maxed:
+ *   Equal allocation — always buy the skill with the lowest current level
+ *   that we can afford, so all skills rise together.
  */
 
-const PRIORITY: string[] = [
-    "Blade's Intuition",  // success chance on all actions — highest ROI
-    "Overclock",          // -2% action time per level, max 90 — huge efficiency
-    "Cloak",              // reduces stamina cost
-    "Short-Circuit",      // boosts contract success
-    "Digital Observer",   // boosts operation success
-    "Evasive System",     // reduces chaos gain rate
-    "Tracer",             // tracking / detection bonus
+const SKILLS: BladeburnerSkillName[] = [
+    "Blade's Intuition",  // success chance on all actions
+    "Overclock",          // -2% action time per level, max 90
+    "Cloak",              // stamina cost reduction
+    "Short-Circuit",      // contract success
+    "Digital Observer",   // operation success
+    "Evasive System",     // chaos gain rate reduction
+    "Tracer",             // tracking bonus
     "Reaper",             // combat stat multiplier
-    "Datamancer",         // sharpens population estimates
+    "Datamancer",         // population estimate accuracy
     "Cyber's Edge",       // HP and stat boosts
-    "Hands of Midas",     // money gain — useful once combat is solid
-    "Hyperdrive",         // all-around multiplier — best when others are high
+    "Hands of Midas",     // money gain
+    "Hyperdrive",         // all-around multiplier
 ];
 
-// Overclock caps at level 90 — don't waste SP on it after that.
 const OVERCLOCK_MAX = 90;
 
 export async function main(ns: NS): Promise<void> {
     ns.disableLog("ALL");
     ns.ui.openTail();
-    ns.ui.resizeTail(480, 360);
+    ns.ui.resizeTail(500, 420);
 
     while (true) {
         await ns.bladeburner.nextUpdate();
         ns.clearLog();
 
-        const sp = ns.bladeburner.getSkillPoints();
+        const sp             = ns.bladeburner.getSkillPoints();
+        const overclockLevel = ns.bladeburner.getSkillLevel("Overclock");
+        const overclockMaxed = overclockLevel >= OVERCLOCK_MAX;
 
-        // Build priority list, filtering out capped skills
-        const available = PRIORITY.filter(skill => {
-            if (skill === "Overclock" && ns.bladeburner.getSkillLevel("Overclock") >= OVERCLOCK_MAX)
-                return false;
-            return true;
-        });
-
-        // Find the highest-priority skill we can afford
-        const target = available.find(skill =>
-            sp >= ns.bladeburner.getSkillUpgradeCost(skill)
-        );
+        const target = selectSkill(ns, sp, overclockMaxed);
 
         if (target) {
             const cost = ns.bladeburner.getSkillUpgradeCost(target);
@@ -58,43 +52,77 @@ export async function main(ns: NS): Promise<void> {
             ns.tprint(`BB skills: ${target} → ${level} (${cost} SP)`);
         }
 
-        // Status table
-        // Marker logic:
-        //   ▶  = will be bought next (highest-priority affordable skill)
-        //   •  = higher-priority than ▶ but not yet affordable (saving towards)
-        //   ⏳  = highest-priority overall when nothing is affordable (saving towards this)
-        //   (space) = lower priority, or capped
-        const targetIdx = target ? available.indexOf(target) : -1;
-        // When nothing is affordable, mark the highest-priority available skill with ⏳
-        const savingFor = target == null ? available[0] ?? null : null;
+        printStatus(ns, sp, overclockMaxed, target);
+    }
+}
 
-        ns.print(`SP: ${sp}`);
-        ns.print("─".repeat(50));
-        ns.print(`${"Skill".padEnd(26)} ${"Lvl".padStart(4)}  ${"Next cost".padStart(10)}  `);
-        ns.print("─".repeat(50));
-        for (const skill of PRIORITY) {
-            const level  = ns.bladeburner.getSkillLevel(skill);
-            const cost   = ns.bladeburner.getSkillUpgradeCost(skill);
-            const capped = skill === "Overclock" && level >= OVERCLOCK_MAX;
-            const idx    = available.indexOf(skill);
+// ---------------------------------------------------------------------------
+// Skill selection
+// ---------------------------------------------------------------------------
 
-            let marker: string;
-            if (capped) {
-                marker = " ";
-            } else if (skill === target) {
-                marker = "▶";
-            } else if (savingFor !== null && skill === savingFor) {
-                marker = "⏳";
-            } else if (target !== null && idx !== -1 && idx < targetIdx) {
-                // Higher priority than current target but can't afford yet
-                marker = "•";
-            } else {
-                marker = " ";
-            }
+function selectSkill(ns: NS, sp: number, overclockMaxed: boolean): BladeburnerSkillName | null {
+    if (!overclockMaxed) {
+        // Phase 1: Overclock is the priority
+        const ocCost = ns.bladeburner.getSkillUpgradeCost("Overclock");
+        if (sp >= ocCost) return "Overclock";
+        // Can't afford Overclock — top up Blade's Intuition in the meantime
+        const biCost = ns.bladeburner.getSkillUpgradeCost("Blade's Intuition");
+        if (sp >= biCost) return "Blade's Intuition";
+        return null;
+    }
 
-            const costStr = capped ? "    MAX   " : `${String(cost).padStart(7)} SP`;
-            const afford  = !capped && cost <= sp ? "✅" : "  ";
-            ns.print(`${marker} ${skill.padEnd(26)} ${String(level).padStart(4)}  ${costStr}  ${afford}`);
+    // Phase 2: equal allocation — lowest-level affordable skill wins
+    const candidates = SKILLS
+        .filter(s => s !== "Overclock")          // already capped
+        .map(s => ({
+            s,
+            level: ns.bladeburner.getSkillLevel(s),
+            cost:  ns.bladeburner.getSkillUpgradeCost(s),
+        }))
+        .filter(c => sp >= c.cost)
+        .sort((a, b) => a.level - b.level);      // lowest level first
+
+    return candidates[0]?.s ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Status display
+// ---------------------------------------------------------------------------
+
+function printStatus(
+    ns: NS,
+    sp: number,
+    overclockMaxed: boolean,
+    target: BladeburnerSkillName | null,
+): void {
+    const phase = overclockMaxed ? "Phase 2: equal allocation" : "Phase 1: maxing Overclock";
+    ns.print(`SP: ${sp}   [${phase}]`);
+    ns.print("─".repeat(54));
+    ns.print(`${"Skill".padEnd(26)} ${"Lvl".padStart(4)}  ${"Next cost".padStart(10)}  `);
+    ns.print("─".repeat(54));
+
+    for (const skill of SKILLS) {
+        const level  = ns.bladeburner.getSkillLevel(skill);
+        const cost   = ns.bladeburner.getSkillUpgradeCost(skill);
+        const capped = skill === "Overclock" && level >= OVERCLOCK_MAX;
+
+        let marker: string;
+        if (skill === target) {
+            marker = "▶";                          // buying this tick
+        } else if (capped) {
+            marker = "✔";                          // done
+        } else if (!overclockMaxed) {
+            // Phase 1: highlight what we're saving for
+            if (skill === "Overclock") marker = "⏳";           // primary goal
+            else if (skill === "Blade's Intuition") marker = "•"; // secondary
+            else marker = " ";
+        } else {
+            // Phase 2: all active skills show equal priority
+            marker = " ";
         }
+
+        const costStr = capped ? "    MAX   " : `${String(cost).padStart(7)} SP`;
+        const afford  = !capped && cost <= sp ? "✅" : "  ";
+        ns.print(`${marker} ${skill.padEnd(26)} ${String(level).padStart(4)}  ${costStr}  ${afford}`);
     }
 }

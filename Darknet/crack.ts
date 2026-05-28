@@ -121,7 +121,6 @@ async function attemptCrack(
     }
     ns.print("─".repeat(60));
 
-    // DeepGreen: Mastermind interactive solver
     if (modelId === "DeepGreen" && auth.passwordFormat === "numeric" && auth.passwordLength > 0) {
         ns.print("DeepGreen detected — running Mastermind solver...");
         const pw = await mastermindSolve(ns, host,  auth.passwordLength,
@@ -135,7 +134,6 @@ async function attemptCrack(
         return;
     }
 
-    // NIL: exact-position yes/yesn't solver
     if (modelId === "NIL" && auth.passwordFormat === "numeric" && auth.passwordLength > 0) {
         ns.print("NIL detected — running position-feedback solver...");
         const pw = await nilSolve(ns, host, auth.passwordLength,
@@ -173,33 +171,23 @@ async function attemptCrack(
     ns.tprint(`  Hint: ${auth.passwordHint}  Data: ${auth.data}  Format: ${auth.passwordFormat}[${auth.passwordLength}]`);
 }
 
-// ---------------------------------------------------------------------------
-// Candidate generation
-// ---------------------------------------------------------------------------
-
 function buildCandidates(hint: string, data: string, format: string, length: number, modelId: string): string[] {
     const candidates: string[] = [];
 
-    // 1. Model-specific candidates first
     candidates.push(...getModelCandidates(modelId, format, length));
 
-    // 2. Empty password
     if (length === 0 || /there is no password|i didn't set a password|the pin is empty/i.test(hint)) {
         candidates.push("");
     }
 
-    // 3. Model-specific hint-based extractions
     if (modelId === "DeskMemo_3.1") {
-        // Password is always the last word of the hint ("It's set to 950", etc.)
         const lastWord = hint.trim().split(/\s+/).pop();
         if (lastWord) candidates.push(lastWord);
     }
     if (modelId === "Pr0verFl0") {
-        // Any repeated character of the right length passes — classic overflow fill
         candidates.push("A".repeat(length));
     }
 
-    // 4. "Remember to use 312" / "The password/key/secret/code/pin is X"
     const rememberMatch = hint.match(/remember to use (\S+)/i);
     if (rememberMatch) candidates.push(rememberMatch[1]);
     const plainMatch = hint.match(/(?:the (?:password|key|secret|code|pin) is|(?:password|key|secret|code|pin):)\s*(\S+)/i);
@@ -213,7 +201,6 @@ function buildCandidates(hint: string, data: string, format: string, length: num
         else if (!format) candidates.push(val);
     }
 
-    // 5. "a number between X and Y"
     const rangeMatch = hint.match(/number between (\d+) and (\d+)/i);
     if (rangeMatch) {
         const lo = parseInt(rangeMatch[1]);
@@ -224,13 +211,11 @@ function buildCandidates(hint: string, data: string, format: string, length: num
         }
     }
 
-    // 6. "divisible by 1" — brute force
     if (/the password is divisible by 1/i.test(hint)) {
         const total = Math.pow(10, length);
         for (let i = 0; i < total; i++) candidates.push(String(i).padStart(length, "0"));
     }
 
-    // 7. Base conversion
     const baseMatch = hint.match(/the base (\d+) number (\S+) in base 10/i);
     if (baseMatch) {
         const converted = parseInt(baseMatch[2], parseInt(baseMatch[1]));
@@ -244,17 +229,13 @@ function buildCandidates(hint: string, data: string, format: string, length: num
         }
     }
 
-    // 8. For numeric format: extract all N-digit sequences from data (password may be embedded)
     if (format === "numeric" && length > 0 && data) {
         const matches = data.match(new RegExp(`\\d{${length}}`, "g")) ?? [];
         candidates.push(...matches);
     }
 
-    // 9. Raw data / hint as last resort — only if length matches (avoids passing long JSON blobs)
     if (data && (length === 0 || data.length === length)) candidates.push(data);
     if (hint && (length === 0 || hint.length === length)) candidates.push(hint);
-
-    // Note: crack.ts doesn't pass logs — Laika4 letter-hint reordering is in crawler.ts where logs are available
 
     return [...new Set(candidates)];
 }
@@ -266,7 +247,6 @@ function getModelCandidates(modelId: string, format: string, length: number): st
 
         case "Openwebaccesspoint":
         case "OpenWebAccessPoint":
-            // Password leaked as N-digit number in data field — caught by numeric extraction
             return [""];
 
         case "FreshInstall_1.0":
@@ -274,34 +254,26 @@ function getModelCandidates(modelId: string, format: string, length: number): st
                 .filter(p => length === 0 || p.length === length);
 
         case "Factori-Os":
-            // Uses variable hint patterns — fall through to hint-based logic
             return [];
 
         case "Laika4":
-            // "It's my dog's name" — heartbleed leaks letter hints ("Theres a x, and maybe a m...")
             return [
-                // 3-letter
                 "max", "rex",
-                // 4-letter
                 "maxi", "roxy", "luna", "bear", "duke", "finn", "jake", "lola",
                 "coco", "zeus", "beau", "toby", "ruby", "jack", "nova", "koda",
                 "thor", "axel", "xena", "otto", "hugo", "odie", "toto", "fido",
                 "spot", "lady",
-                // 5-letter
                 "maxie", "roxie", "laika", "belka", "buddy", "rocky", "bella",
                 "molly", "daisy", "rufus", "scout", "sadie", "lucky", "bingo",
                 "pluto", "astro", "tramp", "benji", "rover",
-                // 6-letter
                 "baxter", "cooper", "tucker", "harley", "ginger", "shadow", "diesel",
             ].filter(p => length === 0 || p.length === length);
 
         case "Pr0verFl0":
-            // Password = hint[length:length*2] — handled in buildCandidates (needs hint)
             return [];
 
         case "DeepGreen":
         case "NIL":
-            // Interactive solvers — handled before candidate list in attemptCrack
             return [];
 
         case "OctantVoxel":
@@ -328,10 +300,6 @@ function defaultPasswordCandidates(format: string, length: number): string[] {
             return [];
     }
 }
-
-// ---------------------------------------------------------------------------
-// DeepGreen: Mastermind / Bulls-and-Cows solver
-// ---------------------------------------------------------------------------
 
 async function mastermindSolve(
     ns: NS, host: string, length: number,
@@ -368,7 +336,6 @@ async function mastermindSolve(
 }
 
 function parseMastermindFeedback(data: unknown, message?: string): { bulls: number; cows: number } | null {
-    // "bulls,cows" string e.g. "0,3"
     if (typeof data === "string") {
         const parts = data.split(",");
         if (parts.length === 2) {
@@ -378,7 +345,6 @@ function parseMastermindFeedback(data: unknown, message?: string): { bulls: numb
         }
     }
 
-    // Structured object
     if (data && typeof data === "object") {
         const d = data as Record<string, unknown>;
         const bulls = firstNumber(d, "bulls", "correct", "exact", "rightPosition", "hits");
@@ -386,7 +352,6 @@ function parseMastermindFeedback(data: unknown, message?: string): { bulls: numb
         if (bulls !== null && cows !== null) return { bulls, cows };
     }
 
-    // Message string e.g. "0 symbols are match exactly, and 3 symbols match but are in the wrong place."
     if (message) {
         const m = message.match(/(\d+)\s+symbols?\s+(?:are\s+)?match\s+exactly.*?(\d+)\s+symbols?\s+match\s+but\s+are\s+in\s+the\s+wrong\s+place/i);
         if (m) return { bulls: parseInt(m[1]), cows: parseInt(m[2]) };
@@ -413,10 +378,6 @@ function scoreMastermind(guess: string, secret: string): [number, number] {
     for (const d in gRem) cows += Math.min(gRem[d], sRem[d] ?? 0);
     return [bulls, cows];
 }
-
-// ---------------------------------------------------------------------------
-// NIL: exact-position "yes" / "yesn't" feedback solver
-// ---------------------------------------------------------------------------
 
 async function nilSolve(
     ns: NS, host: string, length: number,
@@ -462,10 +423,6 @@ function parseNilFeedback(data: unknown): boolean[] | null {
     if (!parts.every(p => p === "yes" || p === "yesn't")) return null;
     return parts.map(p => p === "yes");
 }
-
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
 
 function firstNumber(obj: Record<string, unknown>, ...keys: string[]): number | null {
     for (const k of keys) if (typeof obj[k] === "number") return obj[k] as number;
