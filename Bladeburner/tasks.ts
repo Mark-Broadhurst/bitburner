@@ -1,5 +1,4 @@
 import { CityName, NS, BladeburnerActionName, BladeburnerActionType, BladeburnerContractName, BladeburnerOperationName } from "@ns";
-import { BladeburnerAction } from "Bladeburner/enums";
 
 const CITIES = (ns: NS): CityName[] => {
     const C = ns.enums.CityName;
@@ -35,13 +34,15 @@ export async function main(ns: NS): Promise<void> {
         ns.clearLog();
         printStatus(ns, stamina, hpLow, action);
 
-        await startAction(ns, action);
+        const started = await startAction(ns, action);
+        if (!started) await startAction(ns, selectFreeAction(ns));
         await ns.sleep(100);
     }
 }
 
 function selectAction(ns: NS, rest: boolean, hpLow: boolean): ActionSpec {
-    if (hpLow) return BladeburnerAction.HyperbolicRegenerationChamber;
+    const BB = ns.enums.BladeburnerActionType;
+    if (hpLow) return [BB.General, "Hyperbolic Regeneration Chamber"];
 
     if (!rest) {
         return getBlackOp(ns)   ??
@@ -74,18 +75,18 @@ function selectFreeAction(ns: NS): ActionSpec {
         }
     }
 
-    if (actionsLeft === 0) return BladeburnerAction.InciteViolence;
+    if (actionsLeft === 0) return [BB.General, "Incite Violence"];
 
     const cities    = CITIES(ns);
     const worstCity = [...cities].sort((a, b) =>
         ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
     const worstChaos = ns.bladeburner.getCityChaos(worstCity);
 
-    if (eligibleLeft === 0 && worstChaos > 0) return BladeburnerAction.Diplomacy;
+    if (eligibleLeft === 0 && worstChaos > 0) return [BB.General, "Diplomacy"];
 
-    if (worstChaos > CHAOS_THRESHOLD) return BladeburnerAction.Diplomacy;
+    if (worstChaos > CHAOS_THRESHOLD) return [BB.General, "Diplomacy"];
 
-    return BladeburnerAction.FieldAnalysis;
+    return [BB.General, "Field Analysis"];
 }
 
 function printStatus(ns: NS, stamina: number, hpLow: boolean, selected: ActionSpec): void {
@@ -154,7 +155,7 @@ function printAction(
     ns.print(`${marker} ${name.padEnd(34)} ${countStr}  ${chanceStr} ${statusIcon}`);
 }
 
-async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
+async function startAction(ns: NS, [type, action]: ActionSpec): Promise<boolean> {
     if (action === "Diplomacy") {
         const worst = [...CITIES(ns)].sort((a, b) =>
             ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a))[0];
@@ -174,13 +175,14 @@ async function startAction(ns: NS, [type, action]: ActionSpec): Promise<void> {
     const started = ns.bladeburner.startAction(type, action);
     if (!started) {
         await ns.sleep(1000);
-        return;
+        return false;
     }
     while (true) {
         await ns.sleep(250);
         const cur = ns.bladeburner.getCurrentAction();
         if (!cur || cur.type !== type || cur.name !== action) break;
     }
+    return true;
 }
 
 function getBlackOp(ns: NS): ActionSpec | null {

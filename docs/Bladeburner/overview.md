@@ -7,7 +7,6 @@
 | `start.ts` | Joins Bladeburner division, launches `skills.js` and `tasks.js` |
 | `tasks.ts` | Main action loop — selects the best action each tick |
 | `skills.ts` | Skill upgrade loop — keeps skills balanced with a phase-1 bootstrap |
-| `enums.ts` | Type definitions and `BladeburnerAction` static class |
 
 ---
 
@@ -94,18 +93,8 @@ Reaper, Evasive System, Datamancer, Cyber's Edge, Hands of Midas, Hyperdrive
 
 ---
 
-## Enum / Type Reference (`enums.ts`)
+## Action Type Constants
 
-Provides typed constants for all action strings to avoid raw string literals in scripts.
-
-| Export | Contents |
-|--------|---------|
-| `contracts` | Tracking, Bounty Hunter, Retirement |
-| `operations` | Investigation → Raid → Assassination (6 total, ordered by priority) |
-| `blackOps` | 21 ops in sequence from Typhoon to Daedalus |
-| `actions` | 6 General actions |
-| `skills` | 12 skills |
-| `BladeburnerAction` | Static class with `[Type, Name]` tuple constants for every action |
-
-The `BladeburnerAction` class exists so call sites can write
-`BladeburnerAction.Diplomacy` instead of `["General", "Diplomacy"]`.
+Action specs are inline tuples `[ns.enums.BladeburnerActionType, name]` using the
+built-in `BladeburnerActionType` / `BladeburnerActionName` types from `@ns`.
+No separate enum file is needed.

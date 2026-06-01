@@ -237,6 +237,7 @@ export async function main(ns: NS): Promise<void> {
                     } else {
                         if (onHome) ns.print(`❌ failed: ${host}`);
                         else        log(ns, `❌ failed: ${host}`);
+                        await ns.sleep(1_000);
                     }
                 } catch (e) {
                     if (onHome) ns.print(`⚠ ${host}: ${e}`);

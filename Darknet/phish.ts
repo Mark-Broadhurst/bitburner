@@ -11,5 +11,6 @@ export async function main(ns: NS): Promise<void> {
     while (true) {
         const r = await ns.dnet.phishingAttack();
         ns.print(`Phish: ${r.success ? "✅ hit" : "❌ miss"} — ${r.message}`);
+        if (!r.success) await ns.sleep(1_000);
     }
 }
